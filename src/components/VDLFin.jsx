@@ -1,6 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+// ─── SUPABASE CLIENT ──────────────────────────────────────────────────────
+// Agrega estas variables en tu .env.local:
+//   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+//   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 
 // ─── PALETA ───────────────────────────────────────────────────────────────
 const C = {
@@ -49,8 +59,8 @@ const inRange = (fecha, desde, hasta) => {
   return true;
 };
 
-let _rutaCounter = 1000;
-const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
+// Genera IDs de ruta tipo RTA-XXXX (timestamp + random para evitar colisiones)
+const nextRutaId = () => `RTA-${Date.now().toString(36).toUpperCase().slice(-4)}${Math.random().toString(36).slice(2, 4).toUpperCase()}`;
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────
 const inputStyle = {
@@ -67,25 +77,22 @@ const selectStyle = {
 };
 
 // ─── BASE COMPONENTS ──────────────────────────────────────────────────────
-
 function Chip({ label }) {
   if (!label) return <span style={{ color: C.muted, fontSize: 12 }}>—</span>;
   const s = CHIP_MAP[label] || { bg: "#E2E8E3", color: "#4A5C52" };
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", padding: "2px 10px",
-      borderRadius: 20, fontSize: 11, fontWeight: 600, background: s.bg, color: s.color,
-    }}>{label}</span>
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: s.bg, color: s.color }}>
+      {label}
+    </span>
   );
 }
 
 function IdBadge({ id }) {
   if (!id) return <span style={{ color: C.muted }}>—</span>;
   return (
-    <span style={{
-      fontFamily: "monospace", fontSize: 11, background: "#ECF1EC",
-      color: C.muted, padding: "2px 7px", borderRadius: 5, border: "1px solid #E2E8E3",
-    }}>{id}</span>
+    <span style={{ fontFamily: "monospace", fontSize: 11, background: "#ECF1EC", color: C.muted, padding: "2px 7px", borderRadius: 5, border: "1px solid #E2E8E3" }}>
+      {id}
+    </span>
   );
 }
 
@@ -102,9 +109,7 @@ function Select({ value, onChange, options, placeholder = "Seleccionar...", disa
 function Field({ label, children, span2 = false }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: span2 ? "span 2" : undefined }}>
-      <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        {label}
-      </label>
+      <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</label>
       {children}
     </div>
   );
@@ -114,65 +119,31 @@ function Input(props) { return <input style={inputStyle} {...props} />; }
 function Textarea(props) { return <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} {...props} />; }
 
 function EmptyRow({ cols, msg }) {
-  return (
-    <tr>
-      <td colSpan={cols} style={{ textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13 }}>
-        {msg || "Sin registros"}
-      </td>
-    </tr>
-  );
+  return <tr><td colSpan={cols} style={{ textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13 }}>{msg || "Sin registros"}</td></tr>;
 }
 
 function Th({ children }) {
-  return (
-    <th style={{
-      padding: "9px 12px", textAlign: "left", fontSize: 11, fontWeight: 600,
-      color: C.muted, background: "#F0F4F0", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap",
-    }}>{children}</th>
-  );
+  return <th style={{ padding: "9px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted, background: "#F0F4F0", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>{children}</th>;
 }
 
 function Td({ children, bold }) {
-  return (
-    <td style={{
-      padding: "9px 12px", fontSize: 12, color: C.text,
-      borderBottom: "1px solid #E2E8E3", fontWeight: bold ? 600 : 400,
-      verticalAlign: "middle",
-    }}>{children}</td>
-  );
+  return <td style={{ padding: "9px 12px", fontSize: 12, color: C.text, borderBottom: "1px solid #E2E8E3", fontWeight: bold ? 600 : 400, verticalAlign: "middle" }}>{children}</td>;
 }
 
-// ─── EDIT / DELETE BUTTONS ────────────────────────────────────────────────
 function RowActions({ onEdit, onDelete }) {
   return (
     <td style={{ padding: "6px 12px", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>
       <div style={{ display: "flex", gap: 6 }}>
-        <button
-          onClick={onEdit}
-          title="Editar"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600,
-            cursor: "pointer", border: "1px solid #E2E8E3",
-            background: "#FFFFFF", color: C.muted, transition: "all 0.15s",
-          }}
+        <button onClick={onEdit}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #E2E8E3", background: "#FFFFFF", color: C.muted }}
           onMouseEnter={e => { e.currentTarget.style.background = "#EFF3EF"; e.currentTarget.style.color = C.green; e.currentTarget.style.borderColor = C.green; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "#E2E8E3"; }}
-        >
+          onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "#E2E8E3"; }}>
           ✎ Editar
         </button>
-        <button
-          onClick={onDelete}
-          title="Eliminar"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600,
-            cursor: "pointer", border: "1px solid #E2E8E3",
-            background: "#FFFFFF", color: C.muted, transition: "all 0.15s",
-          }}
+        <button onClick={onDelete}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #E2E8E3", background: "#FFFFFF", color: C.muted }}
           onMouseEnter={e => { e.currentTarget.style.background = "#FEF2F2"; e.currentTarget.style.color = "#B91C1C"; e.currentTarget.style.borderColor = "#FECACA"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "#E2E8E3"; }}
-        >
+          onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "#E2E8E3"; }}>
           ✕ Eliminar
         </button>
       </div>
@@ -183,17 +154,8 @@ function RowActions({ onEdit, onDelete }) {
 function FormPanel({ visible, title, isEdit, children }) {
   if (!visible) return null;
   return (
-    <div style={{
-      background: isEdit ? "#FFF8EC" : "#EFF3EF",
-      border: `1px solid ${isEdit ? "#F5D89A" : "#E2E8E3"}`,
-      borderRadius: 20, padding: 20, marginBottom: 16,
-    }}>
-      <div style={{
-        fontSize: 12, fontWeight: 700, color: isEdit ? "#92610A" : C.muted,
-        marginBottom: 14, paddingBottom: 10,
-        borderBottom: `1px solid ${isEdit ? "#F5D89A" : "#E2E8E3"}`,
-        textTransform: "uppercase", letterSpacing: "0.06em",
-      }}>
+    <div style={{ background: isEdit ? "#FFF8EC" : "#EFF3EF", border: `1px solid ${isEdit ? "#F5D89A" : "#E2E8E3"}`, borderRadius: 20, padding: 20, marginBottom: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: isEdit ? "#92610A" : C.muted, marginBottom: 14, paddingBottom: 10, borderBottom: `1px solid ${isEdit ? "#F5D89A" : "#E2E8E3"}`, textTransform: "uppercase", letterSpacing: "0.06em" }}>
         {isEdit ? "✎ " : ""}{title}
       </div>
       {children}
@@ -201,59 +163,51 @@ function FormPanel({ visible, title, isEdit, children }) {
   );
 }
 
-function BtnRow({ onCancel, onSave, isEdit }) {
+function BtnRow({ onCancel, onSave, isEdit, saving }) {
   return (
     <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
-      <button onClick={onCancel} style={{
-        padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 500,
-        cursor: "pointer", border: "1px solid #E2E8E3", background: "transparent", color: C.muted,
-      }}>Cancelar</button>
-      <button onClick={onSave} style={{
-        padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600,
-        cursor: "pointer", border: "none",
-        background: isEdit ? "#B45309" : C.green, color: "#fff",
-      }}>{isEdit ? "Guardar cambios" : "Guardar"}</button>
+      <button onClick={onCancel} disabled={saving} style={{ padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid #E2E8E3", background: "transparent", color: C.muted }}>
+        Cancelar
+      </button>
+      <button onClick={onSave} disabled={saving} style={{ padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: saving ? C.muted : isEdit ? "#B45309" : C.green, color: "#fff" }}>
+        {saving ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar"}
+      </button>
     </div>
   );
 }
 
 function AddBtn({ onClick, label }) {
-  return (
-    <button onClick={onClick} style={{
-      marginBottom: 14, padding: "8px 18px", borderRadius: 12,
-      background: C.green, color: "#fff", border: "none",
-      fontSize: 13, fontWeight: 600, cursor: "pointer",
-    }}>{label}</button>
-  );
+  return <button onClick={onClick} style={{ marginBottom: 14, padding: "8px 18px", borderRadius: 12, background: C.green, color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{label}</button>;
 }
 
 function EmptyHint({ msg }) {
-  return (
-    <div style={{
-      padding: "10px 14px", borderRadius: 10, border: "1px dashed #E2E8E3",
-      fontSize: 12, color: C.muted, background: "#FAFCFA",
-    }}>{msg}</div>
-  );
+  return <div style={{ padding: "10px 14px", borderRadius: 10, border: "1px dashed #E2E8E3", fontSize: 12, color: C.muted, background: "#FAFCFA" }}>{msg}</div>;
 }
 
 function GreenBanner({ children }) {
+  return <div style={{ gridColumn: "span 2", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "8px 12px", borderRadius: 10, background: C.greenSoft, fontSize: 12, color: C.greenStrong }}>{children}</div>;
+}
+
+// Toast notification
+function Toast({ msg, type }) {
+  if (!msg) return null;
+  const bg = type === "error" ? "#FEF2F2" : "#DDEEDC";
+  const color = type === "error" ? "#B91C1C" : C.greenStrong;
   return (
-    <div style={{
-      gridColumn: "span 2", display: "flex", gap: 8,
-      alignItems: "center", flexWrap: "wrap",
-      padding: "8px 12px", borderRadius: 10,
-      background: C.greenSoft, fontSize: 12, color: C.greenStrong,
-    }}>{children}</div>
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, padding: "12px 20px", borderRadius: 12, background: bg, color, fontSize: 13, fontWeight: 600, boxShadow: "0 4px 20px rgba(0,0,0,0.12)", maxWidth: 360 }}>
+      {msg}
+    </div>
   );
+}
+
+// Loading overlay for table
+function LoadingRow({ cols }) {
+  return <tr><td colSpan={cols} style={{ textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13 }}>Cargando…</td></tr>;
 }
 
 // ─── KPI CARD ─────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, badge, badgeType }) {
-  const colors = {
-    up:   { bg: "#DDEEDC", color: "#0F5C2E" },
-    down: { bg: "#FCEBEB", color: "#791F1F" },
-    neu:  { bg: "#ECF1EC", color: C.muted },
-  };
+  const colors = { up: { bg: "#DDEEDC", color: "#0F5C2E" }, down: { bg: "#FCEBEB", color: "#791F1F" }, neu: { bg: "#ECF1EC", color: C.muted } };
   const bc = colors[badgeType] || colors.neu;
   return (
     <div style={{ background: C.card, border: "1px solid #E2E8E3", borderRadius: 24, padding: "18px 20px", boxShadow: "0 4px 20px rgba(18,32,25,0.06)" }}>
@@ -267,15 +221,9 @@ function KpiCard({ label, value, sub, badge, badgeType }) {
 
 function NavItem({ label, active, onClick }) {
   return (
-    <button onClick={onClick} style={{
-      display: "flex", alignItems: "center", width: "100%", padding: "10px 16px",
-      background: active ? "#173428" : "transparent", border: "none",
-      borderLeft: active ? "3px solid #74B72E" : "3px solid transparent",
-      color: active ? "#fff" : "rgba(255,255,255,0.65)",
-      fontSize: 14, fontWeight: active ? 600 : 400,
-      cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-      borderRadius: active ? "0 10px 10px 0" : 0,
-    }}>{label}</button>
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", width: "100%", padding: "10px 16px", background: active ? "#173428" : "transparent", border: "none", borderLeft: active ? "3px solid #74B72E" : "3px solid transparent", color: active ? "#fff" : "rgba(255,255,255,0.65)", fontSize: 14, fontWeight: active ? 600 : 400, cursor: "pointer", textAlign: "left", transition: "all 0.15s", borderRadius: active ? "0 10px 10px 0" : 0 }}>
+      {label}
+    </button>
   );
 }
 
@@ -287,14 +235,71 @@ const MOD_META = {
   unidades:   { title: "Unidades",   sub: "Registro de vehículos de la flotilla" },
 };
 
-// ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
-function ModIngresos({ data, setData, desde, hasta }) {
-  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "" };
-  const [open, setOpen]       = useState(false);   // new form open
-  const [editIdx, setEditIdx] = useState(null);    // index being edited
-  const [form, setForm]       = useState(EMPTY);
+// ─── HOOK: CRUD GENÉRICO ──────────────────────────────────────────────────
+// Encapsula fetch / insert / update / delete para cualquier tabla de Supabase.
+function useTable(tableName, orderCol = "created_at") {
+  const [data, setData]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast]     = useState({ msg: "", type: "ok" });
 
-  const isEdit = editIdx !== null;
+  const notify = (msg, type = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: "", type: "ok" }), 3000);
+  };
+
+  // Fetch all rows
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    const { data: rows, error } = await supabase
+      .from(tableName)
+      .select("*")
+      .order(orderCol, { ascending: false });
+    if (error) { notify(`Error al cargar ${tableName}: ${error.message}`, "error"); }
+    else setData(rows || []);
+    setLoading(false);
+  }, [tableName, orderCol]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  // Insert
+  const insert = async (row) => {
+    const { data: inserted, error } = await supabase.from(tableName).insert(row).select().single();
+    if (error) { notify(`Error al guardar: ${error.message}`, "error"); return null; }
+    setData(d => [inserted, ...d]);
+    notify("Guardado correctamente ✓");
+    return inserted;
+  };
+
+  // Update
+  const update = async (id, row) => {
+    const { data: updated, error } = await supabase.from(tableName).update(row).eq("id", id).select().single();
+    if (error) { notify(`Error al actualizar: ${error.message}`, "error"); return null; }
+    setData(d => d.map(r => r.id === id ? updated : r));
+    notify("Actualizado correctamente ✓");
+    return updated;
+  };
+
+  // Delete
+  const remove = async (id) => {
+    const { error } = await supabase.from(tableName).delete().eq("id", id);
+    if (error) { notify(`Error al eliminar: ${error.message}`, "error"); return false; }
+    setData(d => d.filter(r => r.id !== id));
+    notify("Eliminado correctamente ✓");
+    return true;
+  };
+
+  return { data, loading, insert, update, remove, toast };
+}
+
+// ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
+function ModIngresos({ desde, hasta, onToast }) {
+  const { data, loading, insert, update, remove } = useTable("ingresos", "created_at");
+  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "" };
+  const [open, setOpen]       = useState(false);
+  const [editId, setEditId]   = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [saving, setSaving]   = useState(false);
+  const isEdit = !!editId;
 
   const set = (k, v) => setForm(f => {
     const next = { ...f, [k]: v };
@@ -302,30 +307,23 @@ function ModIngresos({ data, setData, desde, hasta }) {
     return next;
   });
 
-  const openNew = () => { setForm(EMPTY); setEditIdx(null); setOpen(true); };
-  const openEdit = (i) => {
-    // find the real index in data (before filter)
-    const realIdx = data.indexOf(rows[i]);
-    setForm({ ...data[realIdx] });
-    setEditIdx(realIdx);
-    setOpen(true);
-  };
-  const cancel = () => { setForm(EMPTY); setEditIdx(null); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: String(r.siniva || ""), coniva: String(r.coniva || ""), fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "" }); setEditId(r.id); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
 
-  const save = () => {
+  const save = async () => {
     if (!form.factura || !form.siniva) { alert("Completa factura y monto"); return; }
-    if (isEdit) {
-      setData(d => d.map((r, i) => i === editIdx ? { ...form } : r));
-    } else {
-      setData(d => [...d, { ...form }]);
-    }
+    setSaving(true);
+    const payload = { ...form, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva) };
+    if (isEdit) await update(editId, payload);
+    else        await insert(payload);
+    setSaving(false);
     cancel();
   };
 
-  const remove = (i) => {
-    const realIdx = data.indexOf(rows[i]);
+  const del = async (r) => {
     if (!window.confirm("¿Eliminar este ingreso?")) return;
-    setData(d => d.filter((_, idx) => idx !== realIdx));
+    await remove(r.id);
   };
 
   const rows = useMemo(() => data.filter(r => inRange(r.fcarga, desde, hasta)), [data, desde, hasta]);
@@ -347,32 +345,30 @@ function ModIngresos({ data, setData, desde, hasta }) {
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
         </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} />
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nuevo ingreso" />}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr><Th>Factura</Th><Th>Período</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>Vencimiento</Th><Th>Estatus</Th><Th>Notas</Th><Th>Acciones</Th></tr>
-          </thead>
+          <thead><tr><Th>Factura</Th><Th>Período</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>Vencimiento</Th><Th>Estatus</Th><Th>Notas</Th><Th>Acciones</Th></tr></thead>
           <tbody>
-            {rows.length === 0 ? <EmptyRow cols={9} msg="Sin ingresos en este período" /> :
-              rows.map((r, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFCFA" }}>
-                  <Td bold>{r.factura}</Td>
-                  <Td>{r.periodo || "—"}</Td>
-                  <Td>{fmt(r.siniva)}</Td>
-                  <Td>{fmt(r.coniva)}</Td>
-                  <Td>{r.fcarga || "—"}</Td>
-                  <Td>{r.fvence || "—"}</Td>
-                  <Td><Chip label={r.estatus} /></Td>
-                  <Td><span style={{ color: C.muted, fontSize: 11, display: "block", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</span></Td>
-                  <RowActions onEdit={() => openEdit(i)} onDelete={() => remove(i)} />
-                </tr>
-              ))
-            }
+            {loading ? <LoadingRow cols={9} /> :
+             rows.length === 0 ? <EmptyRow cols={9} msg="Sin ingresos en este período" /> :
+             rows.map((r) => (
+              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                <Td bold>{r.factura}</Td>
+                <Td>{r.periodo || "—"}</Td>
+                <Td>{fmt(r.siniva)}</Td>
+                <Td>{fmt(r.coniva)}</Td>
+                <Td>{r.fcarga || "—"}</Td>
+                <Td>{r.fvence || "—"}</Td>
+                <Td><Chip label={r.estatus} /></Td>
+                <Td><span style={{ color: C.muted, fontSize: 11, display: "block", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</span></Td>
+                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -381,12 +377,14 @@ function ModIngresos({ data, setData, desde, hasta }) {
 }
 
 // ─── MÓDULO GASTOS ────────────────────────────────────────────────────────
-function ModGastos({ data, setData, desde, hasta, rutas }) {
+function ModGastos({ desde, hasta, rutas }) {
+  const { data, loading, insert, update, remove } = useTable("gastos", "created_at");
   const EMPTY = { monto: "", tipo: "", fecha: "", ruta: "", unidad: "", operador: "" };
-  const [open, setOpen]       = useState(false);
-  const [editIdx, setEditIdx] = useState(null);
-  const [form, setForm]       = useState(EMPTY);
-  const isEdit = editIdx !== null;
+  const [open, setOpen]     = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm]     = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const isEdit = !!editId;
 
   const set = (k, v) => setForm(f => {
     const next = { ...f, [k]: v };
@@ -401,29 +399,23 @@ function ModGastos({ data, setData, desde, hasta, rutas }) {
     setForm(f => ({ ...f, ruta: rutaId, operador: r?.operador || "", unidad: r?.unidad || "" }));
   };
 
-  const openNew = () => { setForm(EMPTY); setEditIdx(null); setOpen(true); };
-  const openEdit = (i) => {
-    const realIdx = data.indexOf(rows[i]);
-    setForm({ ...data[realIdx] });
-    setEditIdx(realIdx);
-    setOpen(true);
-  };
-  const cancel = () => { setForm(EMPTY); setEditIdx(null); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ monto: String(r.monto || ""), tipo: r.tipo || "", fecha: r.fecha || "", ruta: r.ruta || "", unidad: r.unidad || "", operador: r.operador || "" }); setEditId(r.id); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
 
-  const save = () => {
+  const save = async () => {
     if (!form.monto) { alert("Ingresa el monto"); return; }
-    if (isEdit) {
-      setData(d => d.map((r, i) => i === editIdx ? { ...form } : r));
-    } else {
-      setData(d => [...d, { ...form }]);
-    }
+    setSaving(true);
+    const payload = { ...form, monto: parseFloat(form.monto), ruta: form.ruta || null };
+    if (isEdit) await update(editId, payload);
+    else        await insert(payload);
+    setSaving(false);
     cancel();
   };
 
-  const remove = (i) => {
-    const realIdx = data.indexOf(rows[i]);
+  const del = async (r) => {
     if (!window.confirm("¿Eliminar este gasto?")) return;
-    setData(d => d.filter((_, idx) => idx !== realIdx));
+    await remove(r.id);
   };
 
   const rows = useMemo(() => data.filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
@@ -451,35 +443,31 @@ function ModGastos({ data, setData, desde, hasta, rutas }) {
             </GreenBanner>
           )}
           <Field label="Tipo de gasto" span2>
-            <Select value={form.tipo} onChange={v => set("tipo", v)}
-              options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Otro"]}
-              placeholder="Seleccionar tipo..." />
+            <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Otro"]} placeholder="Seleccionar tipo..." />
           </Field>
         </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} />
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nuevo gasto" />}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr><Th>Fecha</Th><Th>Monto</Th><Th>Tipo</Th><Th>ID Ruta</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th></tr>
-          </thead>
+          <thead><tr><Th>Fecha</Th><Th>Monto</Th><Th>Tipo</Th><Th>ID Ruta</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th></tr></thead>
           <tbody>
-            {rows.length === 0 ? <EmptyRow cols={7} msg="Sin gastos en este período" /> :
-              rows.map((r, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFCFA" }}>
-                  <Td>{r.fecha || "—"}</Td>
-                  <Td bold>{fmt(r.monto)}</Td>
-                  <Td><Chip label={r.tipo} /></Td>
-                  <Td><IdBadge id={r.ruta} /></Td>
-                  <Td>{r.unidad || "—"}</Td>
-                  <Td>{r.operador || "—"}</Td>
-                  <RowActions onEdit={() => openEdit(i)} onDelete={() => remove(i)} />
-                </tr>
-              ))
-            }
+            {loading ? <LoadingRow cols={7} /> :
+             rows.length === 0 ? <EmptyRow cols={7} msg="Sin gastos en este período" /> :
+             rows.map((r) => (
+              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                <Td>{r.fecha || "—"}</Td>
+                <Td bold>{fmt(r.monto)}</Td>
+                <Td><Chip label={r.tipo} /></Td>
+                <Td><IdBadge id={r.ruta} /></Td>
+                <Td>{r.unidad || "—"}</Td>
+                <Td>{r.operador || "—"}</Td>
+                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -488,12 +476,14 @@ function ModGastos({ data, setData, desde, hasta, rutas }) {
 }
 
 // ─── MÓDULO OPERADORES ────────────────────────────────────────────────────
-function ModOperadores({ data, setData, unidades }) {
+function ModOperadores({ unidades }) {
+  const { data, loading, insert, update, remove } = useTable("operadores", "created_at");
   const EMPTY = { nombre: "", economico: "", unidad: "", tunidad: "", tipo: "" };
-  const [open, setOpen]       = useState(false);
-  const [editIdx, setEditIdx] = useState(null);
-  const [form, setForm]       = useState(EMPTY);
-  const isEdit = editIdx !== null;
+  const [open, setOpen]     = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm]     = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const isEdit = !!editId;
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const unidadOpts = unidades.map(u => u.economico).filter(Boolean);
@@ -503,23 +493,22 @@ function ModOperadores({ data, setData, unidades }) {
     setForm(f => ({ ...f, unidad: eco, tunidad: u?.tipo || "" }));
   };
 
-  const openNew = () => { setForm(EMPTY); setEditIdx(null); setOpen(true); };
-  const openEdit = (i) => { setForm({ ...data[i] }); setEditIdx(i); setOpen(true); };
-  const cancel = () => { setForm(EMPTY); setEditIdx(null); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ nombre: r.nombre, economico: r.economico || "", unidad: r.unidad || "", tunidad: r.tunidad || "", tipo: r.tipo || "" }); setEditId(r.id); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
 
-  const save = () => {
+  const save = async () => {
     if (!form.nombre) { alert("Ingresa el nombre"); return; }
-    if (isEdit) {
-      setData(d => d.map((r, i) => i === editIdx ? { ...form } : r));
-    } else {
-      setData(d => [...d, { ...form }]);
-    }
+    setSaving(true);
+    if (isEdit) await update(editId, form);
+    else        await insert(form);
+    setSaving(false);
     cancel();
   };
 
-  const remove = (i) => {
+  const del = async (r) => {
     if (!window.confirm("¿Eliminar este operador?")) return;
-    setData(d => d.filter((_, idx) => idx !== i));
+    await remove(r.id);
   };
 
   const unidadSelected = form.unidad ? unidades.find(u => u.economico === form.unidad) : null;
@@ -531,8 +520,7 @@ function ModOperadores({ data, setData, unidades }) {
           <Field label="Nombre completo"><Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} /></Field>
           <Field label="Económico"><Input placeholder="ECO-001" value={form.economico} onChange={e => set("economico", e.target.value)} /></Field>
           <Field label="Unidad asignada" span2>
-            {unidadOpts.length === 0
-              ? <EmptyHint msg="No hay unidades registradas. Agrega unidades primero." />
+            {unidadOpts.length === 0 ? <EmptyHint msg="No hay unidades registradas. Agrega unidades primero." />
               : <Select value={form.unidad} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />}
           </Field>
           {unidadSelected && (
@@ -547,29 +535,27 @@ function ModOperadores({ data, setData, unidades }) {
             <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Tercera", "Propia"]} placeholder="Seleccionar tipo..." />
           </Field>
         </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} />
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nuevo operador" />}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr><Th>Nombre</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Económico</Th><Th>Tipo operador</Th><Th>Acciones</Th></tr>
-          </thead>
+          <thead><tr><Th>Nombre</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Económico</Th><Th>Tipo operador</Th><Th>Acciones</Th></tr></thead>
           <tbody>
-            {data.length === 0 ? <EmptyRow cols={6} msg="Sin operadores registrados" /> :
-              data.map((r, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFCFA" }}>
-                  <Td bold>{r.nombre}</Td>
-                  <Td><IdBadge id={r.unidad} /></Td>
-                  <Td><Chip label={r.tunidad} /></Td>
-                  <Td><IdBadge id={r.economico} /></Td>
-                  <Td><Chip label={r.tipo} /></Td>
-                  <RowActions onEdit={() => openEdit(i)} onDelete={() => remove(i)} />
-                </tr>
-              ))
-            }
+            {loading ? <LoadingRow cols={6} /> :
+             data.length === 0 ? <EmptyRow cols={6} msg="Sin operadores registrados" /> :
+             data.map((r) => (
+              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                <Td bold>{r.nombre}</Td>
+                <Td><IdBadge id={r.unidad} /></Td>
+                <Td><Chip label={r.tunidad} /></Td>
+                <Td><IdBadge id={r.economico} /></Td>
+                <Td><Chip label={r.tipo} /></Td>
+                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -578,12 +564,17 @@ function ModOperadores({ data, setData, unidades }) {
 }
 
 // ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
-function ModRutas({ data, setData, desde, hasta, operadores }) {
+function ModRutas({ desde, hasta, operadores, onDataChange }) {
+  const { data, loading, insert, update, remove } = useTable("rutas", "created_at");
   const EMPTY = { fecha: "", cliente: "", operador: "", unidad: "", tunidad: "" };
-  const [open, setOpen]       = useState(false);
-  const [editIdx, setEditIdx] = useState(null);
-  const [form, setForm]       = useState(EMPTY);
-  const isEdit = editIdx !== null;
+  const [open, setOpen]     = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm]     = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const isEdit = !!editId;
+
+  // Expose data upward so ModGastos can filter rutas by date
+  useEffect(() => { if (onDataChange) onDataChange(data); }, [data, onDataChange]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const operadorOpts = operadores.map(o => o.nombre).filter(Boolean);
@@ -593,30 +584,27 @@ function ModRutas({ data, setData, desde, hasta, operadores }) {
     setForm(f => ({ ...f, operador: nombre, unidad: op?.unidad || "", tunidad: op?.tunidad || "" }));
   };
 
-  const openNew = () => { setForm(EMPTY); setEditIdx(null); setOpen(true); };
-  const openEdit = (i) => {
-    const realIdx = data.indexOf(rows[i]);
-    setForm({ ...data[realIdx] });
-    setEditIdx(realIdx);
-    setOpen(true);
-  };
-  const cancel = () => { setForm(EMPTY); setEditIdx(null); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ fecha: r.fecha || "", cliente: r.cliente, operador: r.operador || "", unidad: r.unidad || "", tunidad: r.tunidad || "" }); setEditId(r.id); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
 
-  const save = () => {
+  const save = async () => {
     if (!form.cliente)  { alert("Ingresa el cliente"); return; }
     if (!form.operador) { alert("Selecciona un operador"); return; }
+    setSaving(true);
     if (isEdit) {
-      setData(d => d.map((r, i) => i === editIdx ? { ...form } : r));
+      await update(editId, form);
     } else {
-      setData(d => [...d, { ...form, id: nextRutaId() }]);
+      // For rutas, id is text (RTA-XXXX) not uuid — insert with explicit id
+      await insert({ ...form, id: nextRutaId() });
     }
+    setSaving(false);
     cancel();
   };
 
-  const remove = (i) => {
-    const realIdx = data.indexOf(rows[i]);
-    if (!window.confirm("¿Eliminar esta ruta?")) return;
-    setData(d => d.filter((_, idx) => idx !== realIdx));
+  const del = async (r) => {
+    if (!window.confirm("¿Eliminar esta ruta? Los gastos vinculados quedarán sin ruta.")) return;
+    await remove(r.id);
   };
 
   const rows = useMemo(() => data.filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
@@ -629,8 +617,7 @@ function ModRutas({ data, setData, desde, hasta, operadores }) {
           <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
           <Field label="Cliente"><Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} /></Field>
           <Field label="Operador" span2>
-            {operadorOpts.length === 0
-              ? <EmptyHint msg="No hay operadores registrados. Agrega operadores primero." />
+            {operadorOpts.length === 0 ? <EmptyHint msg="No hay operadores registrados. Agrega operadores primero." />
               : <Select value={form.operador} onChange={selOperador} options={operadorOpts} placeholder="Seleccionar operador..." />}
           </Field>
           {opSelected && (
@@ -642,30 +629,28 @@ function ModRutas({ data, setData, desde, hasta, operadores }) {
             </GreenBanner>
           )}
         </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} />
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nueva ruta" />}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Cliente</Th><Th>Acciones</Th></tr>
-          </thead>
+          <thead><tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Cliente</Th><Th>Acciones</Th></tr></thead>
           <tbody>
-            {rows.length === 0 ? <EmptyRow cols={7} msg="Sin rutas en este período" /> :
-              rows.map((r, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFCFA" }}>
-                  <Td><IdBadge id={r.id} /></Td>
-                  <Td>{r.fecha || "—"}</Td>
-                  <Td bold>{r.operador || "—"}</Td>
-                  <Td><IdBadge id={r.unidad} /></Td>
-                  <Td><Chip label={r.tunidad} /></Td>
-                  <Td>{r.cliente}</Td>
-                  <RowActions onEdit={() => openEdit(i)} onDelete={() => remove(i)} />
-                </tr>
-              ))
-            }
+            {loading ? <LoadingRow cols={7} /> :
+             rows.length === 0 ? <EmptyRow cols={7} msg="Sin rutas en este período" /> :
+             rows.map((r) => (
+              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                <Td><IdBadge id={r.id} /></Td>
+                <Td>{r.fecha || "—"}</Td>
+                <Td bold>{r.operador || "—"}</Td>
+                <Td><IdBadge id={r.unidad} /></Td>
+                <Td><Chip label={r.tunidad} /></Td>
+                <Td>{r.cliente}</Td>
+                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -674,32 +659,34 @@ function ModRutas({ data, setData, desde, hasta, operadores }) {
 }
 
 // ─── MÓDULO UNIDADES ──────────────────────────────────────────────────────
-function ModUnidades({ data, setData }) {
+function ModUnidades({ onDataChange }) {
+  const { data, loading, insert, update, remove } = useTable("unidades", "created_at");
   const EMPTY = { economico: "", tipo: "", prop: "" };
-  const [open, setOpen]       = useState(false);
-  const [editIdx, setEditIdx] = useState(null);
-  const [form, setForm]       = useState(EMPTY);
-  const isEdit = editIdx !== null;
+  const [open, setOpen]     = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm]     = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const isEdit = !!editId;
+
+  useEffect(() => { if (onDataChange) onDataChange(data); }, [data, onDataChange]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ economico: r.economico, tipo: r.tipo || "", prop: r.prop || "" }); setEditId(r.id); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
 
-  const openNew = () => { setForm(EMPTY); setEditIdx(null); setOpen(true); };
-  const openEdit = (i) => { setForm({ ...data[i] }); setEditIdx(i); setOpen(true); };
-  const cancel = () => { setForm(EMPTY); setEditIdx(null); setOpen(false); };
-
-  const save = () => {
+  const save = async () => {
     if (!form.economico) { alert("Ingresa el económico"); return; }
-    if (isEdit) {
-      setData(d => d.map((r, i) => i === editIdx ? { ...form } : r));
-    } else {
-      setData(d => [...d, { ...form }]);
-    }
+    setSaving(true);
+    if (isEdit) await update(editId, form);
+    else        await insert(form);
+    setSaving(false);
     cancel();
   };
 
-  const remove = (i) => {
+  const del = async (r) => {
     if (!window.confirm("¿Eliminar esta unidad?")) return;
-    setData(d => d.filter((_, idx) => idx !== i));
+    await remove(r.id);
   };
 
   return (
@@ -709,34 +696,31 @@ function ModUnidades({ data, setData }) {
           <Field label="Económico"><Input placeholder="VDL-01" value={form.economico} onChange={e => set("economico", e.target.value)} /></Field>
           <div />
           <Field label="Tipo de unidad">
-            <Select value={form.tipo} onChange={v => set("tipo", v)}
-              options={["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"]} placeholder="Seleccionar tipo..." />
+            <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"]} placeholder="Seleccionar tipo..." />
           </Field>
           <Field label="Propiedad">
             <Select value={form.prop} onChange={v => set("prop", v)} options={["Propia", "Tercera"]} placeholder="Seleccionar propiedad..." />
           </Field>
         </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} />
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nueva unidad" />}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr><Th>Económico</Th><Th>Tipo</Th><Th>Propiedad</Th><Th>Acciones</Th></tr>
-          </thead>
+          <thead><tr><Th>Económico</Th><Th>Tipo</Th><Th>Propiedad</Th><Th>Acciones</Th></tr></thead>
           <tbody>
-            {data.length === 0 ? <EmptyRow cols={4} msg="Sin unidades registradas" /> :
-              data.map((r, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFCFA" }}>
-                  <Td><IdBadge id={r.economico} /></Td>
-                  <Td><Chip label={r.tipo} /></Td>
-                  <Td><Chip label={r.prop} /></Td>
-                  <RowActions onEdit={() => openEdit(i)} onDelete={() => remove(i)} />
-                </tr>
-              ))
-            }
+            {loading ? <LoadingRow cols={4} /> :
+             data.length === 0 ? <EmptyRow cols={4} msg="Sin unidades registradas" /> :
+             data.map((r) => (
+              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                <Td><IdBadge id={r.economico} /></Td>
+                <Td><Chip label={r.tipo} /></Td>
+                <Td><Chip label={r.prop} /></Td>
+                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -746,25 +730,34 @@ function ModUnidades({ data, setData }) {
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────
 export default function VDLModulos() {
-  const [mod, setMod]           = useState("ingresos");
-  const [ingresos, setIngresos] = useState([]);
-  const [gastos, setGastos]     = useState([]);
-  const [operadores, setOp]     = useState([]);
-  const [rutas, setRutas]       = useState([]);
-  const [unidades, setUnidades] = useState([]);
-  const [desde, setDesde]       = useState("");
-  const [hasta, setHasta]       = useState("");
+  const [mod, setMod]       = useState("ingresos");
+  const [desde, setDesde]   = useState("");
+  const [hasta, setHasta]   = useState("");
+
+  // Cross-module shared data (needed for dropdowns in other modules)
+  const [unidades,   setUnidades]   = useState([]);
+  const [operadores, setOperadores] = useState([]);
+  const [rutas,      setRutas]      = useState([]);
+
+  // KPIs — fetched independently so they update without re-mounting modules
+  const { data: ingData } = useTable("ingresos", "created_at");
+  const { data: gasData } = useTable("gastos",   "created_at");
+  const { data: rutData } = useTable("rutas",    "created_at");
+
+  // Also load operadores at root level for Rutas dropdown
+  const { data: opData }  = useTable("operadores", "created_at");
+  useEffect(() => { setOperadores(opData); }, [opData]);
 
   const kpi = useMemo(() => {
-    const ingFilt = ingresos.filter(r => inRange(r.fcarga, desde, hasta));
-    const gasFilt = gastos.filter(r   => inRange(r.fecha,  desde, hasta));
-    const rutFilt = rutas.filter(r    => inRange(r.fecha,  desde, hasta));
+    const ingFilt = ingData.filter(r => inRange(r.fcarga, desde, hasta));
+    const gasFilt = gasData.filter(r => inRange(r.fecha,  desde, hasta));
+    const rutFilt = rutData.filter(r => inRange(r.fecha,  desde, hasta));
     const totalIng = ingFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
     const totalGas = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
     const util     = totalIng - totalGas;
     const pct      = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
     return { totalIng, totalGas, util, pct, ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length };
-  }, [ingresos, gastos, rutas, desde, hasta]);
+  }, [ingData, gasData, rutData, desde, hasta]);
 
   const navItems = [
     { id: "ingresos",   label: "Ingresos"   },
@@ -789,13 +782,9 @@ export default function VDLModulos() {
         </div>
         <nav style={{ padding: "16px 0", flex: 1 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "rgba(255,255,255,0.3)", padding: "0 20px", marginBottom: 8 }}>MÓDULOS</div>
-          {navItems.map(item => (
-            <NavItem key={item.id} label={item.label} active={mod === item.id} onClick={() => setMod(item.id)} />
-          ))}
+          {navItems.map(item => <NavItem key={item.id} label={item.label} active={mod === item.id} onClick={() => setMod(item.id)} />)}
         </nav>
-        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-          VDL · Control Financiero
-        </div>
+        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL · Control Financiero</div>
       </aside>
 
       {/* MAIN */}
@@ -837,11 +826,11 @@ export default function VDLModulos() {
 
         {/* MODULE CONTENT */}
         <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
-          {mod === "ingresos"   && <ModIngresos   data={ingresos}   setData={setIngresos} desde={desde} hasta={hasta} />}
-          {mod === "gastos"     && <ModGastos     data={gastos}     setData={setGastos}   desde={desde} hasta={hasta} rutas={rutas} />}
-          {mod === "operadores" && <ModOperadores data={operadores} setData={setOp}       unidades={unidades} />}
-          {mod === "rutas"      && <ModRutas      data={rutas}      setData={setRutas}    desde={desde} hasta={hasta} operadores={operadores} />}
-          {mod === "unidades"   && <ModUnidades   data={unidades}   setData={setUnidades} />}
+          {mod === "ingresos"   && <ModIngresos   desde={desde} hasta={hasta} />}
+          {mod === "gastos"     && <ModGastos     desde={desde} hasta={hasta} rutas={rutas} />}
+          {mod === "operadores" && <ModOperadores unidades={unidades} />}
+          {mod === "rutas"      && <ModRutas      desde={desde} hasta={hasta} operadores={operadores} onDataChange={setRutas} />}
+          {mod === "unidades"   && <ModUnidades   onDataChange={setUnidades} />}
         </div>
       </section>
     </main>
