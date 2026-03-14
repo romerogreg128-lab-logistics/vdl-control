@@ -26,17 +26,26 @@ const C = {
 };
 
 const CHIP_MAP = {
+  // tipo_gasto values (real column name in gastos table)
   Combustible:    { bg: "#E6F1FB", color: "#0C447C" },
   Gasolina:       { bg: "#E6F1FB", color: "#0C447C" },
   Caseta:         { bg: "#E2E8E3", color: "#4A5C52" },
   "Nómina":       { bg: "#FAEEDA", color: "#633806" },
   Impuesto:       { bg: "#FCEBEB", color: "#791F1F" },
   Estacionamiento:{ bg: "#E2E8E3", color: "#4A5C52" },
+  Mantenimiento:  { bg: "#EEEDFE", color: "#3C3489" },
+  Llantas:        { bg: "#EEEDFE", color: "#3C3489" },
   Otro:           { bg: "#E2E8E3", color: "#4A5C52" },
+  // estatus
   Activo:         { bg: "#DDEEDC", color: "#1B5E20" },
   Pendiente:      { bg: "#FAEEDA", color: "#633806" },
   Vencido:        { bg: "#FCEBEB", color: "#791F1F" },
   Cancelado:      { bg: "#E2E8E3", color: "#4A5C52" },
+  "En taller":    { bg: "#FAEEDA", color: "#633806" },
+  Inactivo:       { bg: "#E2E8E3", color: "#4A5C52" },
+  Vacaciones:     { bg: "#E6F1FB", color: "#0C447C" },
+  Baja:           { bg: "#FCEBEB", color: "#791F1F" },
+  // tipo_unidad
   Tercera:        { bg: "#EEEDFE", color: "#3C3489" },
   Propia:         { bg: "#DDEEDC", color: "#1B5E20" },
   Moto:           { bg: "#E2E8E3", color: "#4A5C52" },
@@ -680,8 +689,14 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 }
 
 // ─── MÓDULO GASTOS ────────────────────────────────────────────────────────
+// Columnas reales: id, fecha, tipo_gasto, categoria, concepto, monto, moneda,
+// metodo_pago, proveedor_id, unidad_id, operador_id, viaje_id,
+// km_odometro, litros, folio_factura, notas, created_at, operador, unidad, ruta, tipo
 function ModGastos({ data, reload, desde, hasta, rutas }) {
-  const EMPTY = { monto: "", tipo: "", fecha: "", ruta: "", unidad: "", operador: "" };
+  const EMPTY = {
+    monto: "", tipo_gasto: "", fecha: "", viaje_id: "",
+    unidad_id: "", operador: "", concepto: "", notas: "",
+  };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -691,26 +706,55 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
 
   const set = (k, v) => setForm(f => {
     const next = { ...f, [k]: v };
-    if (k === "fecha") next.ruta = "";
+    if (k === "fecha") next.viaje_id = "";
     return next;
   });
 
-  const rutasDelDia = useMemo(() => (rutas || []).filter(r => r.fecha === form.fecha), [rutas, form.fecha]);
+  const rutasDelDia = useMemo(
+    () => (rutas || []).filter(r => r.fecha === form.fecha),
+    [rutas, form.fecha]
+  );
 
   const selRuta = (rutaId) => {
     const r = (rutas || []).find(r => r.id === rutaId);
-    setForm(f => ({ ...f, ruta: rutaId, operador: r?.operador || "", unidad: r?.unidad || "" }));
+    setForm(f => ({
+      ...f,
+      viaje_id:   rutaId,
+      operador:   r?.operador   || "",
+      unidad_id:  r?.unidad_id  || "",
+    }));
   };
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
-  const openEdit = (r) => { setForm({ monto: r.monto?.toString() || "", tipo: r.tipo || "", fecha: r.fecha || "", ruta: r.ruta || "", unidad: r.unidad || "", operador: r.operador || "" }); setEditRow(r); setErr(""); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+  const openEdit = (r) => {
+    setForm({
+      monto:     r.monto?.toString()  || "",
+      tipo_gasto:r.tipo_gasto         || "",
+      fecha:     r.fecha              || "",
+      viaje_id:  r.viaje_id           || "",
+      unidad_id: r.unidad_id          || "",
+      operador:  r.operador           || "",
+      concepto:  r.concepto           || "",
+      notas:     r.notas              || "",
+    });
+    setEditRow(r); setErr(""); setOpen(true);
+  };
+  const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
   const save = async () => {
     if (!form.monto) { setErr("El monto es obligatorio"); return; }
     setLoading(true); setErr("");
     try {
-      const payload = { monto: parseFloat(form.monto), tipo: form.tipo, fecha: form.fecha, ruta: form.ruta, unidad: form.unidad, operador: form.operador };
+      const payload = {
+        monto:      parseFloat(form.monto),
+        tipo_gasto: form.tipo_gasto || null,
+        fecha:      form.fecha      || null,
+        viaje_id:   form.viaje_id   || null,
+        unidad_id:  form.unidad_id  || null,
+        operador:   form.operador   || null,
+        concepto:   form.concepto   || null,
+        notas:      form.notas      || null,
+      };
       if (isEdit) {
         const { error } = await sb.from("gastos").update(payload).eq("id", editRow.id);
         if (error) throw error;
@@ -736,33 +780,49 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
     } catch (e) { alert(e.message); }
   };
 
-  const rows = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
-  const rutaSelected = form.ruta ? (rutas || []).find(r => r.id === form.ruta) : null;
+  const rows        = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const rutaSel     = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
 
   return (
     <div>
       <FormPanel visible={open} title={isEdit ? "Editar gasto" : "Nuevo gasto"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Monto"><Input type="number" placeholder="0.00" value={form.monto} onChange={e => set("monto", e.target.value)} /></Field>
-          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
-          <Field label="ID Ruta — filtrado por fecha" span2>
-            {!form.fecha ? <EmptyHint msg="Selecciona una fecha primero." />
-              : rutasDelDia.length === 0 ? <EmptyHint msg={`No hay rutas para el ${form.fecha}.`} />
-              : <Select value={form.ruta} onChange={selRuta} options={rutasDelDia.map(r => r.id)} placeholder="Seleccionar ruta del día..." />}
+          <Field label="Monto">
+            <Input type="number" placeholder="0.00" value={form.monto} onChange={e => set("monto", e.target.value)} />
           </Field>
-          {rutaSelected && (
+          <Field label="Fecha">
+            <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
+          </Field>
+          <Field label="Concepto">
+            <Input placeholder="Ej. Carga de diésel" value={form.concepto} onChange={e => set("concepto", e.target.value)} />
+          </Field>
+          <Field label="Tipo de gasto">
+            <Select value={form.tipo_gasto} onChange={v => set("tipo_gasto", v)}
+              options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Mantenimiento", "Llantas", "Otro"]}
+              placeholder="Seleccionar tipo..." />
+          </Field>
+          <Field label="Viaje / Ruta — filtrado por fecha" span2>
+            {!form.fecha
+              ? <EmptyHint msg="Selecciona una fecha primero." />
+              : rutasDelDia.length === 0
+                ? <EmptyHint msg={`No hay rutas para el ${form.fecha}.`} />
+                : <Select value={form.viaje_id} onChange={selRuta}
+                    options={rutasDelDia.map(r => r.id)}
+                    placeholder="Seleccionar ruta del día..." />}
+          </Field>
+          {rutaSel && (
             <GreenBanner>
               <span style={{ fontWeight: 600 }}>Heredado de la ruta:</span>
-              <span>Operador: <strong>{rutaSelected.operador || "—"}</strong></span>
+              <span>Operador: <strong>{rutaSel.operador || "—"}</strong></span>
               <span>·</span>
-              <span>Unidad: <strong>{rutaSelected.unidad || "—"}</strong></span>
+              <span>Unidad: <strong>{rutaSel.unidad_id || "—"}</strong></span>
+              <span>·</span>
+              <span>Cliente: <strong>{rutaSel.cliente_id || "—"}</strong></span>
             </GreenBanner>
           )}
-          <Field label="Tipo de gasto" span2>
-            <Select value={form.tipo} onChange={v => set("tipo", v)}
-              options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Otro"]}
-              placeholder="Seleccionar tipo..." />
+          <Field label="Notas" span2>
+            <Input placeholder="Observaciones opcionales" value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
@@ -772,19 +832,25 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Fecha</Th><Th>Monto</Th><Th>Tipo</Th><Th>ID Ruta</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th></tr></thead>
+          <thead>
+            <tr>
+              <Th>Fecha</Th><Th>Concepto</Th><Th>Monto</Th><Th>Tipo</Th>
+              <Th>Viaje</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th>
+            </tr>
+          </thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={7} msg="Sin gastos en este período" /> :
+             rows.length === 0 ? <EmptyRow cols={8} msg="Sin gastos en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td>{r.fecha || "—"}</Td>
+                 <Td>{r.concepto || "—"}</Td>
                  <Td bold>{fmt(r.monto)}</Td>
-                 <Td><Chip label={r.tipo} /></Td>
-                 <Td><IdBadge id={r.ruta} /></Td>
-                 <Td>{r.unidad || "—"}</Td>
+                 <Td><Chip label={r.tipo_gasto} /></Td>
+                 <Td><IdBadge id={r.viaje_id} /></Td>
+                 <Td><IdBadge id={r.unidad_id} /></Td>
                  <Td>{r.operador || "—"}</Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
