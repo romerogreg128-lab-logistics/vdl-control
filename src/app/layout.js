@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "VDL-FIN",
   description: "Plataforma de control de gastos para transporte",
