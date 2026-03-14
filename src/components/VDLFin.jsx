@@ -237,8 +237,9 @@ function NavItem({ label, active, onClick }) {
 const MOD_META = {
   ingresos:   { title: "Ingresos",   sub: "Registro de facturas y cobros" },
   gastos:     { title: "Gastos",     sub: "Control de egresos operativos" },
+  clientes:   { title: "Clientes",   sub: "Tarifas por tipo de unidad y datos de contacto" },
   operadores: { title: "Operadores", sub: "Registro de conductores y asignación" },
-  rutas:      { title: "Rutas",      sub: "Registro de viajes con ID automático" },
+  rutas:      { title: "Rutas",      sub: "Registro de viajes con flete automático" },
   unidades:   { title: "Unidades",   sub: "Registro de vehículos de la flotilla" },
 };
 
@@ -512,8 +513,8 @@ function ModOperadores({ data, reload, unidades }) {
 }
 
 // ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
-function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
-  const EMPTY = { fecha: "", cliente: "", operador: "", unidad_id: "" };
+function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }) {
+  const EMPTY = { fecha: "", cliente_id: "", operador: "", unidad_id: "", flete: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -524,33 +525,50 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const operadorOpts = (operadores || []).map(o => o.nombre).filter(Boolean);
   const unidadOpts   = (unidades   || []).map(u => u.economico).filter(Boolean);
+  const clienteOpts  = (clientes   || []).map(c => c.nombre).filter(Boolean);
 
+  // Buscar tarifa: cliente → tipo_unidad de la unidad seleccionada
+  const getTarifa = (cliente_id, unidad_id) => {
+    const cliente = (clientes  || []).find(c => c.nombre    === cliente_id);
+    const unidad  = (unidades  || []).find(u => u.economico === unidad_id);
+    if (cliente && unidad?.tipo_unidad) return cliente.tarifas?.[unidad.tipo_unidad] || null;
+    return null;
+  };
+
+  const selCliente  = (nombre) => setForm(f => {
+    const tarifa = getTarifa(nombre, f.unidad_id);
+    return { ...f, cliente_id: nombre, flete: tarifa ? tarifa.toString() : f.flete };
+  });
+  const selUnidad   = (eco)    => setForm(f => {
+    const tarifa = getTarifa(f.cliente_id, eco);
+    return { ...f, unidad_id: eco, flete: tarifa ? tarifa.toString() : f.flete };
+  });
   const selOperador = (nombre) => setForm(f => ({ ...f, operador: nombre }));
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
   const openEdit = (r) => {
-    setForm({ fecha: r.fecha || "", cliente: r.cliente || "", operador: r.operador || "", unidad_id: r.unidad_id || "" });
+    setForm({ fecha: r.fecha || "", cliente_id: r.cliente_id || "", operador: r.operador || "", unidad_id: r.unidad_id || "", flete: r.flete?.toString() || "" });
     setEditRow(r); setErr(""); setOpen(true);
   };
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
   const save = async () => {
-    if (!form.cliente)  { setErr("El cliente es obligatorio"); return; }
-    if (!form.operador) { setErr("Selecciona un operador"); return; }
+    if (!form.cliente_id) { setErr("Selecciona un cliente"); return; }
+    if (!form.operador)   { setErr("Selecciona un operador"); return; }
     setLoading(true); setErr("");
     try {
       const payload = {
-        fecha:     form.fecha     || null,
-        cliente:   form.cliente,
-        operador:  form.operador,
-        unidad_id: form.unidad_id || null,
+        fecha:      form.fecha      || null,
+        cliente_id: form.cliente_id,
+        operador:   form.operador,
+        unidad_id:  form.unidad_id  || null,
+        flete: form.flete ? parseFloat(form.flete) : null,
       };
       if (isEdit) {
         const { error } = await sb.from("rutas").update(payload).eq("id", editRow.id);
         if (error) throw error;
       } else {
-        const newId = nextRutaId();
-        const { error } = await sb.from("rutas").insert({ id: newId, ...payload });
+        const { error } = await sb.from("rutas").insert({ id: nextRutaId(), ...payload });
         if (error) throw error;
       }
       await reload();
@@ -571,10 +589,10 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
     } catch (e) { alert(e.message); }
   };
 
-  const rows = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
-
-  // Info de unidad seleccionada para el banner
-  const unidadSel = form.unidad_id ? (unidades || []).find(u => u.economico === form.unidad_id) : null;
+  const rows       = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const unidadSel  = form.unidad_id  ? (unidades || []).find(u => u.economico === form.unidad_id)  : null;
+  const clienteSel = form.cliente_id ? (clientes  || []).find(c => c.nombre   === form.cliente_id) : null;
+  const tarifaAct  = getTarifa(form.cliente_id, form.unidad_id);
 
   return (
     <div>
@@ -585,7 +603,9 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
             <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
           </Field>
           <Field label="Cliente">
-            <Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} />
+            {clienteOpts.length === 0
+              ? <EmptyHint msg="No hay clientes. Agrega clientes primero." />
+              : <Select value={form.cliente_id} onChange={selCliente} options={clienteOpts} placeholder="Seleccionar cliente..." />}
           </Field>
           <Field label="Operador">
             {operadorOpts.length === 0
@@ -595,19 +615,35 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
           <Field label="Unidad">
             {unidadOpts.length === 0
               ? <EmptyHint msg="No hay unidades registradas." />
-              : <Select value={form.unidad_id} onChange={v => set("unidad_id", v)} options={unidadOpts} placeholder="Seleccionar unidad..." />}
+              : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />}
           </Field>
 
-          {/* Banner con info de la unidad seleccionada */}
           {unidadSel && (
             <GreenBanner>
               <span style={{ fontWeight: 600 }}>Unidad:</span>
               <IdBadge id={unidadSel.economico} />
-              {unidadSel.placas    && <span style={{ fontSize: 11 }}>{unidadSel.placas}</span>}
+              {unidadSel.placas      && <span style={{ fontSize: 11 }}>{unidadSel.placas}</span>}
               {unidadSel.tipo_unidad && <Chip label={unidadSel.tipo_unidad} />}
-              {unidadSel.marca && <span style={{ fontSize: 11, color: C.greenStrong }}>{unidadSel.marca} {unidadSel.modelo}</span>}
+              {unidadSel.marca       && <span style={{ fontSize: 11, color: C.greenStrong }}>{unidadSel.marca} {unidadSel.modelo}</span>}
             </GreenBanner>
           )}
+
+          <Field label="Flete estimado" span2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
+              <Input type="number" placeholder="0.00" value={form.flete} onChange={e => set("flete", e.target.value)} />
+              {tarifaAct && (
+                <span style={{ fontSize: 11, color: C.greenStrong, background: C.greenSoft, padding: "4px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                  Tarifa {unidadSel?.tipo_unidad}: {fmt(tarifaAct)}
+                </span>
+              )}
+              {clienteSel && unidadSel?.tipo_unidad && !tarifaAct && (
+                <span style={{ fontSize: 11, color: "#92610A", background: "#FFF8EC", padding: "4px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                  Sin tarifa para {unidadSel.tipo_unidad}
+                </span>
+              )}
+            </div>
+          </Field>
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
@@ -617,20 +653,21 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Cliente</Th><Th>Acciones</Th></tr>
+            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Cliente</Th><Th>Operador</Th><Th>Unidad</Th><Th>Flete</Th><Th>Acciones</Th></tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={6} msg="Sin rutas en este período" /> :
+             rows.length === 0 ? <EmptyRow cols={7} msg="Sin rutas en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td><IdBadge id={r.id} /></Td>
                  <Td>{r.fecha || "—"}</Td>
-                 <Td bold>{r.operador || "—"}</Td>
+                 <Td bold>{r.cliente_id || "—"}</Td>
+                 <Td>{r.operador || "—"}</Td>
                  <Td><IdBadge id={r.unidad_id} /></Td>
-                 <Td>{r.cliente}</Td>
+                 <Td>{r.flete ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete)}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
              ))
@@ -864,6 +901,159 @@ function ModIngresos({ data, reload, desde, hasta }) {
   );
 }
 
+// ─── MÓDULO CLIENTES ──────────────────────────────────────────────────────
+// Cada cliente tiene datos básicos + tarifas por tipo de unidad
+const TIPOS_UNIDAD = ["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"];
+
+function ModClientes({ data, reload }) {
+  const EMPTY = {
+    nombre: "", rfc: "", telefono: "", direccion: "",
+    // tarifas por tipo de unidad — clave = tipo, valor = monto string
+    tarifas: {},
+  };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const setTarifa = (tipo, val) => setForm(f => ({ ...f, tarifas: { ...f.tarifas, [tipo]: val } }));
+
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => {
+    setForm({
+      nombre:    r.nombre    || "",
+      rfc:       r.rfc       || "",
+      telefono:  r.telefono  || "",
+      direccion: r.direccion || "",
+      tarifas:   r.tarifas   || {},
+    });
+    setEditRow(r); setErr(""); setOpen(true);
+  };
+  const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const save = async () => {
+    if (!form.nombre) { setErr("El nombre del cliente es obligatorio"); return; }
+    setLoading(true); setErr("");
+    try {
+      const payload = {
+        nombre:    form.nombre,
+        rfc:       form.rfc       || null,
+        telefono:  form.telefono  || null,
+        direccion: form.direccion || null,
+        tarifas:   form.tarifas,  // jsonb column
+      };
+      if (isEdit) {
+        const { error } = await sb.from("clientes").update(payload).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("clientes").insert(payload);
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const remove = async (r) => {
+    if (!window.confirm(`¿Eliminar cliente ${r.nombre}?`)) return;
+    try {
+      const { error } = await sb.from("clientes").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
+  };
+
+  return (
+    <div>
+      <FormPanel visible={open} title={isEdit ? "Editar cliente" : "Nuevo cliente"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Nombre / Razón social" span2>
+            <Input placeholder="Ej. Patitos S.A. de C.V." value={form.nombre} onChange={e => set("nombre", e.target.value)} />
+          </Field>
+          <Field label="RFC">
+            <Input placeholder="PAT123456ABC" value={form.rfc} onChange={e => set("rfc", e.target.value)} />
+          </Field>
+          <Field label="Teléfono">
+            <Input placeholder="55 1234 5678" value={form.telefono} onChange={e => set("telefono", e.target.value)} />
+          </Field>
+          <Field label="Dirección" span2>
+            <Input placeholder="Calle, Colonia, Ciudad" value={form.direccion} onChange={e => set("direccion", e.target.value)} />
+          </Field>
+
+          {/* Tarifas por tipo de unidad */}
+          <div style={{ gridColumn: "span 2", marginTop: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+              Tarifas por tipo de unidad (flete por viaje)
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {TIPOS_UNIDAD.map(tipo => (
+                <Field key={tipo} label={tipo}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      value={form.tarifas[tipo] || ""}
+                      onChange={e => setTarifa(tipo, e.target.value)}
+                    />
+                  </div>
+                </Field>
+              ))}
+            </div>
+          </div>
+        </div>
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
+      </FormPanel>
+
+      {!open && <AddBtn onClick={openNew} label="+ Nuevo cliente" />}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <Th>Nombre</Th><Th>RFC</Th><Th>Teléfono</Th>
+              <Th>Moto</Th><Th>Sedán</Th><Th>Small Van</Th><Th>Van</Th><Th>Large Van</Th><Th>Otro</Th>
+              <Th>Acciones</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {data === null ? <Loading /> :
+             data.length === 0 ? <EmptyRow cols={10} msg="Sin clientes registrados" /> :
+             data.map(r => (
+               <tr key={r.id} style={{ background: "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                 <Td bold>{r.nombre}</Td>
+                 <Td>{r.rfc || "—"}</Td>
+                 <Td>{r.telefono || "—"}</Td>
+                 {TIPOS_UNIDAD.map(tipo => (
+                   <Td key={tipo}>
+                     {r.tarifas?.[tipo] ? (
+                       <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.tarifas[tipo])}</span>
+                     ) : (
+                       <span style={{ color: C.border }}>—</span>
+                     )}
+                   </Td>
+                 ))}
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────
 export default function VDLModulos() {
   const [mod, setMod] = useState("ingresos");
@@ -876,6 +1066,7 @@ export default function VDLModulos() {
   const [operadores, setOperadores] = useState(null);
   const [rutas,      setRutas]      = useState(null);
   const [unidades,   setUnidades]   = useState(null);
+  const [clientes,   setClientes]   = useState(null);
 
   // ── Fetch all tables ──────────────────────────────────────────────────
   const fetchTable = useCallback(async (table, setter) => {
@@ -889,6 +1080,7 @@ export default function VDLModulos() {
   const reloadRutas      = useCallback(() => fetchTable("rutas",      setRutas),      [fetchTable]);
   const reloadGastos     = useCallback(() => fetchTable("gastos",     setGastos),     [fetchTable]);
   const reloadIngresos   = useCallback(() => fetchTable("ingresos",   setIngresos),   [fetchTable]);
+  const reloadClientes   = useCallback(() => fetchTable("clientes",   setClientes),   [fetchTable]);
 
   // Initial load — fetch everything on mount
   useEffect(() => {
@@ -897,6 +1089,7 @@ export default function VDLModulos() {
     reloadRutas();
     reloadGastos();
     reloadIngresos();
+    reloadClientes();
   }, []);
 
   // ── KPIs ─────────────────────────────────────────────────────────────
@@ -914,6 +1107,7 @@ export default function VDLModulos() {
   const navItems = [
     { id: "ingresos",   label: "Ingresos"   },
     { id: "gastos",     label: "Gastos"     },
+    { id: "clientes",   label: "Clientes"   },
     { id: "operadores", label: "Operadores" },
     { id: "rutas",      label: "Rutas"      },
     { id: "unidades",   label: "Unidades"   },
@@ -984,8 +1178,9 @@ export default function VDLModulos() {
         <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} />}
+          {mod === "clientes"   && <ModClientes   data={clientes}   reload={reloadClientes} />}
           {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} unidades={unidades || []} />}
-          {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} />}
+          {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
           {mod === "unidades"   && <ModUnidades   data={unidades}   reload={reloadUnidades} />}
         </div>
       </section>
