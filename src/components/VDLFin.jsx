@@ -516,8 +516,8 @@ function ModOperadores({ data, reload }) {
 }
 
 // ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
-function ModRutas({ data, reload, desde, hasta, operadores }) {
-  const EMPTY = { fecha: "", cliente: "", operador: "" };
+function ModRutas({ data, reload, desde, hasta, operadores, unidades }) {
+  const EMPTY = { fecha: "", cliente: "", operador: "", unidad_id: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -527,26 +527,34 @@ function ModRutas({ data, reload, desde, hasta, operadores }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const operadorOpts = (operadores || []).map(o => o.nombre).filter(Boolean);
+  const unidadOpts   = (unidades   || []).map(u => u.economico).filter(Boolean);
 
-  const selOperador = (nombre) => {
-    setForm(f => ({ ...f, operador: nombre }));
-  };
+  const selOperador = (nombre) => setForm(f => ({ ...f, operador: nombre }));
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
-  const openEdit = (r) => { setForm({ fecha: r.fecha || "", cliente: r.cliente, operador: r.operador || "" }); setEditRow(r); setErr(""); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+  const openEdit = (r) => {
+    setForm({ fecha: r.fecha || "", cliente: r.cliente || "", operador: r.operador || "", unidad_id: r.unidad_id || "" });
+    setEditRow(r); setErr(""); setOpen(true);
+  };
+  const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
   const save = async () => {
     if (!form.cliente)  { setErr("El cliente es obligatorio"); return; }
     if (!form.operador) { setErr("Selecciona un operador"); return; }
     setLoading(true); setErr("");
     try {
+      const payload = {
+        fecha:     form.fecha     || null,
+        cliente:   form.cliente,
+        operador:  form.operador,
+        unidad_id: form.unidad_id || null,
+      };
       if (isEdit) {
-        const { error } = await sb.from("rutas").update({ fecha: form.fecha, cliente: form.cliente, operador: form.operador }).eq("id", editRow.id);
+        const { error } = await sb.from("rutas").update(payload).eq("id", editRow.id);
         if (error) throw error;
       } else {
         const newId = nextRutaId();
-        const { error } = await sb.from("rutas").insert({ id: newId, fecha: form.fecha, cliente: form.cliente, operador: form.operador });
+        const { error } = await sb.from("rutas").insert({ id: newId, ...payload });
         if (error) throw error;
       }
       await reload();
@@ -569,18 +577,41 @@ function ModRutas({ data, reload, desde, hasta, operadores }) {
 
   const rows = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
 
+  // Info de unidad seleccionada para el banner
+  const unidadSel = form.unidad_id ? (unidades || []).find(u => u.economico === form.unidad_id) : null;
+
   return (
     <div>
       <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta — ID generado automáticamente"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
-          <Field label="Cliente"><Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} /></Field>
-          <Field label="Operador" span2>
+          <Field label="Fecha">
+            <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
+          </Field>
+          <Field label="Cliente">
+            <Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} />
+          </Field>
+          <Field label="Operador">
             {operadorOpts.length === 0
-              ? <EmptyHint msg="No hay operadores registrados. Agrega operadores primero." />
+              ? <EmptyHint msg="No hay operadores registrados." />
               : <Select value={form.operador} onChange={selOperador} options={operadorOpts} placeholder="Seleccionar operador..." />}
           </Field>
+          <Field label="Unidad">
+            {unidadOpts.length === 0
+              ? <EmptyHint msg="No hay unidades registradas." />
+              : <Select value={form.unidad_id} onChange={v => set("unidad_id", v)} options={unidadOpts} placeholder="Seleccionar unidad..." />}
+          </Field>
+
+          {/* Banner con info de la unidad seleccionada */}
+          {unidadSel && (
+            <GreenBanner>
+              <span style={{ fontWeight: 600 }}>Unidad:</span>
+              <IdBadge id={unidadSel.economico} />
+              {unidadSel.placas    && <span style={{ fontSize: 11 }}>{unidadSel.placas}</span>}
+              {unidadSel.tipo_unidad && <Chip label={unidadSel.tipo_unidad} />}
+              {unidadSel.marca && <span style={{ fontSize: 11, color: C.greenStrong }}>{unidadSel.marca} {unidadSel.modelo}</span>}
+            </GreenBanner>
+          )}
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
@@ -589,10 +620,12 @@ function ModRutas({ data, reload, desde, hasta, operadores }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Cliente</Th><Th>Acciones</Th></tr></thead>
+          <thead>
+            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Cliente</Th><Th>Acciones</Th></tr>
+          </thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={5} msg="Sin rutas en este período" /> :
+             rows.length === 0 ? <EmptyRow cols={6} msg="Sin rutas en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
@@ -600,6 +633,7 @@ function ModRutas({ data, reload, desde, hasta, operadores }) {
                  <Td><IdBadge id={r.id} /></Td>
                  <Td>{r.fecha || "—"}</Td>
                  <Td bold>{r.operador || "—"}</Td>
+                 <Td><IdBadge id={r.unidad_id} /></Td>
                  <Td>{r.cliente}</Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
@@ -955,7 +989,7 @@ export default function VDLModulos() {
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} />}
           {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} />}
-          {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} />}
+          {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} />}
           {mod === "unidades"   && <ModUnidades   data={unidades}   reload={reloadUnidades} />}
         </div>
       </section>
