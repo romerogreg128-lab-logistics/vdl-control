@@ -393,11 +393,8 @@ function ModUnidades({ data, reload }) {
 }
 
 // ─── MÓDULO OPERADORES ────────────────────────────────────────────────────
-// Columnas reales: id, nombre, licencia, vencimiento_licencia, telefono, estatus, created_at
-function ModOperadores({ data, reload }) {
-  const EMPTY = {
-    nombre: "", licencia: "", vencimiento_licencia: "", telefono: "", estatus: "",
-  };
+function ModOperadores({ data, reload, unidades }) {
+  const EMPTY = { nombre: "", telefono: "", estatus: "", unidad_id: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -406,16 +403,12 @@ function ModOperadores({ data, reload }) {
   const isEdit = !!editRow;
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const unidadOpts = (unidades || []).map(u => u.economico).filter(Boolean);
+  const unidadSel  = form.unidad_id ? (unidades || []).find(u => u.economico === form.unidad_id) : null;
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
   const openEdit = (r) => {
-    setForm({
-      nombre:               r.nombre               || "",
-      licencia:             r.licencia             || "",
-      vencimiento_licencia: r.vencimiento_licencia || "",
-      telefono:             r.telefono             || "",
-      estatus:              r.estatus              || "",
-    });
+    setForm({ nombre: r.nombre || "", telefono: r.telefono || "", estatus: r.estatus || "", unidad_id: r.unidad_id || "" });
     setEditRow(r); setErr(""); setOpen(true);
   };
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
@@ -425,11 +418,10 @@ function ModOperadores({ data, reload }) {
     setLoading(true); setErr("");
     try {
       const payload = {
-        nombre:               form.nombre,
-        licencia:             form.licencia             || null,
-        vencimiento_licencia: form.vencimiento_licencia || null,
-        telefono:             form.telefono             || null,
-        estatus:              form.estatus              || null,
+        nombre:    form.nombre,
+        telefono:  form.telefono  || null,
+        estatus:   form.estatus   || null,
+        unidad_id: form.unidad_id || null,
       };
       if (isEdit) {
         const { error } = await sb.from("operadores").update(payload).eq("id", editRow.id);
@@ -464,12 +456,6 @@ function ModOperadores({ data, reload }) {
           <Field label="Nombre completo" span2>
             <Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} />
           </Field>
-          <Field label="Licencia (número)">
-            <Input placeholder="D12345678" value={form.licencia} onChange={e => set("licencia", e.target.value)} />
-          </Field>
-          <Field label="Vencimiento de licencia">
-            <Input type="date" value={form.vencimiento_licencia} onChange={e => set("vencimiento_licencia", e.target.value)} />
-          </Field>
           <Field label="Teléfono">
             <Input placeholder="55 1234 5678" value={form.telefono} onChange={e => set("telefono", e.target.value)} />
           </Field>
@@ -478,6 +464,20 @@ function ModOperadores({ data, reload }) {
               options={["Activo", "Inactivo", "Vacaciones", "Baja"]}
               placeholder="Seleccionar estatus..." />
           </Field>
+          <Field label="Unidad asignada" span2>
+            {unidadOpts.length === 0
+              ? <EmptyHint msg="No hay unidades registradas. Agrega unidades primero." />
+              : <Select value={form.unidad_id} onChange={v => set("unidad_id", v)} options={unidadOpts} placeholder="Seleccionar unidad..." />}
+          </Field>
+          {unidadSel && (
+            <GreenBanner>
+              <span style={{ fontWeight: 600 }}>Unidad:</span>
+              <IdBadge id={unidadSel.economico} />
+              {unidadSel.placas     && <span style={{ fontSize: 11 }}>{unidadSel.placas}</span>}
+              {unidadSel.tipo_unidad && <Chip label={unidadSel.tipo_unidad} />}
+              {unidadSel.marca      && <span style={{ fontSize: 11, color: C.greenStrong }}>{unidadSel.marca} {unidadSel.modelo}</span>}
+            </GreenBanner>
+          )}
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
@@ -487,22 +487,18 @@ function ModOperadores({ data, reload }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr>
-              <Th>Nombre</Th><Th>Licencia</Th><Th>Venc. licencia</Th>
-              <Th>Teléfono</Th><Th>Estatus</Th><Th>Acciones</Th>
-            </tr>
+            <tr><Th>Nombre</Th><Th>Teléfono</Th><Th>Unidad asignada</Th><Th>Estatus</Th><Th>Acciones</Th></tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             data.length === 0 ? <EmptyRow cols={6} msg="Sin operadores registrados" /> :
+             data.length === 0 ? <EmptyRow cols={5} msg="Sin operadores registrados" /> :
              data.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td bold>{r.nombre}</Td>
-                 <Td><IdBadge id={r.licencia} /></Td>
-                 <Td>{r.vencimiento_licencia || "—"}</Td>
                  <Td>{r.telefono || "—"}</Td>
+                 <Td><IdBadge id={r.unidad_id} /></Td>
                  <Td><Chip label={r.estatus} /></Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
@@ -988,7 +984,7 @@ export default function VDLModulos() {
         <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} />}
-          {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} />}
+          {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} unidades={unidades || []} />}
           {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} />}
           {mod === "unidades"   && <ModUnidades   data={unidades}   reload={reloadUnidades} />}
         </div>
