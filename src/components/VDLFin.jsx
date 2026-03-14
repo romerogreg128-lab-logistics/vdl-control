@@ -4,13 +4,11 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────
-// Agrega estas variables en tu .env.local:
-//   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-//   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-);
+// Reemplaza estos valores con los de tu proyecto:
+// Supabase → Project Settings → API → Project URL y anon public key
+const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  || "https://TU_PROYECTO.supabase.co";
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "TU_ANON_KEY";
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── PALETA ───────────────────────────────────────────────────────────────
 const C = {
@@ -59,8 +57,8 @@ const inRange = (fecha, desde, hasta) => {
   return true;
 };
 
-// Genera IDs de ruta tipo RTA-XXXX (timestamp + random para evitar colisiones)
-const nextRutaId = () => `RTA-${Date.now().toString(36).toUpperCase().slice(-4)}${Math.random().toString(36).slice(2, 4).toUpperCase()}`;
+let _rutaCounter = 1000;
+const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────
 const inputStyle = {
@@ -77,6 +75,7 @@ const selectStyle = {
 };
 
 // ─── BASE COMPONENTS ──────────────────────────────────────────────────────
+
 function Chip({ label }) {
   if (!label) return <span style={{ color: C.muted, fontSize: 12 }}>—</span>;
   const s = CHIP_MAP[label] || { bg: "#E2E8E3", color: "#4A5C52" };
@@ -89,11 +88,7 @@ function Chip({ label }) {
 
 function IdBadge({ id }) {
   if (!id) return <span style={{ color: C.muted }}>—</span>;
-  return (
-    <span style={{ fontFamily: "monospace", fontSize: 11, background: "#ECF1EC", color: C.muted, padding: "2px 7px", borderRadius: 5, border: "1px solid #E2E8E3" }}>
-      {id}
-    </span>
-  );
+  return <span style={{ fontFamily: "monospace", fontSize: 11, background: "#ECF1EC", color: C.muted, padding: "2px 7px", borderRadius: 5, border: "1px solid #E2E8E3" }}>{id}</span>;
 }
 
 function Select({ value, onChange, options, placeholder = "Seleccionar...", disabled = false }) {
@@ -163,21 +158,27 @@ function FormPanel({ visible, title, isEdit, children }) {
   );
 }
 
-function BtnRow({ onCancel, onSave, isEdit, saving }) {
+function BtnRow({ onCancel, onSave, isEdit, loading }) {
   return (
     <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
-      <button onClick={onCancel} disabled={saving} style={{ padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid #E2E8E3", background: "transparent", color: C.muted }}>
+      <button onClick={onCancel} disabled={loading}
+        style={{ padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid #E2E8E3", background: "transparent", color: C.muted }}>
         Cancelar
       </button>
-      <button onClick={onSave} disabled={saving} style={{ padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: saving ? C.muted : isEdit ? "#B45309" : C.green, color: "#fff" }}>
-        {saving ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar"}
+      <button onClick={onSave} disabled={loading}
+        style={{ padding: "8px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", border: "none", background: isEdit ? "#B45309" : C.green, color: "#fff", opacity: loading ? 0.7 : 1 }}>
+        {loading ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar"}
       </button>
     </div>
   );
 }
 
 function AddBtn({ onClick, label }) {
-  return <button onClick={onClick} style={{ marginBottom: 14, padding: "8px 18px", borderRadius: 12, background: C.green, color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{label}</button>;
+  return (
+    <button onClick={onClick} style={{ marginBottom: 14, padding: "8px 18px", borderRadius: 12, background: C.green, color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+      {label}
+    </button>
+  );
 }
 
 function EmptyHint({ msg }) {
@@ -185,24 +186,30 @@ function EmptyHint({ msg }) {
 }
 
 function GreenBanner({ children }) {
-  return <div style={{ gridColumn: "span 2", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "8px 12px", borderRadius: 10, background: C.greenSoft, fontSize: 12, color: C.greenStrong }}>{children}</div>;
-}
-
-// Toast notification
-function Toast({ msg, type }) {
-  if (!msg) return null;
-  const bg = type === "error" ? "#FEF2F2" : "#DDEEDC";
-  const color = type === "error" ? "#B91C1C" : C.greenStrong;
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, padding: "12px 20px", borderRadius: 12, background: bg, color, fontSize: 13, fontWeight: 600, boxShadow: "0 4px 20px rgba(0,0,0,0.12)", maxWidth: 360 }}>
-      {msg}
+    <div style={{ gridColumn: "span 2", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "8px 12px", borderRadius: 10, background: C.greenSoft, fontSize: 12, color: C.greenStrong }}>
+      {children}
     </div>
   );
 }
 
-// Loading overlay for table
-function LoadingRow({ cols }) {
-  return <tr><td colSpan={cols} style={{ textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13 }}>Cargando…</td></tr>;
+// ─── ERROR BANNER ─────────────────────────────────────────────────────────
+function ErrBanner({ msg }) {
+  if (!msg) return null;
+  return (
+    <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", fontSize: 12, marginBottom: 12 }}>
+      ⚠ {msg}
+    </div>
+  );
+}
+
+// ─── LOADING SPINNER ──────────────────────────────────────────────────────
+function Loading() {
+  return (
+    <tr><td colSpan={99} style={{ textAlign: "center", padding: "32px", color: C.muted, fontSize: 13 }}>
+      Cargando...
+    </td></tr>
+  );
 }
 
 // ─── KPI CARD ─────────────────────────────────────────────────────────────
@@ -235,71 +242,501 @@ const MOD_META = {
   unidades:   { title: "Unidades",   sub: "Registro de vehículos de la flotilla" },
 };
 
-// ─── HOOK: CRUD GENÉRICO ──────────────────────────────────────────────────
-// Encapsula fetch / insert / update / delete para cualquier tabla de Supabase.
-function useTable(tableName, orderCol = "created_at") {
-  const [data, setData]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast]     = useState({ msg: "", type: "ok" });
+// ─── MÓDULO UNIDADES ──────────────────────────────────────────────────────
+// Columnas reales en Supabase:
+// id (uuid), economico, placas, tipo_unidad, marca, modelo, anio, km_actual, rendimiento_km_l, estatus, created_at
+function ModUnidades({ data, reload }) {
+  const EMPTY = {
+    economico: "", placas: "", tipo_unidad: "", marca: "",
+    modelo: "", anio: "", km_actual: "", rendimiento_km_l: "", estatus: "",
+  };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
 
-  const notify = (msg, type = "ok") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast({ msg: "", type: "ok" }), 3000);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => {
+    setForm({
+      economico:        r.economico        || "",
+      placas:           r.placas           || "",
+      tipo_unidad:      r.tipo_unidad      || "",
+      marca:            r.marca            || "",
+      modelo:           r.modelo           || "",
+      anio:             r.anio             || "",
+      km_actual:        r.km_actual        || "",
+      rendimiento_km_l: r.rendimiento_km_l || "",
+      estatus:          r.estatus          || "",
+    });
+    setEditRow(r); setErr(""); setOpen(true);
+  };
+  const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const save = async () => {
+    if (!form.economico) { setErr("El económico es obligatorio"); return; }
+    setLoading(true); setErr("");
+    try {
+      const payload = {
+        economico:        form.economico,
+        placas:           form.placas           || null,
+        tipo_unidad:      form.tipo_unidad      || null,
+        marca:            form.marca            || null,
+        modelo:           form.modelo           || null,
+        anio:             form.anio             ? parseInt(form.anio) : null,
+        km_actual:        form.km_actual        ? parseFloat(form.km_actual) : null,
+        rendimiento_km_l: form.rendimiento_km_l ? parseFloat(form.rendimiento_km_l) : null,
+        estatus:          form.estatus          || null,
+      };
+      if (isEdit) {
+        const { error } = await sb.from("unidades").update(payload).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("unidades").insert(payload);
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Fetch all rows
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    const { data: rows, error } = await supabase
-      .from(tableName)
-      .select("*")
-      .order(orderCol, { ascending: false });
-    if (error) { notify(`Error al cargar ${tableName}: ${error.message}`, "error"); }
-    else setData(rows || []);
-    setLoading(false);
-  }, [tableName, orderCol]);
-
-  useEffect(() => { fetch(); }, [fetch]);
-
-  // Insert
-  const insert = async (row) => {
-    const { data: inserted, error } = await supabase.from(tableName).insert(row).select().single();
-    if (error) { notify(`Error al guardar: ${error.message}`, "error"); return null; }
-    setData(d => [inserted, ...d]);
-    notify("Guardado correctamente ✓");
-    return inserted;
+  const remove = async (r) => {
+    if (!window.confirm(`¿Eliminar unidad ${r.economico}?`)) return;
+    try {
+      const { error } = await sb.from("unidades").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
   };
 
-  // Update
-  const update = async (id, row) => {
-    const { data: updated, error } = await supabase.from(tableName).update(row).eq("id", id).select().single();
-    if (error) { notify(`Error al actualizar: ${error.message}`, "error"); return null; }
-    setData(d => d.map(r => r.id === id ? updated : r));
-    notify("Actualizado correctamente ✓");
-    return updated;
+  return (
+    <div>
+      <FormPanel visible={open} title={isEdit ? "Editar unidad" : "Nueva unidad"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Económico">
+            <Input placeholder="VDL-01" value={form.economico} onChange={e => set("economico", e.target.value)} />
+          </Field>
+          <Field label="Placas">
+            <Input placeholder="ABC-123-X" value={form.placas} onChange={e => set("placas", e.target.value)} />
+          </Field>
+          <Field label="Tipo de unidad">
+            <Select value={form.tipo_unidad} onChange={v => set("tipo_unidad", v)}
+              options={["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"]}
+              placeholder="Seleccionar tipo..." />
+          </Field>
+          <Field label="Estatus">
+            <Select value={form.estatus} onChange={v => set("estatus", v)}
+              options={["Activo", "En taller", "Baja"]}
+              placeholder="Seleccionar estatus..." />
+          </Field>
+          <Field label="Marca">
+            <Input placeholder="Toyota" value={form.marca} onChange={e => set("marca", e.target.value)} />
+          </Field>
+          <Field label="Modelo">
+            <Input placeholder="Hiace" value={form.modelo} onChange={e => set("modelo", e.target.value)} />
+          </Field>
+          <Field label="Año">
+            <Input type="number" placeholder="2023" value={form.anio} onChange={e => set("anio", e.target.value)} />
+          </Field>
+          <Field label="KM actual">
+            <Input type="number" placeholder="45000" value={form.km_actual} onChange={e => set("km_actual", e.target.value)} />
+          </Field>
+          <Field label="Rendimiento (km/l)" span2>
+            <Input type="number" placeholder="12.5" value={form.rendimiento_km_l} onChange={e => set("rendimiento_km_l", e.target.value)} />
+          </Field>
+        </div>
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
+      </FormPanel>
+
+      {!open && <AddBtn onClick={openNew} label="+ Nueva unidad" />}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <Th>Económico</Th><Th>Placas</Th><Th>Tipo</Th><Th>Marca / Modelo</Th>
+              <Th>Año</Th><Th>KM actual</Th><Th>Rend. km/l</Th><Th>Estatus</Th><Th>Acciones</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {data === null ? <Loading /> :
+             data.length === 0 ? <EmptyRow cols={9} msg="Sin unidades registradas" /> :
+             data.map(r => (
+               <tr key={r.id} style={{ background: "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                 <Td><IdBadge id={r.economico} /></Td>
+                 <Td>{r.placas || "—"}</Td>
+                 <Td><Chip label={r.tipo_unidad} /></Td>
+                 <Td>{[r.marca, r.modelo].filter(Boolean).join(" ") || "—"}</Td>
+                 <Td>{r.anio || "—"}</Td>
+                 <Td>{r.km_actual ? r.km_actual.toLocaleString("es-MX") : "—"}</Td>
+                 <Td>{r.rendimiento_km_l ? `${r.rendimiento_km_l} km/l` : "—"}</Td>
+                 <Td><Chip label={r.estatus} /></Td>
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── MÓDULO OPERADORES ────────────────────────────────────────────────────
+function ModOperadores({ data, reload, unidades }) {
+  const EMPTY = { nombre: "", economico: "", unidad: "", tunidad: "", tipo: "" };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const unidadOpts = (unidades || []).map(u => u.economico).filter(Boolean);
+
+  const selUnidad = (eco) => {
+    const u = (unidades || []).find(u => u.economico === eco);
+    setForm(f => ({ ...f, unidad: eco, tunidad: u?.tipo_unidad || "" }));
   };
 
-  // Delete
-  const remove = async (id) => {
-    const { error } = await supabase.from(tableName).delete().eq("id", id);
-    if (error) { notify(`Error al eliminar: ${error.message}`, "error"); return false; }
-    setData(d => d.filter(r => r.id !== id));
-    notify("Eliminado correctamente ✓");
-    return true;
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => { setForm({ nombre: r.nombre, economico: r.economico || "", unidad: r.unidad || "", tunidad: r.tunidad || "", tipo: r.tipo || "" }); setEditRow(r); setErr(""); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const save = async () => {
+    if (!form.nombre) { setErr("El nombre es obligatorio"); return; }
+    setLoading(true); setErr("");
+    try {
+      const payload = { nombre: form.nombre, economico: form.economico, unidad: form.unidad, tunidad: form.tunidad, tipo: form.tipo };
+      if (isEdit) {
+        const { error } = await sb.from("operadores").update(payload).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("operadores").insert(payload);
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return { data, loading, insert, update, remove, toast };
+  const remove = async (r) => {
+    if (!window.confirm(`¿Eliminar operador ${r.nombre}?`)) return;
+    try {
+      const { error } = await sb.from("operadores").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
+  };
+
+  const unidadSelected = form.unidad ? (unidades || []).find(u => u.economico === form.unidad) : null;
+
+  return (
+    <div>
+      <FormPanel visible={open} title={isEdit ? "Editar operador" : "Nuevo operador"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Nombre completo"><Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} /></Field>
+          <Field label="Económico"><Input placeholder="ECO-001" value={form.economico} onChange={e => set("economico", e.target.value)} /></Field>
+          <Field label="Unidad asignada" span2>
+            {unidadOpts.length === 0
+              ? <EmptyHint msg="No hay unidades registradas. Agrega unidades primero." />
+              : <Select value={form.unidad} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />}
+          </Field>
+          {unidadSelected && (
+            <GreenBanner>
+              <span style={{ fontWeight: 600 }}>Unidad seleccionada:</span>
+              <IdBadge id={unidadSelected.economico} />
+              <Chip label={unidadSelected.tipo_unidad} />
+              {unidadSelected.marca && <span style={{ fontSize: 11, color: C.greenStrong }}>{unidadSelected.marca} {unidadSelected.modelo}</span>}
+            </GreenBanner>
+          )}
+          <Field label="Tipo de operador" span2>
+            <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Tercera", "Propia"]} placeholder="Seleccionar tipo..." />
+          </Field>
+        </div>
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
+      </FormPanel>
+
+      {!open && <AddBtn onClick={openNew} label="+ Nuevo operador" />}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><Th>Nombre</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Económico</Th><Th>Tipo operador</Th><Th>Acciones</Th></tr></thead>
+          <tbody>
+            {data === null ? <Loading /> :
+             data.length === 0 ? <EmptyRow cols={6} msg="Sin operadores registrados" /> :
+             data.map(r => (
+               <tr key={r.id} style={{ background: "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                 <Td bold>{r.nombre}</Td>
+                 <Td><IdBadge id={r.unidad} /></Td>
+                 <Td><Chip label={r.tunidad} /></Td>
+                 <Td><IdBadge id={r.economico} /></Td>
+                 <Td><Chip label={r.tipo} /></Td>
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
+function ModRutas({ data, reload, desde, hasta, operadores }) {
+  const EMPTY = { fecha: "", cliente: "", operador: "", unidad: "", tunidad: "" };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const operadorOpts = (operadores || []).map(o => o.nombre).filter(Boolean);
+
+  const selOperador = (nombre) => {
+    const op = (operadores || []).find(o => o.nombre === nombre);
+    setForm(f => ({ ...f, operador: nombre, unidad: op?.unidad || "", tunidad: op?.tunidad || "" }));
+  };
+
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => { setForm({ fecha: r.fecha || "", cliente: r.cliente, operador: r.operador || "", unidad: r.unidad || "", tunidad: r.tunidad || "" }); setEditRow(r); setErr(""); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const save = async () => {
+    if (!form.cliente)  { setErr("El cliente es obligatorio"); return; }
+    if (!form.operador) { setErr("Selecciona un operador"); return; }
+    setLoading(true); setErr("");
+    try {
+      if (isEdit) {
+        const { error } = await sb.from("rutas").update({ fecha: form.fecha, cliente: form.cliente, operador: form.operador, unidad: form.unidad, tunidad: form.tunidad }).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const newId = nextRutaId();
+        const { error } = await sb.from("rutas").insert({ id: newId, fecha: form.fecha, cliente: form.cliente, operador: form.operador, unidad: form.unidad, tunidad: form.tunidad });
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const remove = async (r) => {
+    if (!window.confirm(`¿Eliminar ruta ${r.id}?`)) return;
+    try {
+      const { error } = await sb.from("rutas").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
+  };
+
+  const rows = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const opSelected = form.operador ? (operadores || []).find(o => o.nombre === form.operador) : null;
+
+  return (
+    <div>
+      <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta — ID generado automáticamente"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
+          <Field label="Cliente"><Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} /></Field>
+          <Field label="Operador" span2>
+            {operadorOpts.length === 0
+              ? <EmptyHint msg="No hay operadores registrados. Agrega operadores primero." />
+              : <Select value={form.operador} onChange={selOperador} options={operadorOpts} placeholder="Seleccionar operador..." />}
+          </Field>
+          {opSelected && (
+            <GreenBanner>
+              <span style={{ fontWeight: 600 }}>Unidad heredada:</span>
+              <IdBadge id={opSelected.unidad} />
+              {opSelected.tunidad && <Chip label={opSelected.tunidad} />}
+              {opSelected.tipo    && <Chip label={opSelected.tipo} />}
+            </GreenBanner>
+          )}
+        </div>
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
+      </FormPanel>
+
+      {!open && <AddBtn onClick={openNew} label="+ Nueva ruta" />}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Cliente</Th><Th>Acciones</Th></tr></thead>
+          <tbody>
+            {data === null ? <Loading /> :
+             rows.length === 0 ? <EmptyRow cols={7} msg="Sin rutas en este período" /> :
+             rows.map(r => (
+               <tr key={r.id} style={{ background: "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                 <Td><IdBadge id={r.id} /></Td>
+                 <Td>{r.fecha || "—"}</Td>
+                 <Td bold>{r.operador || "—"}</Td>
+                 <Td><IdBadge id={r.unidad} /></Td>
+                 <Td><Chip label={r.tunidad} /></Td>
+                 <Td>{r.cliente}</Td>
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── MÓDULO GASTOS ────────────────────────────────────────────────────────
+function ModGastos({ data, reload, desde, hasta, rutas }) {
+  const EMPTY = { monto: "", tipo: "", fecha: "", ruta: "", unidad: "", operador: "" };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
+
+  const set = (k, v) => setForm(f => {
+    const next = { ...f, [k]: v };
+    if (k === "fecha") next.ruta = "";
+    return next;
+  });
+
+  const rutasDelDia = useMemo(() => (rutas || []).filter(r => r.fecha === form.fecha), [rutas, form.fecha]);
+
+  const selRuta = (rutaId) => {
+    const r = (rutas || []).find(r => r.id === rutaId);
+    setForm(f => ({ ...f, ruta: rutaId, operador: r?.operador || "", unidad: r?.unidad || "" }));
+  };
+
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => { setForm({ monto: r.monto?.toString() || "", tipo: r.tipo || "", fecha: r.fecha || "", ruta: r.ruta || "", unidad: r.unidad || "", operador: r.operador || "" }); setEditRow(r); setErr(""); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const save = async () => {
+    if (!form.monto) { setErr("El monto es obligatorio"); return; }
+    setLoading(true); setErr("");
+    try {
+      const payload = { monto: parseFloat(form.monto), tipo: form.tipo, fecha: form.fecha, ruta: form.ruta, unidad: form.unidad, operador: form.operador };
+      if (isEdit) {
+        const { error } = await sb.from("gastos").update(payload).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("gastos").insert(payload);
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const remove = async (r) => {
+    if (!window.confirm("¿Eliminar este gasto?")) return;
+    try {
+      const { error } = await sb.from("gastos").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
+  };
+
+  const rows = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const rutaSelected = form.ruta ? (rutas || []).find(r => r.id === form.ruta) : null;
+
+  return (
+    <div>
+      <FormPanel visible={open} title={isEdit ? "Editar gasto" : "Nuevo gasto"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Monto"><Input type="number" placeholder="0.00" value={form.monto} onChange={e => set("monto", e.target.value)} /></Field>
+          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
+          <Field label="ID Ruta — filtrado por fecha" span2>
+            {!form.fecha ? <EmptyHint msg="Selecciona una fecha primero." />
+              : rutasDelDia.length === 0 ? <EmptyHint msg={`No hay rutas para el ${form.fecha}.`} />
+              : <Select value={form.ruta} onChange={selRuta} options={rutasDelDia.map(r => r.id)} placeholder="Seleccionar ruta del día..." />}
+          </Field>
+          {rutaSelected && (
+            <GreenBanner>
+              <span style={{ fontWeight: 600 }}>Heredado de la ruta:</span>
+              <span>Operador: <strong>{rutaSelected.operador || "—"}</strong></span>
+              <span>·</span>
+              <span>Unidad: <strong>{rutaSelected.unidad || "—"}</strong></span>
+            </GreenBanner>
+          )}
+          <Field label="Tipo de gasto" span2>
+            <Select value={form.tipo} onChange={v => set("tipo", v)}
+              options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Otro"]}
+              placeholder="Seleccionar tipo..." />
+          </Field>
+        </div>
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
+      </FormPanel>
+
+      {!open && <AddBtn onClick={openNew} label="+ Nuevo gasto" />}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><Th>Fecha</Th><Th>Monto</Th><Th>Tipo</Th><Th>ID Ruta</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th></tr></thead>
+          <tbody>
+            {data === null ? <Loading /> :
+             rows.length === 0 ? <EmptyRow cols={7} msg="Sin gastos en este período" /> :
+             rows.map(r => (
+               <tr key={r.id} style={{ background: "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                 <Td>{r.fecha || "—"}</Td>
+                 <Td bold>{fmt(r.monto)}</Td>
+                 <Td><Chip label={r.tipo} /></Td>
+                 <Td><IdBadge id={r.ruta} /></Td>
+                 <Td>{r.unidad || "—"}</Td>
+                 <Td>{r.operador || "—"}</Td>
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 // ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
-function ModIngresos({ desde, hasta, onToast }) {
-  const { data, loading, insert, update, remove } = useTable("ingresos", "created_at");
+function ModIngresos({ data, reload, desde, hasta }) {
   const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "" };
   const [open, setOpen]       = useState(false);
-  const [editId, setEditId]   = useState(null);
+  const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
-  const [saving, setSaving]   = useState(false);
-  const isEdit = !!editId;
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
 
   const set = (k, v) => setForm(f => {
     const next = { ...f, [k]: v };
@@ -307,30 +744,46 @@ function ModIngresos({ desde, hasta, onToast }) {
     return next;
   });
 
-  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: String(r.siniva || ""), coniva: String(r.coniva || ""), fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "" }); setEditId(r.id); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "" }); setEditRow(r); setErr(""); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
   const save = async () => {
-    if (!form.factura || !form.siniva) { alert("Completa factura y monto"); return; }
-    setSaving(true);
-    const payload = { ...form, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva) };
-    if (isEdit) await update(editId, payload);
-    else        await insert(payload);
-    setSaving(false);
-    cancel();
+    if (!form.factura || !form.siniva) { setErr("Factura y monto son obligatorios"); return; }
+    setLoading(true); setErr("");
+    try {
+      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas };
+      if (isEdit) {
+        const { error } = await sb.from("ingresos").update(payload).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("ingresos").insert(payload);
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const del = async (r) => {
-    if (!window.confirm("¿Eliminar este ingreso?")) return;
-    await remove(r.id);
+  const remove = async (r) => {
+    if (!window.confirm(`¿Eliminar factura ${r.factura}?`)) return;
+    try {
+      const { error } = await sb.from("ingresos").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
   };
 
-  const rows = useMemo(() => data.filter(r => inRange(r.fcarga, desde, hasta)), [data, desde, hasta]);
+  const rows = useMemo(() => (data || []).filter(r => inRange(r.fcarga, desde, hasta)), [data, desde, hasta]);
 
   return (
     <div>
       <FormPanel visible={open} title={isEdit ? "Editar ingreso" : "Nuevo ingreso"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Factura"><Input placeholder="FAC-2025-001" value={form.factura} onChange={e => set("factura", e.target.value)} /></Field>
           <Field label="Período"><Input placeholder="Feb 2025" value={form.periodo} onChange={e => set("periodo", e.target.value)} /></Field>
@@ -345,7 +798,7 @@ function ModIngresos({ desde, hasta, onToast }) {
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
         </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nuevo ingreso" />}
@@ -354,373 +807,24 @@ function ModIngresos({ desde, hasta, onToast }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr><Th>Factura</Th><Th>Período</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>Vencimiento</Th><Th>Estatus</Th><Th>Notas</Th><Th>Acciones</Th></tr></thead>
           <tbody>
-            {loading ? <LoadingRow cols={9} /> :
+            {data === null ? <Loading /> :
              rows.length === 0 ? <EmptyRow cols={9} msg="Sin ingresos en este período" /> :
-             rows.map((r) => (
-              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
-                <Td bold>{r.factura}</Td>
-                <Td>{r.periodo || "—"}</Td>
-                <Td>{fmt(r.siniva)}</Td>
-                <Td>{fmt(r.coniva)}</Td>
-                <Td>{r.fcarga || "—"}</Td>
-                <Td>{r.fvence || "—"}</Td>
-                <Td><Chip label={r.estatus} /></Td>
-                <Td><span style={{ color: C.muted, fontSize: 11, display: "block", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</span></Td>
-                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── MÓDULO GASTOS ────────────────────────────────────────────────────────
-function ModGastos({ desde, hasta, rutas }) {
-  const { data, loading, insert, update, remove } = useTable("gastos", "created_at");
-  const EMPTY = { monto: "", tipo: "", fecha: "", ruta: "", unidad: "", operador: "" };
-  const [open, setOpen]     = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm]     = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const isEdit = !!editId;
-
-  const set = (k, v) => setForm(f => {
-    const next = { ...f, [k]: v };
-    if (k === "fecha") next.ruta = "";
-    return next;
-  });
-
-  const rutasDelDia = useMemo(() => rutas.filter(r => r.fecha === form.fecha), [rutas, form.fecha]);
-
-  const selRuta = (rutaId) => {
-    const r = rutas.find(r => r.id === rutaId);
-    setForm(f => ({ ...f, ruta: rutaId, operador: r?.operador || "", unidad: r?.unidad || "" }));
-  };
-
-  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ monto: String(r.monto || ""), tipo: r.tipo || "", fecha: r.fecha || "", ruta: r.ruta || "", unidad: r.unidad || "", operador: r.operador || "" }); setEditId(r.id); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
-
-  const save = async () => {
-    if (!form.monto) { alert("Ingresa el monto"); return; }
-    setSaving(true);
-    const payload = { ...form, monto: parseFloat(form.monto), ruta: form.ruta || null };
-    if (isEdit) await update(editId, payload);
-    else        await insert(payload);
-    setSaving(false);
-    cancel();
-  };
-
-  const del = async (r) => {
-    if (!window.confirm("¿Eliminar este gasto?")) return;
-    await remove(r.id);
-  };
-
-  const rows = useMemo(() => data.filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
-  const rutaSelected = form.ruta ? rutas.find(r => r.id === form.ruta) : null;
-
-  return (
-    <div>
-      <FormPanel visible={open} title={isEdit ? "Editar gasto" : "Nuevo gasto"} isEdit={isEdit}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Monto"><Input type="number" placeholder="0.00" value={form.monto} onChange={e => set("monto", e.target.value)} /></Field>
-          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
-          <Field label="ID Ruta — filtrado por fecha" span2>
-            {!form.fecha ? <EmptyHint msg="Selecciona una fecha primero para ver las rutas disponibles." />
-              : rutasDelDia.length === 0 ? <EmptyHint msg={`No hay rutas registradas para el ${form.fecha}.`} />
-              : <Select value={form.ruta} onChange={selRuta} options={rutasDelDia.map(r => r.id)} placeholder="Seleccionar ruta del día..." />}
-          </Field>
-          {rutaSelected && (
-            <GreenBanner>
-              <span style={{ fontWeight: 600 }}>Heredado de la ruta:</span>
-              <span>Operador: <strong>{rutaSelected.operador || "—"}</strong></span>
-              <span>·</span>
-              <span>Unidad: <strong>{rutaSelected.unidad || "—"}</strong></span>
-              <span>·</span>
-              <span>Cliente: <strong>{rutaSelected.cliente || "—"}</strong></span>
-            </GreenBanner>
-          )}
-          <Field label="Tipo de gasto" span2>
-            <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Otro"]} placeholder="Seleccionar tipo..." />
-          </Field>
-        </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
-      </FormPanel>
-
-      {!open && <AddBtn onClick={openNew} label="+ Nuevo gasto" />}
-
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Fecha</Th><Th>Monto</Th><Th>Tipo</Th><Th>ID Ruta</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th></tr></thead>
-          <tbody>
-            {loading ? <LoadingRow cols={7} /> :
-             rows.length === 0 ? <EmptyRow cols={7} msg="Sin gastos en este período" /> :
-             rows.map((r) => (
-              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
-                <Td>{r.fecha || "—"}</Td>
-                <Td bold>{fmt(r.monto)}</Td>
-                <Td><Chip label={r.tipo} /></Td>
-                <Td><IdBadge id={r.ruta} /></Td>
-                <Td>{r.unidad || "—"}</Td>
-                <Td>{r.operador || "—"}</Td>
-                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── MÓDULO OPERADORES ────────────────────────────────────────────────────
-function ModOperadores({ unidades }) {
-  const { data, loading, insert, update, remove } = useTable("operadores", "created_at");
-  const EMPTY = { nombre: "", economico: "", unidad: "", tunidad: "", tipo: "" };
-  const [open, setOpen]     = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm]     = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const isEdit = !!editId;
-
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const unidadOpts = unidades.map(u => u.economico).filter(Boolean);
-
-  const selUnidad = (eco) => {
-    const u = unidades.find(u => u.economico === eco);
-    setForm(f => ({ ...f, unidad: eco, tunidad: u?.tipo || "" }));
-  };
-
-  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ nombre: r.nombre, economico: r.economico || "", unidad: r.unidad || "", tunidad: r.tunidad || "", tipo: r.tipo || "" }); setEditId(r.id); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
-
-  const save = async () => {
-    if (!form.nombre) { alert("Ingresa el nombre"); return; }
-    setSaving(true);
-    if (isEdit) await update(editId, form);
-    else        await insert(form);
-    setSaving(false);
-    cancel();
-  };
-
-  const del = async (r) => {
-    if (!window.confirm("¿Eliminar este operador?")) return;
-    await remove(r.id);
-  };
-
-  const unidadSelected = form.unidad ? unidades.find(u => u.economico === form.unidad) : null;
-
-  return (
-    <div>
-      <FormPanel visible={open} title={isEdit ? "Editar operador" : "Nuevo operador"} isEdit={isEdit}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Nombre completo"><Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} /></Field>
-          <Field label="Económico"><Input placeholder="ECO-001" value={form.economico} onChange={e => set("economico", e.target.value)} /></Field>
-          <Field label="Unidad asignada" span2>
-            {unidadOpts.length === 0 ? <EmptyHint msg="No hay unidades registradas. Agrega unidades primero." />
-              : <Select value={form.unidad} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />}
-          </Field>
-          {unidadSelected && (
-            <GreenBanner>
-              <span style={{ fontWeight: 600 }}>Unidad seleccionada:</span>
-              <IdBadge id={unidadSelected.economico} />
-              <Chip label={unidadSelected.tipo} />
-              <Chip label={unidadSelected.prop} />
-            </GreenBanner>
-          )}
-          <Field label="Tipo de operador" span2>
-            <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Tercera", "Propia"]} placeholder="Seleccionar tipo..." />
-          </Field>
-        </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
-      </FormPanel>
-
-      {!open && <AddBtn onClick={openNew} label="+ Nuevo operador" />}
-
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Nombre</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Económico</Th><Th>Tipo operador</Th><Th>Acciones</Th></tr></thead>
-          <tbody>
-            {loading ? <LoadingRow cols={6} /> :
-             data.length === 0 ? <EmptyRow cols={6} msg="Sin operadores registrados" /> :
-             data.map((r) => (
-              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
-                <Td bold>{r.nombre}</Td>
-                <Td><IdBadge id={r.unidad} /></Td>
-                <Td><Chip label={r.tunidad} /></Td>
-                <Td><IdBadge id={r.economico} /></Td>
-                <Td><Chip label={r.tipo} /></Td>
-                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
-function ModRutas({ desde, hasta, operadores, onDataChange }) {
-  const { data, loading, insert, update, remove } = useTable("rutas", "created_at");
-  const EMPTY = { fecha: "", cliente: "", operador: "", unidad: "", tunidad: "" };
-  const [open, setOpen]     = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm]     = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const isEdit = !!editId;
-
-  // Expose data upward so ModGastos can filter rutas by date
-  useEffect(() => { if (onDataChange) onDataChange(data); }, [data, onDataChange]);
-
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const operadorOpts = operadores.map(o => o.nombre).filter(Boolean);
-
-  const selOperador = (nombre) => {
-    const op = operadores.find(o => o.nombre === nombre);
-    setForm(f => ({ ...f, operador: nombre, unidad: op?.unidad || "", tunidad: op?.tunidad || "" }));
-  };
-
-  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ fecha: r.fecha || "", cliente: r.cliente, operador: r.operador || "", unidad: r.unidad || "", tunidad: r.tunidad || "" }); setEditId(r.id); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
-
-  const save = async () => {
-    if (!form.cliente)  { alert("Ingresa el cliente"); return; }
-    if (!form.operador) { alert("Selecciona un operador"); return; }
-    setSaving(true);
-    if (isEdit) {
-      await update(editId, form);
-    } else {
-      // For rutas, id is text (RTA-XXXX) not uuid — insert with explicit id
-      await insert({ ...form, id: nextRutaId() });
-    }
-    setSaving(false);
-    cancel();
-  };
-
-  const del = async (r) => {
-    if (!window.confirm("¿Eliminar esta ruta? Los gastos vinculados quedarán sin ruta.")) return;
-    await remove(r.id);
-  };
-
-  const rows = useMemo(() => data.filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
-  const opSelected = form.operador ? operadores.find(o => o.nombre === form.operador) : null;
-
-  return (
-    <div>
-      <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta — ID generado automáticamente"} isEdit={isEdit}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
-          <Field label="Cliente"><Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} /></Field>
-          <Field label="Operador" span2>
-            {operadorOpts.length === 0 ? <EmptyHint msg="No hay operadores registrados. Agrega operadores primero." />
-              : <Select value={form.operador} onChange={selOperador} options={operadorOpts} placeholder="Seleccionar operador..." />}
-          </Field>
-          {opSelected && (
-            <GreenBanner>
-              <span style={{ fontWeight: 600 }}>Unidad heredada:</span>
-              <IdBadge id={opSelected.unidad} />
-              {opSelected.tunidad && <Chip label={opSelected.tunidad} />}
-              {opSelected.tipo    && <Chip label={opSelected.tipo} />}
-            </GreenBanner>
-          )}
-        </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
-      </FormPanel>
-
-      {!open && <AddBtn onClick={openNew} label="+ Nueva ruta" />}
-
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Cliente</Th><Th>Acciones</Th></tr></thead>
-          <tbody>
-            {loading ? <LoadingRow cols={7} /> :
-             rows.length === 0 ? <EmptyRow cols={7} msg="Sin rutas en este período" /> :
-             rows.map((r) => (
-              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
-                <Td><IdBadge id={r.id} /></Td>
-                <Td>{r.fecha || "—"}</Td>
-                <Td bold>{r.operador || "—"}</Td>
-                <Td><IdBadge id={r.unidad} /></Td>
-                <Td><Chip label={r.tunidad} /></Td>
-                <Td>{r.cliente}</Td>
-                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── MÓDULO UNIDADES ──────────────────────────────────────────────────────
-function ModUnidades({ onDataChange }) {
-  const { data, loading, insert, update, remove } = useTable("unidades", "created_at");
-  const EMPTY = { economico: "", tipo: "", prop: "" };
-  const [open, setOpen]     = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm]     = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const isEdit = !!editId;
-
-  useEffect(() => { if (onDataChange) onDataChange(data); }, [data, onDataChange]);
-
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const openNew  = () => { setForm(EMPTY); setEditId(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ economico: r.economico, tipo: r.tipo || "", prop: r.prop || "" }); setEditId(r.id); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditId(null); setOpen(false); };
-
-  const save = async () => {
-    if (!form.economico) { alert("Ingresa el económico"); return; }
-    setSaving(true);
-    if (isEdit) await update(editId, form);
-    else        await insert(form);
-    setSaving(false);
-    cancel();
-  };
-
-  const del = async (r) => {
-    if (!window.confirm("¿Eliminar esta unidad?")) return;
-    await remove(r.id);
-  };
-
-  return (
-    <div>
-      <FormPanel visible={open} title={isEdit ? "Editar unidad" : "Nueva unidad"} isEdit={isEdit}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Económico"><Input placeholder="VDL-01" value={form.economico} onChange={e => set("economico", e.target.value)} /></Field>
-          <div />
-          <Field label="Tipo de unidad">
-            <Select value={form.tipo} onChange={v => set("tipo", v)} options={["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"]} placeholder="Seleccionar tipo..." />
-          </Field>
-          <Field label="Propiedad">
-            <Select value={form.prop} onChange={v => set("prop", v)} options={["Propia", "Tercera"]} placeholder="Seleccionar propiedad..." />
-          </Field>
-        </div>
-        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} saving={saving} />
-      </FormPanel>
-
-      {!open && <AddBtn onClick={openNew} label="+ Nueva unidad" />}
-
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Económico</Th><Th>Tipo</Th><Th>Propiedad</Th><Th>Acciones</Th></tr></thead>
-          <tbody>
-            {loading ? <LoadingRow cols={4} /> :
-             data.length === 0 ? <EmptyRow cols={4} msg="Sin unidades registradas" /> :
-             data.map((r) => (
-              <tr key={r.id} style={{ background: "#FFFFFF" }} onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"} onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
-                <Td><IdBadge id={r.economico} /></Td>
-                <Td><Chip label={r.tipo} /></Td>
-                <Td><Chip label={r.prop} /></Td>
-                <RowActions onEdit={() => openEdit(r)} onDelete={() => del(r)} />
-              </tr>
-            ))}
+             rows.map(r => (
+               <tr key={r.id} style={{ background: "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+                 <Td bold>{r.factura}</Td>
+                 <Td>{r.periodo || "—"}</Td>
+                 <Td>{fmt(r.siniva)}</Td>
+                 <Td>{fmt(r.coniva)}</Td>
+                 <Td>{r.fcarga || "—"}</Td>
+                 <Td>{r.fvence || "—"}</Td>
+                 <Td><Chip label={r.estatus} /></Td>
+                 <Td><span style={{ color: C.muted, fontSize: 11, display: "block", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</span></Td>
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
           </tbody>
         </table>
       </div>
@@ -730,34 +834,50 @@ function ModUnidades({ onDataChange }) {
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────
 export default function VDLModulos() {
-  const [mod, setMod]       = useState("ingresos");
-  const [desde, setDesde]   = useState("");
-  const [hasta, setHasta]   = useState("");
+  const [mod, setMod] = useState("ingresos");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
 
-  // Cross-module shared data (needed for dropdowns in other modules)
-  const [unidades,   setUnidades]   = useState([]);
-  const [operadores, setOperadores] = useState([]);
-  const [rutas,      setRutas]      = useState([]);
+  // ── Data state — null = loading, [] = empty, [...] = loaded
+  const [ingresos,   setIngresos]   = useState(null);
+  const [gastos,     setGastos]     = useState(null);
+  const [operadores, setOperadores] = useState(null);
+  const [rutas,      setRutas]      = useState(null);
+  const [unidades,   setUnidades]   = useState(null);
 
-  // KPIs — fetched independently so they update without re-mounting modules
-  const { data: ingData } = useTable("ingresos", "created_at");
-  const { data: gasData } = useTable("gastos",   "created_at");
-  const { data: rutData } = useTable("rutas",    "created_at");
+  // ── Fetch all tables ──────────────────────────────────────────────────
+  const fetchTable = useCallback(async (table, setter) => {
+    const { data, error } = await sb.from(table).select("*").order("created_at", { ascending: false });
+    if (!error) setter(data || []);
+    else console.error(`Error fetching ${table}:`, error.message);
+  }, []);
 
-  // Also load operadores at root level for Rutas dropdown
-  const { data: opData }  = useTable("operadores", "created_at");
-  useEffect(() => { setOperadores(opData); }, [opData]);
+  const reloadUnidades   = useCallback(() => fetchTable("unidades",   setUnidades),   [fetchTable]);
+  const reloadOperadores = useCallback(() => fetchTable("operadores", setOperadores), [fetchTable]);
+  const reloadRutas      = useCallback(() => fetchTable("rutas",      setRutas),      [fetchTable]);
+  const reloadGastos     = useCallback(() => fetchTable("gastos",     setGastos),     [fetchTable]);
+  const reloadIngresos   = useCallback(() => fetchTable("ingresos",   setIngresos),   [fetchTable]);
 
+  // Initial load — fetch everything on mount
+  useEffect(() => {
+    reloadUnidades();
+    reloadOperadores();
+    reloadRutas();
+    reloadGastos();
+    reloadIngresos();
+  }, []);
+
+  // ── KPIs ─────────────────────────────────────────────────────────────
   const kpi = useMemo(() => {
-    const ingFilt = ingData.filter(r => inRange(r.fcarga, desde, hasta));
-    const gasFilt = gasData.filter(r => inRange(r.fecha,  desde, hasta));
-    const rutFilt = rutData.filter(r => inRange(r.fecha,  desde, hasta));
+    const ingFilt = (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta));
+    const gasFilt = (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta));
+    const rutFilt = (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta));
     const totalIng = ingFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
     const totalGas = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
-    const util     = totalIng - totalGas;
-    const pct      = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
+    const util = totalIng - totalGas;
+    const pct  = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
     return { totalIng, totalGas, util, pct, ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length };
-  }, [ingData, gasData, rutData, desde, hasta]);
+  }, [ingresos, gastos, rutas, desde, hasta]);
 
   const navItems = [
     { id: "ingresos",   label: "Ingresos"   },
@@ -782,9 +902,13 @@ export default function VDLModulos() {
         </div>
         <nav style={{ padding: "16px 0", flex: 1 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "rgba(255,255,255,0.3)", padding: "0 20px", marginBottom: 8 }}>MÓDULOS</div>
-          {navItems.map(item => <NavItem key={item.id} label={item.label} active={mod === item.id} onClick={() => setMod(item.id)} />)}
+          {navItems.map(item => (
+            <NavItem key={item.id} label={item.label} active={mod === item.id} onClick={() => setMod(item.id)} />
+          ))}
         </nav>
-        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL · Control Financiero</div>
+        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+          VDL · Control Financiero
+        </div>
       </aside>
 
       {/* MAIN */}
@@ -792,12 +916,12 @@ export default function VDLModulos() {
         {/* KPIs */}
         <div style={{ padding: "20px 28px 0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
-            <KpiCard label="Ingresos" value={fmt(kpi.totalIng)} sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""} · con IVA`} badge="▲ Cobros" badgeType="up" />
-            <KpiCard label="Gastos" value={fmt(kpi.totalGas)} sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} · operativos`} badge="Egresos" badgeType={kpi.totalGas > 0 ? "down" : "neu"} />
-            <KpiCard label="Utilidad" value={fmt(kpi.util)} sub={`Margen ${kpi.pct}%`}
+            <KpiCard label="Ingresos"  value={fmt(kpi.totalIng)} sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""} · con IVA`}        badge="▲ Cobros"  badgeType="up" />
+            <KpiCard label="Gastos"    value={fmt(kpi.totalGas)} sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} · operativos`}     badge="Egresos"  badgeType={kpi.totalGas > 0 ? "down" : "neu"} />
+            <KpiCard label="Utilidad"  value={fmt(kpi.util)}     sub={`Margen ${kpi.pct}%`}
               badge={kpi.totalIng === 0 && kpi.totalGas === 0 ? "Sin datos" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
               badgeType={kpi.totalIng === 0 && kpi.totalGas === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
-            <KpiCard label="Rutas" value={kpi.rutN} sub="en el período" badge="Viajes" badgeType="neu" />
+            <KpiCard label="Rutas"     value={kpi.rutN}          sub="en el período"                                                        badge="Viajes"   badgeType="neu" />
           </div>
         </div>
 
@@ -826,11 +950,11 @@ export default function VDLModulos() {
 
         {/* MODULE CONTENT */}
         <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
-          {mod === "ingresos"   && <ModIngresos   desde={desde} hasta={hasta} />}
-          {mod === "gastos"     && <ModGastos     desde={desde} hasta={hasta} rutas={rutas} />}
-          {mod === "operadores" && <ModOperadores unidades={unidades} />}
-          {mod === "rutas"      && <ModRutas      desde={desde} hasta={hasta} operadores={operadores} onDataChange={setRutas} />}
-          {mod === "unidades"   && <ModUnidades   onDataChange={setUnidades} />}
+          {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
+          {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} />}
+          {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} unidades={unidades || []} />}
+          {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} />}
+          {mod === "unidades"   && <ModUnidades   data={unidades}   reload={reloadUnidades} />}
         </div>
       </section>
     </main>
