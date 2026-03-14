@@ -430,15 +430,25 @@ function ModGastos({ data, setData, desde, hasta }) {
 }
 
 // ─── MÓDULO OPERADORES ────────────────────────────────────────────────────
-function ModOperadores({ data, setData }) {
+// unidades: lista de unidades registradas en ModUnidades (para asignar por etiqueta)
+function ModOperadores({ data, setData, unidades }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ nombre: "", economico: "", unidad: "", tipo: "", tunidad: "" });
+  const [form, setForm] = useState({ nombre: "", economico: "", unidad: "", tipo: "" });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Opciones de unidad a partir de las unidades registradas (económico como etiqueta)
+  const unidadOpts = unidades.map(u => u.economico).filter(Boolean);
+
+  // Al seleccionar unidad, también guardamos el tipo de unidad heredado
+  const selUnidad = (eco) => {
+    const u = unidades.find(u => u.economico === eco);
+    setForm(f => ({ ...f, unidad: eco, tunidad: u?.tipo || "" }));
+  };
 
   const save = () => {
     if (!form.nombre) { alert("Ingresa el nombre"); return; }
     setData(d => [...d, { ...form }]);
-    setForm({ nombre: "", economico: "", unidad: "", tipo: "", tunidad: "" });
+    setForm({ nombre: "", economico: "", unidad: "", tipo: "" });
     setOpen(false);
   };
 
@@ -446,15 +456,42 @@ function ModOperadores({ data, setData }) {
     <div>
       <FormPanel visible={open} title="Nuevo operador">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Nombre completo"><Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} /></Field>
-          <Field label="Económico"><Input placeholder="ECO-001" value={form.economico} onChange={e => set("economico", e.target.value)} /></Field>
-          <Field label="Unidad asignada"><Input placeholder="VDL-01" value={form.unidad} onChange={e => set("unidad", e.target.value)} /></Field>
-          <div />
+          <Field label="Nombre completo">
+            <Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} />
+          </Field>
+          <Field label="Económico">
+            <Input placeholder="ECO-001" value={form.economico} onChange={e => set("economico", e.target.value)} />
+          </Field>
+          <Field label="Unidad asignada" span2>
+            {unidadOpts.length === 0 ? (
+              <div style={{
+                padding: "10px 14px", borderRadius: 10, border: `1px dashed ${C.border}`,
+                fontSize: 12, color: C.muted, background: "#FAFCFA",
+              }}>
+                No hay unidades registradas. Agrega unidades en el módulo Unidades primero.
+              </div>
+            ) : (
+              <TagSelector options={unidadOpts} selected={form.unidad} onSelect={selUnidad} />
+            )}
+          </Field>
+          {form.unidad && (() => {
+            const u = unidades.find(u => u.economico === form.unidad);
+            if (!u) return null;
+            return (
+              <div style={{
+                gridColumn: "span 2", display: "flex", gap: 8, alignItems: "center",
+                padding: "8px 12px", borderRadius: 10, background: C.greenSoft,
+                fontSize: 12, color: C.greenStrong,
+              }}>
+                <span style={{ fontWeight: 600 }}>Unidad seleccionada:</span>
+                <IdBadge id={u.economico} />
+                <Chip label={u.tipo} />
+                <Chip label={u.prop} />
+              </div>
+            );
+          })()}
           <Field label="Tipo de operador">
             <TagSelector options={["Tercera", "Propia"]} selected={form.tipo} onSelect={v => set("tipo", v)} />
-          </Field>
-          <Field label="Tipo de unidad">
-            <TagSelector options={["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"]} selected={form.tunidad} onSelect={v => set("tunidad", v)} />
           </Field>
         </div>
         <BtnRow onCancel={() => setOpen(false)} onSave={save} />
@@ -473,17 +510,17 @@ function ModOperadores({ data, setData }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr><Th>Nombre</Th><Th>Unidad</Th><Th>Económico</Th><Th>Tipo</Th><Th>Tipo de unidad</Th></tr>
+            <tr><Th>Nombre</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Económico</Th><Th>Tipo operador</Th></tr>
           </thead>
           <tbody>
             {data.length === 0 ? <EmptyRow cols={5} msg="Sin operadores registrados" /> :
               data.map((r, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? C.card : "#FAFCFA" }}>
                   <Td bold>{r.nombre}</Td>
-                  <Td>{r.unidad || "—"}</Td>
+                  <Td><IdBadge id={r.unidad} /></Td>
+                  <Td><Chip label={r.tunidad} /></Td>
                   <Td><IdBadge id={r.economico} /></Td>
                   <Td><Chip label={r.tipo} /></Td>
-                  <Td><Chip label={r.tunidad} /></Td>
                 </tr>
               ))
             }
@@ -495,15 +532,30 @@ function ModOperadores({ data, setData }) {
 }
 
 // ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
-function ModRutas({ data, setData, desde, hasta }) {
+// operadores: lista de operadores registrados para seleccionar por etiqueta
+function ModRutas({ data, setData, desde, hasta, operadores }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ fecha: "", cliente: "", operador: "", unidad: "" });
+  const [form, setForm] = useState({ fecha: "", cliente: "", operador: "", unidad: "", tunidad: "" });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Al seleccionar operador, heredar su unidad y tipo de unidad
+  const selOperador = (nombre) => {
+    const op = operadores.find(o => o.nombre === nombre);
+    setForm(f => ({
+      ...f,
+      operador: nombre,
+      unidad:   op?.unidad  || "",
+      tunidad:  op?.tunidad || "",
+    }));
+  };
+
+  const operadorOpts = operadores.map(o => o.nombre).filter(Boolean);
 
   const save = () => {
     if (!form.cliente) { alert("Ingresa el cliente"); return; }
+    if (!form.operador) { alert("Selecciona un operador"); return; }
     setData(d => [...d, { ...form, id: nextRutaId() }]);
-    setForm({ fecha: "", cliente: "", operador: "", unidad: "" });
+    setForm({ fecha: "", cliente: "", operador: "", unidad: "", tunidad: "" });
     setOpen(false);
   };
 
@@ -513,10 +565,40 @@ function ModRutas({ data, setData, desde, hasta }) {
     <div>
       <FormPanel visible={open} title="Nueva ruta — ID generado automáticamente">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} /></Field>
-          <Field label="Cliente"><Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} /></Field>
-          <Field label="Operador"><Input placeholder="Nombre operador" value={form.operador} onChange={e => set("operador", e.target.value)} /></Field>
-          <Field label="Unidad"><Input placeholder="VDL-01" value={form.unidad} onChange={e => set("unidad", e.target.value)} /></Field>
+          <Field label="Fecha">
+            <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
+          </Field>
+          <Field label="Cliente">
+            <Input placeholder="Nombre del cliente" value={form.cliente} onChange={e => set("cliente", e.target.value)} />
+          </Field>
+          <Field label="Operador" span2>
+            {operadorOpts.length === 0 ? (
+              <div style={{
+                padding: "10px 14px", borderRadius: 10, border: `1px dashed ${C.border}`,
+                fontSize: 12, color: C.muted, background: "#FAFCFA",
+              }}>
+                No hay operadores registrados. Agrega operadores primero.
+              </div>
+            ) : (
+              <TagSelector options={operadorOpts} selected={form.operador} onSelect={selOperador} />
+            )}
+          </Field>
+          {form.operador && (() => {
+            const op = operadores.find(o => o.nombre === form.operador);
+            if (!op) return null;
+            return (
+              <div style={{
+                gridColumn: "span 2", display: "flex", gap: 8, alignItems: "center",
+                padding: "8px 12px", borderRadius: 10, background: C.greenSoft,
+                fontSize: 12, color: C.greenStrong,
+              }}>
+                <span style={{ fontWeight: 600 }}>Unidad heredada:</span>
+                <IdBadge id={op.unidad} />
+                {op.tunidad && <Chip label={op.tunidad} />}
+                {op.tipo && <Chip label={op.tipo} />}
+              </div>
+            );
+          })()}
         </div>
         <BtnRow onCancel={() => setOpen(false)} onSave={save} />
       </FormPanel>
@@ -534,17 +616,18 @@ function ModRutas({ data, setData, desde, hasta }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Cliente</Th></tr>
+            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Operador</Th><Th>Unidad</Th><Th>Tipo unidad</Th><Th>Cliente</Th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? <EmptyRow cols={5} msg="Sin rutas en este período" /> :
+            {rows.length === 0 ? <EmptyRow cols={6} msg="Sin rutas en este período" /> :
               rows.map((r, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? C.card : "#FAFCFA" }}>
                   <Td><IdBadge id={r.id} /></Td>
                   <Td>{r.fecha || "—"}</Td>
-                  <Td>{r.operador || "—"}</Td>
-                  <Td>{r.unidad || "—"}</Td>
-                  <Td bold>{r.cliente}</Td>
+                  <Td bold>{r.operador || "—"}</Td>
+                  <Td><IdBadge id={r.unidad} /></Td>
+                  <Td><Chip label={r.tunidad} /></Td>
+                  <Td>{r.cliente}</Td>
                 </tr>
               ))
             }
@@ -776,8 +859,8 @@ export default function VDLModulos() {
         <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   setData={setIngresos} desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     setData={setGastos}   desde={desde} hasta={hasta} />}
-          {mod === "operadores" && <ModOperadores data={operadores} setData={setOp} />}
-          {mod === "rutas"      && <ModRutas      data={rutas}      setData={setRutas}    desde={desde} hasta={hasta} />}
+          {mod === "operadores" && <ModOperadores data={operadores} setData={setOp} unidades={unidades} />}
+          {mod === "rutas"      && <ModRutas      data={rutas}      setData={setRutas}    desde={desde} hasta={hasta} operadores={operadores} />}
           {mod === "unidades"   && <ModUnidades   data={unidades}   setData={setUnidades} />}
         </div>
       </section>
