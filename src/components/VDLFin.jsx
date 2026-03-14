@@ -62,6 +62,11 @@ export default function VDLFin() {
 
   useEffect(() => {
     async function loadGastos() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("gastos")
         .select("*")
