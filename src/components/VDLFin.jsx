@@ -69,6 +69,16 @@ const inRange = (fecha, desde, hasta) => {
 let _rutaCounter = 1000;
 const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
 
+// Sincronizar contador con el máximo ID existente en Supabase
+async function syncRutaCounter() {
+  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(50);
+  if (!data || data.length === 0) return;
+  const nums = data
+    .map(r => parseInt(r.id?.replace("RTA-", "") || "0"))
+    .filter(n => !isNaN(n));
+  if (nums.length > 0) _rutaCounter = Math.max(...nums);
+}
+
 // ─── SHARED STYLES ────────────────────────────────────────────────────────
 const inputStyle = {
   padding: "8px 12px", borderRadius: 10, border: "1px solid #E2E8E3",
@@ -1194,6 +1204,7 @@ export default function VDLModulos() {
 
   // Initial load — fetch everything on mount
   useEffect(() => {
+    syncRutaCounter();
     reloadUnidades();
     reloadOperadores();
     reloadRutas();
