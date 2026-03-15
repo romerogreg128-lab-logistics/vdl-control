@@ -689,13 +689,10 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 }
 
 // ─── MÓDULO GASTOS ────────────────────────────────────────────────────────
-// Columnas reales: id, fecha, tipo_gasto, categoria, concepto, monto, moneda,
-// metodo_pago, proveedor_id, unidad_id, operador_id, viaje_id,
-// km_odometro, litros, folio_factura, notas, created_at, operador, unidad, ruta, tipo
-function ModGastos({ data, reload, desde, hasta, rutas }) {
+function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   const EMPTY = {
     monto: "", tipo_gasto: "", fecha: "", viaje_id: "",
-    unidad_id: "", operador: "", concepto: "", notas: "",
+    operador: "", concepto: "", notas: "",
   };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
@@ -715,27 +712,27 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
     [rutas, form.fecha]
   );
 
+  const operadorOpts = (operadores || []).map(o => o.nombre).filter(Boolean);
+
   const selRuta = (rutaId) => {
     const r = (rutas || []).find(r => r.id === rutaId);
     setForm(f => ({
       ...f,
-      viaje_id:   rutaId,
-      operador:   r?.operador   || "",
-      unidad_id:  r?.unidad_id  || "",
+      viaje_id: rutaId,
+      operador: r?.operador || "",
     }));
   };
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
   const openEdit = (r) => {
     setForm({
-      monto:     r.monto?.toString()  || "",
-      tipo_gasto:r.tipo_gasto         || "",
-      fecha:     r.fecha              || "",
-      viaje_id:  r.viaje_id           || "",
-      unidad_id: r.unidad_id          || "",
-      operador:  r.operador           || "",
-      concepto:  r.concepto           || "",
-      notas:     r.notas              || "",
+      monto:      r.monto?.toString() || "",
+      tipo_gasto: r.tipo_gasto        || "",
+      fecha:      r.fecha             || "",
+      viaje_id:   r.viaje_id          || "",
+      operador:   r.operador          || "",
+      concepto:   r.concepto          || "",
+      notas:      r.notas             || "",
     });
     setEditRow(r); setErr(""); setOpen(true);
   };
@@ -750,7 +747,6 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
         tipo_gasto: form.tipo_gasto || null,
         fecha:      form.fecha      || null,
         viaje_id:   form.viaje_id   || null,
-        unidad_id:  form.unidad_id  || null,
         operador:   form.operador   || null,
         concepto:   form.concepto   || null,
         notas:      form.notas      || null,
@@ -780,8 +776,8 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
     } catch (e) { alert(e.message); }
   };
 
-  const rows        = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
-  const rutaSel     = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
+  const rows    = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const rutaSel = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
 
   return (
     <div>
@@ -802,25 +798,34 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
               options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Mantenimiento", "Llantas", "Otro"]}
               placeholder="Seleccionar tipo..." />
           </Field>
+
+          <Field label="Operador" span2>
+            {operadorOpts.length === 0
+              ? <EmptyHint msg="No hay operadores registrados." />
+              : <Select value={form.operador} onChange={v => set("operador", v)}
+                  options={operadorOpts} placeholder="Seleccionar operador..." />}
+          </Field>
+
           <Field label="Viaje / Ruta — filtrado por fecha" span2>
             {!form.fecha
-              ? <EmptyHint msg="Selecciona una fecha primero." />
+              ? <EmptyHint msg="Selecciona una fecha primero para ver los viajes disponibles." />
               : rutasDelDia.length === 0
-                ? <EmptyHint msg={`No hay rutas para el ${form.fecha}.`} />
+                ? <EmptyHint msg={`No hay rutas registradas para el ${form.fecha}.`} />
                 : <Select value={form.viaje_id} onChange={selRuta}
                     options={rutasDelDia.map(r => r.id)}
-                    placeholder="Seleccionar ruta del día..." />}
+                    placeholder="Seleccionar viaje (opcional)..." />}
           </Field>
+
           {rutaSel && (
             <GreenBanner>
-              <span style={{ fontWeight: 600 }}>Heredado de la ruta:</span>
-              <span>Operador: <strong>{rutaSel.operador || "—"}</strong></span>
+              <span style={{ fontWeight: 600 }}>Viaje:</span>
+              <IdBadge id={rutaSel.id} />
+              <span>Cliente: <strong>{rutaSel.cliente_id || "—"}</strong></span>
               <span>·</span>
               <span>Unidad: <strong>{rutaSel.unidad_id || "—"}</strong></span>
-              <span>·</span>
-              <span>Cliente: <strong>{rutaSel.cliente_id || "—"}</strong></span>
             </GreenBanner>
           )}
+
           <Field label="Notas" span2>
             <Input placeholder="Observaciones opcionales" value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
@@ -835,7 +840,7 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
           <thead>
             <tr>
               <Th>Fecha</Th><Th>Concepto</Th><Th>Monto</Th><Th>Tipo</Th>
-              <Th>Viaje</Th><Th>Unidad</Th><Th>Operador</Th><Th>Acciones</Th>
+              <Th>Operador</Th><Th>Viaje</Th><Th>Notas</Th><Th>Acciones</Th>
             </tr>
           </thead>
           <tbody>
@@ -849,9 +854,9 @@ function ModGastos({ data, reload, desde, hasta, rutas }) {
                  <Td>{r.concepto || "—"}</Td>
                  <Td bold>{fmt(r.monto)}</Td>
                  <Td><Chip label={r.tipo_gasto} /></Td>
-                 <Td><IdBadge id={r.viaje_id} /></Td>
-                 <Td><IdBadge id={r.unidad_id} /></Td>
                  <Td>{r.operador || "—"}</Td>
+                 <Td><IdBadge id={r.viaje_id} /></Td>
+                 <Td><span style={{ color: C.muted, fontSize: 11 }}>{r.notas || "—"}</span></Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
              ))
@@ -1243,7 +1248,7 @@ export default function VDLModulos() {
         {/* MODULE CONTENT */}
         <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
-          {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} />}
+          {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} operadores={operadores || []} />}
           {mod === "clientes"   && <ModClientes   data={clientes}   reload={reloadClientes} />}
           {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} unidades={unidades || []} />}
           {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
