@@ -552,7 +552,13 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     const tarifa = getTarifa(f.cliente_id, eco);
     return { ...f, unidad_id: eco, flete: tarifa ? tarifa.toString() : f.flete };
   });
-  const selOperador = (nombre) => setForm(f => ({ ...f, operador: nombre }));
+  const selOperador = (nombre) => setForm(f => {
+    // Auto-asignar unidad si el operador tiene una registrada
+    const op = (operadores || []).find(o => o.nombre === nombre);
+    const unidad_id = op?.unidad_id || f.unidad_id;
+    const tarifa = getTarifa(f.cliente_id, unidad_id);
+    return { ...f, operador: nombre, unidad_id, flete: tarifa ? tarifa.toString() : f.flete };
+  });
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
   const openEdit = (r) => {
@@ -621,10 +627,43 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
               ? <EmptyHint msg="No hay operadores registrados." />
               : <Select value={form.operador} onChange={selOperador} options={operadorOpts} placeholder="Seleccionar operador..." />}
           </Field>
+
+          {/* Unidad: auto si el operador tiene una asignada, dropdown si no */}
           <Field label="Unidad">
-            {unidadOpts.length === 0
-              ? <EmptyHint msg="No hay unidades registradas." />
-              : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />}
+            {(() => {
+              const op = (operadores || []).find(o => o.nombre === form.operador);
+              const opTieneUnidad = !!op?.unidad_id;
+              if (!form.operador) {
+                // Sin operador: mostrar dropdown normal
+                return unidadOpts.length === 0
+                  ? <EmptyHint msg="No hay unidades registradas." />
+                  : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />;
+              }
+              if (opTieneUnidad) {
+                // Operador tiene unidad asignada: mostrar badge + botón para cambiar
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{
+                      flex: 1, padding: "8px 12px", borderRadius: 10,
+                      background: C.greenSoft, border: `1px solid #B7D9B7`,
+                      fontSize: 13, fontWeight: 600, color: C.greenStrong,
+                    }}>
+                      {form.unidad_id} — asignada al operador
+                    </div>
+                    <button
+                      onClick={() => setForm(f => ({ ...f, unidad_id: "" }))}
+                      style={{ fontSize: 11, color: C.muted, background: "transparent", border: "1px solid #E2E8E3", borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}
+                    >
+                      Cambiar
+                    </button>
+                  </div>
+                );
+              }
+              // Operador sin unidad: mostrar dropdown
+              return unidadOpts.length === 0
+                ? <EmptyHint msg="No hay unidades registradas." />
+                : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />;
+            })()}
           </Field>
 
           {unidadSel && (
