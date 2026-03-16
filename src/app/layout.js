@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+// Font loaded via next/font or <link> in layout — uses system stack as fallback
 import { createClient } from "@supabase/supabase-js";
 
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────
@@ -248,10 +249,53 @@ function KpiCard({ label, value, sub, badge, badgeType }) {
   );
 }
 
-function NavItem({ label, active, onClick }) {
+// SVG icons for nav
+const NAV_ICONS = {
+  dashboard:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/></svg>,
+  ingresos:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M5 7h4M5 9.5h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M11 6l1.5 1.5L11 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  gastos:     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M8 5v2.5l2 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+  clientes:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13c0-2.2 2.686-4 6-4s6 1.8 6 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.4"/></svg>,
+  operadores: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2.2 2.239-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M11.5 7.5a2 2 0 1 0 0-4M14 13c0-1.657-1.119-3-2.5-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+  rutas:      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h3M6 12h3M10 12h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><rect x="1.5" y="7" width="13" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M4.5 7V5.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V7" stroke="currentColor" strokeWidth="1.4"/></svg>,
+  unidades:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M4 6V4.5A1.5 1.5 0 0 1 5.5 3h5A1.5 1.5 0 0 1 12 4.5V6" stroke="currentColor" strokeWidth="1.4"/><circle cx="4.5" cy="13" r="1.5" fill="currentColor"/><circle cx="11.5" cy="13" r="1.5" fill="currentColor"/></svg>,
+};
+
+const NAV_GROUPS = [
+  { label: "GENERAL",        ids: ["dashboard"] },
+  { label: "CAPTURA",        ids: ["ingresos", "gastos"] },
+  { label: "OPERACIONES",    ids: ["clientes", "operadores", "rutas"] },
+  { label: "CONFIGURACIÓN",  ids: ["unidades"] },
+];
+
+const NAV_LABELS = {
+  dashboard:  "Dashboard",
+  ingresos:   "Ingresos",
+  gastos:     "Gastos",
+  clientes:   "Clientes",
+  operadores: "Operadores",
+  rutas:      "Rutas",
+  unidades:   "Unidades",
+};
+
+function NavItem({ id, active, onClick }) {
   return (
-    <button onClick={onClick} style={{ display: "flex", alignItems: "center", width: "100%", padding: "10px 16px", background: active ? "#173428" : "transparent", border: "none", borderLeft: active ? "3px solid #74B72E" : "3px solid transparent", color: active ? "#fff" : "rgba(255,255,255,0.65)", fontSize: 14, fontWeight: active ? 600 : 400, cursor: "pointer", textAlign: "left", transition: "all 0.15s", borderRadius: active ? "0 10px 10px 0" : 0 }}>
-      {label}
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 10,
+      width: "100%", padding: "9px 16px",
+      background: active ? "#173428" : "transparent",
+      border: "none",
+      borderLeft: active ? "3px solid #74B72E" : "3px solid transparent",
+      color: active ? "#fff" : "rgba(255,255,255,0.6)",
+      fontSize: 13.5, fontWeight: active ? 600 : 400,
+      cursor: "pointer", textAlign: "left",
+      transition: "background 0.12s, color 0.12s",
+      borderRadius: active ? "0 8px 8px 0" : 0,
+    }}
+    onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }}}
+    onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}}
+    >
+      <span style={{ flexShrink: 0, opacity: active ? 1 : 0.7 }}>{NAV_ICONS[id]}</span>
+      <span>{NAV_LABELS[id]}</span>
     </button>
   );
 }
@@ -1631,18 +1675,10 @@ export default function VDLModulos() {
     return { totalIng, totalGas, totalFlete, util, pct, ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length };
   }, [ingresos, gastos, rutas, desde, hasta]);
 
-  const navItems = [
-    { id: "dashboard",  label: "📊 Dashboard"  },
-    { id: "ingresos",   label: "Ingresos"   },
-    { id: "gastos",     label: "Gastos"     },
-    { id: "clientes",   label: "Clientes"   },
-    { id: "operadores", label: "Operadores" },
-    { id: "rutas",      label: "Rutas"      },
-    { id: "unidades",   label: "Unidades"   },
-  ];
+  const navIds = ["dashboard", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
 
   return (
-    <main style={{ minHeight: "100vh", background: C.bg, display: "flex" }}>
+    <main style={{ minHeight: "100vh", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       {/* SIDEBAR */}
       <aside style={{ width: 230, flexShrink: 0, background: C.sidebar, color: "#fff", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
@@ -1654,10 +1690,16 @@ export default function VDLModulos() {
             </div>
           </div>
         </div>
-        <nav style={{ padding: "16px 0", flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "rgba(255,255,255,0.3)", padding: "0 20px", marginBottom: 8 }}>MÓDULOS</div>
-          {navItems.map(item => (
-            <NavItem key={item.id} label={item.label} active={mod === item.id} onClick={() => setMod(item.id)} />
+        <nav style={{ padding: "12px 0", flex: 1, overflowY: "auto" }}>
+          {NAV_GROUPS.map(group => (
+            <div key={group.label} style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.16em", color: "rgba(255,255,255,0.25)", padding: "8px 20px 4px" }}>
+                {group.label}
+              </div>
+              {group.ids.map(id => (
+                <NavItem key={id} id={id} active={mod === id} onClick={() => setMod(id)} />
+              ))}
+            </div>
           ))}
         </nav>
         <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
