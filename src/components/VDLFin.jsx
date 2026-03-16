@@ -1697,15 +1697,14 @@ export default function VDLModulos() {
     <main style={{ minHeight: "100vh", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       {/* SIDEBAR */}
       <aside style={{ width: 230, flexShrink: 0, background: C.sidebar, color: "#fff", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "20px 16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <img
-            src="/logo.png"
-            alt="Verde Diseño Logistic"
-            style={{
-              width: "100%", maxWidth: 190, height: "auto", display: "block",
-              mixBlendMode: "screen",
-            }}
-          />
+        <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ background: "#fff", borderRadius: 10, padding: "8px 12px", display: "inline-block", width: "100%", boxSizing: "border-box" }}>
+            <img
+              src="/logo.png"
+              alt="Verde Diseño Logistic"
+              style={{ width: "100%", height: "auto", display: "block", maxHeight: 48, objectFit: "contain" }}
+            />
+          </div>
         </div>
         <nav style={{ padding: "12px 0", flex: 1, overflowY: "auto" }}>
           {NAV_GROUPS.map(group => (
