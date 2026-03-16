@@ -856,9 +856,22 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   const [err, setErr]         = useState("");
   const isEdit = !!editRow;
 
+  // Auto-fill ruta when operador + fecha match a registered route
+  const autoFillRuta = (operadorNombre, fecha) => {
+    if (!operadorNombre || !fecha) return "";
+    const match = (rutas || []).find(r => r.fecha === fecha && r.operador === operadorNombre);
+    return match?.id || "";
+  };
+
   const set = (k, v) => setForm(f => {
     const next = { ...f, [k]: v };
-    if (k === "fecha") next.viaje_id = "";
+    if (k === "fecha") {
+      next.viaje_id = "";
+      if (f.operador) next.viaje_id = autoFillRuta(f.operador, v) || "";
+    }
+    if (k === "operador") {
+      next.viaje_id = autoFillRuta(v, f.fecha) || "";
+    }
     return next;
   });
 
@@ -1064,11 +1077,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
   const [err, setErr]         = useState("");
   const isEdit = !!editRow;
 
-  const set = (k, v) => setForm(f => {
-    const next = { ...f, [k]: v };
-    if (k === "siniva") next.coniva = v ? (parseFloat(v) * 1.16).toFixed(2) : "";
-    return next;
-  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
   const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "" }); setEditRow(r); setErr(""); setOpen(true); };
@@ -1114,7 +1123,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
           <Field label="Factura"><Input placeholder="FAC-2025-001" value={form.factura} onChange={e => set("factura", e.target.value)} /></Field>
           <Field label="Período"><Input placeholder="Feb 2025" value={form.periodo} onChange={e => set("periodo", e.target.value)} /></Field>
           <Field label="Monto sin IVA"><Input type="number" placeholder="0.00" value={form.siniva} onChange={e => set("siniva", e.target.value)} /></Field>
-          <Field label="Monto con IVA (16%)"><Input type="number" value={form.coniva} readOnly style={{ ...inputStyle, background: "#EFF3EF", color: C.muted }} /></Field>
+          <Field label="Monto con IVA"><Input type="number" placeholder="0.00" value={form.coniva} onChange={e => set("coniva", e.target.value)} /></Field>
           <Field label="Fecha de carga"><Input type="date" value={form.fcarga} onChange={e => set("fcarga", e.target.value)} /></Field>
           <Field label="Fecha de vencimiento"><Input type="date" value={form.fvence} onChange={e => set("fvence", e.target.value)} /></Field>
           <Field label="Estatus" span2>
@@ -1672,7 +1681,14 @@ export default function VDLModulos() {
     const totalFlete = rutFilt.reduce((s, r) => s + parseFloat(r.flete  || 0), 0);
     const util = totalIng - totalGas;
     const pct  = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
-    return { totalIng, totalGas, totalFlete, util, pct, ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length };
+    // IVA: solo facturas con estatus "Activo" (pagadas)
+    const ingPagadas = ingFilt.filter(r => r.estatus === "Activo");
+    const totalIVA   = ingPagadas.reduce((s, r) => {
+      const coniva = parseFloat(r.coniva || 0);
+      const siniva = parseFloat(r.siniva || 0);
+      return s + (coniva - siniva);
+    }, 0);
+    return { totalIng, totalGas, totalFlete, totalIVA, util, pct, ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length };
   }, [ingresos, gastos, rutas, desde, hasta]);
 
   const navIds = ["dashboard", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
@@ -1711,14 +1727,15 @@ export default function VDLModulos() {
       <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {/* KPIs */}
         <div style={{ padding: "20px 28px 0" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
-            <KpiCard label="Ingresos"  value={fmt(kpi.totalIng)} sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""} · con IVA`}        badge="▲ Cobros"  badgeType="up" />
-            <KpiCard label="Gastos"    value={fmt(kpi.totalGas)} sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} · operativos`}     badge="Egresos"  badgeType={kpi.totalGas > 0 ? "down" : "neu"} />
-            <KpiCard label="Utilidad"  value={fmt(kpi.util)}     sub={`Margen ${kpi.pct}%`}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0,1fr))", gap: 12, marginBottom: 20 }}>
+            <KpiCard label="Ingresos"  value={fmt(kpi.totalIng)}   sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""} · con IVA`}      badge="▲ Cobros"   badgeType="up" />
+            <KpiCard label="Gastos"    value={fmt(kpi.totalGas)}   sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} · operativos`}  badge="Egresos"    badgeType={kpi.totalGas > 0 ? "down" : "neu"} />
+            <KpiCard label="Utilidad"  value={fmt(kpi.util)}       sub={`Margen ${kpi.pct}%`}
               badge={kpi.totalIng === 0 && kpi.totalGas === 0 ? "Sin datos" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
               badgeType={kpi.totalIng === 0 && kpi.totalGas === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
-            <KpiCard label="Fletes"    value={fmt(kpi.totalFlete)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""} · estimado`}         badge="Prefactura" badgeType="up" />
-            <KpiCard label="Rutas"     value={kpi.rutN}          sub="en el período"                                                        badge="Viajes"   badgeType="neu" />
+            <KpiCard label="IVA cobrado" value={fmt(kpi.totalIVA)} sub="facturas activas · período"                                        badge="Solo Activos" badgeType="up" />
+            <KpiCard label="Fletes"    value={fmt(kpi.totalFlete)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""} · estimado`}        badge="Prefactura"  badgeType="up" />
+            <KpiCard label="Rutas"     value={kpi.rutN}            sub="en el período"                                                     badge="Viajes"      badgeType="neu" />
           </div>
         </div>
 
