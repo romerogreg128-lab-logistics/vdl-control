@@ -1322,9 +1322,9 @@ function MiniKpi({ label, value, sub, color }) {
 
 // ─── MÓDULO DASHBOARD ─────────────────────────────────────────────────────
 function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes, desde, hasta }) {
-  const ing  = useMemo(() => (ingresos   || []).filter(r => inRange(r.fcarga, desde, hasta)), [ingresos, desde, hasta]);
-  const gas  = useMemo(() => (gastos     || []).filter(r => inRange(r.fecha,  desde, hasta)), [gastos,   desde, hasta]);
-  const rut  = useMemo(() => (rutas      || []).filter(r => inRange(r.fecha,  desde, hasta)), [rutas,    desde, hasta]);
+  const ing  = useMemo(() => (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta)), [ingresos, desde, hasta]);
+  const gas  = useMemo(() => (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta)), [gastos,   desde, hasta]);
+  const rut  = useMemo(() => (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta)), [rutas,    desde, hasta]);
 
   const totalIng    = ing.reduce((s, r) => s + parseFloat(r.coniva  || 0), 0);
   const totalSinIva = ing.reduce((s, r) => s + parseFloat(r.siniva  || 0), 0);
@@ -1333,19 +1333,25 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   const util        = totalIng - totalGas;
   const margen      = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
 
-  // Ingresos por estatus
+  // Estatus ingresos
   const ingPagados  = ing.filter(r => r.estatus === "Activo").length;
-  const ingPendient = ing.filter(r => r.estatus === "Pendiente").length;
+  const ingPending  = ing.filter(r => r.estatus === "Pendiente").length;
   const ingVencidos = ing.filter(r => r.estatus === "Vencido").length;
 
-  // Gastos por tipo
+  // Gastos estatus pago
+  const gasPagados  = gas.filter(r => r.estatus_pago === "Pagado").length;
+  const gasPorPagar = gas.filter(r => r.estatus_pago !== "Pagado").length;
+
+  // Gastos por tipo para distribución
   const gasXTipo = gas.reduce((acc, r) => {
     const t = r.tipo_gasto || "Sin tipo";
     acc[t] = (acc[t] || 0) + parseFloat(r.monto || 0);
     return acc;
   }, {});
+  const gasXTipoArr = Object.entries(gasXTipo).sort((a, b) => b[1] - a[1]);
+  const DIST_COLORS = ["#2E7D32", "#69A96D", "#74B72E", "#0F5C2E", "#AACFAA", "#E2E8E3"];
 
-  // Rutas por unidad tipo
+  // Rutas por tipo unidad
   const rutXTipo = rut.reduce((acc, r) => {
     const u = (unidades || []).find(u => u.economico === r.unidad_id);
     const t = u?.tipo_unidad || "Sin tipo";
@@ -1353,138 +1359,222 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     return acc;
   }, {});
 
-  // Operadores activos (que tienen al menos 1 ruta en el período)
-  const opActivos = new Set(rut.map(r => r.operador).filter(Boolean)).size;
+  // Tendencia mensual (últimos 6 meses, ignora filtro para mostrar contexto)
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleString("es-MX", { month: "short" }).replace(".", "");
+    const ingM   = (ingresos || []).filter(r => (r.fcarga || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+    const gasM   = (gastos   || []).filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
+    const fleM   = (rutas    || []).filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.flete  || 0), 0);
+    months.push({ label, ingM, gasM, fleM, rutN: (rutas || []).filter(r => (r.fecha || "").startsWith(key)).length });
+  }
 
-  // Unidades propias vs terceras
-  const propias   = (unidades || []).filter(u => u.prop === "Propia").length;
-  const terceras  = (unidades || []).filter(u => u.prop === "Tercera").length;
+  // Bar chart helper
+  const BarChart = ({ data, color, valueKey, labelFn }) => {
+    const max = Math.max(...data.map(d => d[valueKey]), 1);
+    const H = 100; const bw = 32;
+    return (
+      <svg width={data.length * 52} height={H + 40} style={{ display: "block", overflow: "visible" }}>
+        {data.map((d, i) => {
+          const h = Math.max(3, (d[valueKey] / max) * H);
+          const x = i * 52 + 10;
+          const isLast = i === data.length - 1;
+          return (
+            <g key={d.label}>
+              <rect x={x} y={H - h} width={bw} height={h}
+                fill={isLast ? color : color + "99"} rx={4} />
+              <text x={x + bw / 2} y={H - h - 5} textAnchor="middle"
+                fontSize={9} fill="#6B7A72">
+                {labelFn ? labelFn(d[valueKey]) : d[valueKey]}
+              </text>
+              <text x={x + bw / 2} y={H + 16} textAnchor="middle"
+                fontSize={10} fill="#6B7A72">{d.label}</text>
+            </g>
+          );
+        })}
+        <line x1={0} y1={H} x2={data.length * 52 + 20} y2={H} stroke="#E2E8E3" strokeWidth={1} />
+      </svg>
+    );
+  };
+
+  // Stat card with icon + bar chart
+  const StatCard = ({ label, value, sub, delta, color, icon, chartData, chartKey, chartLabelFn }) => (
+    <div style={{
+      background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20,
+      padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: "#6B7A72", fontWeight: 500 }}>{label}</div>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: color + "18", display: "flex", alignItems: "center",
+          justifyContent: "center", fontSize: 16,
+        }}>{icon}</div>
+      </div>
+      <div style={{ fontSize: 32, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{value}</div>
+      {sub  && <div style={{ fontSize: 12, color: "#6B7A72", marginBottom: 2 }}>{sub}</div>}
+      {delta !== undefined && (
+        <div style={{ fontSize: 12, fontWeight: 600, color: delta >= 0 ? "#2E7D32" : "#C62828" }}>
+          {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}%
+        </div>
+      )}
+      {chartData && (
+        <div style={{ marginTop: 12, overflowX: "auto" }}>
+          <BarChart data={chartData} color={color} valueKey={chartKey} labelFn={chartLabelFn} />
+        </div>
+      )}
+    </div>
+  );
+
+  const fmtM = (n) => {
+    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1) + "M";
+    if (n >= 1000)    return "$" + (n / 1000).toFixed(0) + "k";
+    return fmt(n);
+  };
+
+  const periodoLabel = desde || hasta
+    ? `${desde || "inicio"} → ${hasta || "hoy"}`
+    : "Todo el período";
 
   return (
     <div>
-      {/* ── Financiero ── */}
-      <SectionTitle>Financiero</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 12, marginBottom: 4 }}>
-        <MiniKpi label="Ingresos (con IVA)"  value={fmt(totalIng)}    sub={`${ing.length} facturas`}       color={C.green} />
-        <MiniKpi label="Ingresos (sin IVA)"  value={fmt(totalSinIva)} sub="Base gravable"                                  />
-        <MiniKpi label="Gastos"              value={fmt(totalGas)}    sub={`${gas.length} registros`}      color="#C62828" />
-        <MiniKpi label="Utilidad neta"       value={fmt(util)}        sub={`Margen ${margen}%`}            color={util >= 0 ? C.green : "#C62828"} />
+      {/* ── Header ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#132019", margin: 0 }}>Dashboard VDL</h1>
+          <p style={{ fontSize: 13, color: "#6B7A72", margin: "4px 0 0" }}>Métricas de flotilla · {periodoLabel}</p>
+        </div>
       </div>
 
-      {/* ── Fletes y rutas ── */}
-      <SectionTitle>Fletes y Rutas</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 12, marginBottom: 4 }}>
-        <MiniKpi label="Total fletes"        value={fmt(totalFlete)}  sub="Suma de prefacturas"            color={C.green} />
-        <MiniKpi label="Rutas del período"   value={rut.length}       sub={`${opActivos} operador${opActivos !== 1 ? "es" : ""} activos`} />
-        <MiniKpi label="Flete promedio"      value={rut.length ? fmt(totalFlete / rut.length) : "$0.00"} sub="por ruta" />
-        <MiniKpi label="Clientes activos"    value={new Set(rut.map(r => r.cliente_id).filter(Boolean)).size} sub="con rutas este período" />
+      {/* ── KPI Cards Row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
+        <StatCard label="Ingresos (con IVA)"  value={fmtM(totalIng)}   sub={`${ing.length} facturas`}                    color="#2E7D32" icon="💰" />
+        <StatCard label="Gastos operativos"   value={fmtM(totalGas)}   sub={`${gas.length} registros`}                   color="#C62828" icon="📤" />
+        <StatCard label="Utilidad neta"       value={fmtM(util)}       sub={`Margen ${margen}%`}                          color={util >= 0 ? "#2E7D32" : "#C62828"} icon="📊" />
+        <StatCard label="Fletes estimados"    value={fmtM(totalFlete)} sub={`${rut.length} rutas`}                        color="#74B72E" icon="🚛" />
       </div>
 
-      {/* ── Ingresos por estatus ── */}
-      <SectionTitle>Ingresos por estatus</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12, marginBottom: 4 }}>
-        <MiniKpi label="Activos / Pagados"   value={ingPagados}   sub="facturas" color={C.green} />
-        <MiniKpi label="Pendientes"          value={ingPendient}  sub="facturas" color="#B45309" />
-        <MiniKpi label="Vencidos"            value={ingVencidos}  sub="facturas" color="#C62828" />
-      </div>
-
-      {/* ── Gastos por tipo ── */}
-      <SectionTitle>Gastos por tipo</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 4 }}>
-        {Object.entries(gasXTipo).sort((a, b) => b[1] - a[1]).map(([tipo, monto]) => (
-          <MiniKpi key={tipo} label={tipo} value={fmt(monto)} sub={`${gas.filter(g => (g.tipo_gasto || "Sin tipo") === tipo).length} registros`} />
-        ))}
-        {Object.keys(gasXTipo).length === 0 && <div style={{ gridColumn: "span 4", color: C.muted, fontSize: 13, padding: "12px 0" }}>Sin gastos en este período</div>}
-      </div>
-
-      {/* ── Rutas por tipo de unidad ── */}
-      <SectionTitle>Rutas por tipo de unidad</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 4 }}>
-        {Object.entries(rutXTipo).sort((a, b) => b[1] - a[1]).map(([tipo, count]) => {
-          const fleX = rut.filter(r => {
-            const u = (unidades || []).find(u => u.economico === r.unidad_id);
-            return (u?.tipo_unidad || "Sin tipo") === tipo;
-          }).reduce((s, r) => s + parseFloat(r.flete || 0), 0);
-          return <MiniKpi key={tipo} label={tipo} value={count} sub={`Flete: ${fmt(fleX)}`} />;
-        })}
-        {Object.keys(rutXTipo).length === 0 && <div style={{ gridColumn: "span 4", color: C.muted, fontSize: 13, padding: "12px 0" }}>Sin rutas en este período</div>}
-      </div>
-
-      {/* ── Flota ── */}
-      <SectionTitle>Flota</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 12, marginBottom: 4 }}>
-        <MiniKpi label="Total unidades"      value={(unidades || []).length}           sub={`${propias} propias · ${terceras} terceras`} />
-        <MiniKpi label="Propias"             value={propias}    sub="unidades"         color={C.green} />
-        <MiniKpi label="Terceras"            value={terceras}   sub="unidades"         color="#3C3489" />
-        <MiniKpi label="Operadores"          value={(operadores || []).length}          sub={`${(operadores || []).filter(o => o.estatus === "Activo").length} activos`} />
-      </div>
-
-      {/* ── Tendencia mensual ── */}
-      {(() => {
-        // Build last-6-months buckets from all data (ignore date filter for trend)
-        const allIng = ingresos || [];
-        const allGas = gastos   || [];
-        const allRut = rutas    || [];
-        const months = [];
-        const now = new Date();
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-          const label = d.toLocaleString("es-MX", { month: "short", year: "2-digit" });
-          const ingM  = allIng.filter(r => (r.fcarga || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
-          const gasM  = allGas.filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
-          const fleteM = allRut.filter(r => (r.fecha || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.flete || 0), 0);
-          months.push({ label, ingM, gasM, fleteM });
-        }
-        const maxVal = Math.max(...months.map(m => Math.max(m.ingM, m.gasM, m.fleteM)), 1);
-        const barH = 120;
-        const bw = 18;
-        const gap = 8;
-        const groupW = bw * 3 + gap * 2;
-        const totalW = months.length * (groupW + 20);
-
-        return (
-          <div>
-            <SectionTitle>Tendencia mensual — últimos 6 meses</SectionTitle>
-            <div style={{ background: C.card, border: "1px solid #E2E8E3", borderRadius: 16, padding: "20px 24px" }}>
-              {/* Leyenda */}
-              <div style={{ display: "flex", gap: 20, marginBottom: 16, flexWrap: "wrap" }}>
-                {[{ color: C.green, label: "Ingresos (con IVA)" }, { color: "#C62828", label: "Gastos" }, { color: "#74B72E", label: "Fletes" }].map(l => (
-                  <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: l.color, display: "inline-block" }} />
-                    {l.label}
-                  </div>
-                ))}
-              </div>
-              {/* Chart */}
-              <div style={{ overflowX: "auto" }}>
-                <svg width={totalW} height={barH + 36} style={{ display: "block" }}>
-                  {months.map((m, i) => {
-                    const x = i * (groupW + 20) + 10;
-                    const ingH  = Math.max(2, (m.ingM   / maxVal) * barH);
-                    const gasH  = Math.max(2, (m.gasM   / maxVal) * barH);
-                    const fleH  = Math.max(2, (m.fleteM / maxVal) * barH);
-                    return (
-                      <g key={m.label}>
-                        {/* Ingresos */}
-                        <rect x={x}            y={barH - ingH}  width={bw} height={ingH}  fill={C.green}   rx={3} />
-                        {/* Gastos */}
-                        <rect x={x + bw + gap} y={barH - gasH}  width={bw} height={gasH}  fill="#C62828"   rx={3} />
-                        {/* Fletes */}
-                        <rect x={x + (bw + gap) * 2} y={barH - fleH} width={bw} height={fleH} fill="#74B72E" rx={3} />
-                        {/* Label */}
-                        <text x={x + groupW / 2} y={barH + 18} textAnchor="middle" fontSize={10} fill={C.muted}>{m.label}</text>
-                      </g>
-                    );
-                  })}
-                  {/* Baseline */}
-                  <line x1={0} y1={barH} x2={totalW} y2={barH} stroke="#E2E8E3" strokeWidth={1} />
-                </svg>
-              </div>
-            </div>
+      {/* ── Charts Row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+        {/* Ingresos por mes */}
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Ingresos por mes</div>
+          <div style={{ overflowX: "auto" }}>
+            <BarChart data={months} color="#2E7D32" valueKey="ingM" labelFn={fmtM} />
           </div>
-        );
-      })()}
+        </div>
+        {/* Gastos por mes */}
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Gastos por mes</div>
+          <div style={{ overflowX: "auto" }}>
+            <BarChart data={months} color="#C62828" valueKey="gasM" labelFn={fmtM} />
+          </div>
+        </div>
+        {/* Fletes por mes */}
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Fletes por mes</div>
+          <div style={{ overflowX: "auto" }}>
+            <BarChart data={months} color="#74B72E" valueKey="fleM" labelFn={fmtM} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Distribución gastos por tipo (barra horizontal) ── */}
+      {gasXTipoArr.length > 0 && (
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Distribución de gastos por tipo</div>
+          <div style={{ display: "flex", height: 36, borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
+            {gasXTipoArr.map(([tipo, monto], i) => {
+              const pct = Math.round((monto / totalGas) * 100);
+              return (
+                <div key={tipo} style={{
+                  width: `${pct}%`, minWidth: pct > 5 ? "auto" : 0,
+                  background: DIST_COLORS[i % DIST_COLORS.length],
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, color: "#fff",
+                  transition: "width 0.3s",
+                }}>
+                  {pct > 8 ? `${pct}%` : ""}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 20px" }}>
+            {gasXTipoArr.map(([tipo, monto], i) => (
+              <div key={tipo} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: DIST_COLORS[i % DIST_COLORS.length], display: "inline-block", flexShrink: 0 }} />
+                <span style={{ color: "#6B7A72" }}>{tipo}:</span>
+                <span style={{ fontWeight: 700, color: "#132019" }}>{fmt(monto)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tabla resumen por tipo de unidad ── */}
+      <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", marginBottom: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>VDL — Resumen por tipo de unidad</div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #E2E8E3" }}>
+                {["Tipo", "Rutas", "Flete total", "Flete prom.", "Operadores", "Propias", "Terceras"].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#6B7A72", textTransform: "uppercase", letterSpacing: "0.04em" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(rutXTipo).sort((a, b) => b[1] - a[1]).map(([tipo, count], i) => {
+                const rutasTipo = rut.filter(r => {
+                  const u = (unidades || []).find(u => u.economico === r.unidad_id);
+                  return (u?.tipo_unidad || "Sin tipo") === tipo;
+                });
+                const fleteT = rutasTipo.reduce((s, r) => s + parseFloat(r.flete || 0), 0);
+                const opsTipo = new Set(rutasTipo.map(r => r.operador).filter(Boolean)).size;
+                const unisTipo = (unidades || []).filter(u => u.tipo_unidad === tipo);
+                const prop = unisTipo.filter(u => u.prop === "Propia").length;
+                const terc = unisTipo.filter(u => u.prop === "Tercera").length;
+                return (
+                  <tr key={tipo} style={{ borderBottom: "1px solid #E2E8E3", background: i % 2 === 0 ? "#FFFFFF" : "#FAFCFA" }}>
+                    <td style={{ padding: "10px 12px", fontWeight: 600 }}><Chip label={tipo} /></td>
+                    <td style={{ padding: "10px 12px" }}>{count}</td>
+                    <td style={{ padding: "10px 12px", fontWeight: 700, color: "#2E7D32" }}>{fmt(fleteT)}</td>
+                    <td style={{ padding: "10px 12px" }}>{count > 0 ? fmt(fleteT / count) : "—"}</td>
+                    <td style={{ padding: "10px 12px" }}>{opsTipo}</td>
+                    <td style={{ padding: "10px 12px" }}>{prop}</td>
+                    <td style={{ padding: "10px 12px" }}>{terc}</td>
+                  </tr>
+                );
+              })}
+              {Object.keys(rutXTipo).length === 0 && (
+                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "#6B7A72" }}>Sin rutas en este período</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Estatus ingresos + gastos ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Ingresos por estatus</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <MiniKpi label="Activos"    value={ingPagados} sub="facturas" color="#2E7D32" />
+            <MiniKpi label="Pendientes" value={ingPending}  sub="facturas" color="#B45309" />
+            <MiniKpi label="Vencidos"   value={ingVencidos} sub="facturas" color="#C62828" />
+          </div>
+        </div>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Gastos — estatus de pago</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <MiniKpi label="Pagados"    value={gasPagados}  sub="registros" color="#2E7D32" />
+            <MiniKpi label="Por pagar"  value={gasPorPagar} sub="registros" color="#B45309" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
