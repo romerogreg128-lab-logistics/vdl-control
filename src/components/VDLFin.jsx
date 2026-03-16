@@ -1697,13 +1697,28 @@ export default function VDLModulos() {
     <main style={{ minHeight: "100vh", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       {/* SIDEBAR */}
       <aside style={{ width: 230, flexShrink: 0, background: C.sidebar, color: "#fff", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ background: "#fff", borderRadius: 10, padding: "8px 12px", display: "inline-block", width: "100%", boxSizing: "border-box" }}>
-            <img
-              src="/logo.png"
-              alt="Verde Diseño Logistic"
-              style={{ width: "100%", height: "auto", display: "block", maxHeight: 48, objectFit: "contain" }}
-            />
+        <div style={{ padding: "20px 16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%",
+              background: "linear-gradient(135deg, #2E7D32, #74B72E)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, overflow: "hidden",
+            }}>
+              <img
+                src="/logo.png"
+                alt="VDL"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={e => {
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.parentElement.innerHTML = '<span style="color:#fff;font-size:18px;font-weight:800">V</span>';
+                }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em", color: "#fff" }}>Verde Diseño</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: -1, letterSpacing: "0.08em", textTransform: "uppercase" }}>Logistic</div>
+            </div>
           </div>
         </div>
         <nav style={{ padding: "12px 0", flex: 1, overflowY: "auto" }}>
