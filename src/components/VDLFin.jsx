@@ -311,6 +311,49 @@ const MOD_META = {
   unidades:   { title: "Unidades",   sub: "Registro de vehículos de la flotilla" },
 };
 
+
+// ─── FILTER BAR ───────────────────────────────────────────────────────────
+function FilterBar({ filters, setFilters, options }) {
+  // options: array of { key, label, type: "select"|"text", choices: [] }
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14, padding: "10px 14px", background: "#EFF3EF", borderRadius: 12, border: "1px solid #E2E8E3" }}>
+      {options.map(opt => (
+        <div key={opt.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{opt.label}</label>
+          {opt.type === "select" ? (
+            <select
+              value={filters[opt.key] || ""}
+              onChange={e => setFilters(f => ({ ...f, [opt.key]: e.target.value }))}
+              style={{ ...selectStyle, width: "auto", minWidth: 130, fontSize: 12, padding: "5px 28px 5px 9px" }}
+            >
+              <option value="">Todos</option>
+              {opt.choices.map(ch => <option key={ch} value={ch}>{ch}</option>)}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={filters[opt.key] || ""}
+              onChange={e => setFilters(f => ({ ...f, [opt.key]: e.target.value }))}
+              placeholder={`Buscar ${opt.label.toLowerCase()}...`}
+              style={{ ...inputStyle, width: "auto", minWidth: 160, fontSize: 12, padding: "5px 9px" }}
+            />
+          )}
+        </div>
+      ))}
+      {Object.values(filters).some(v => v) && (
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <button
+            onClick={() => setFilters({})}
+            style={{ padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 500, cursor: "pointer", border: "1px solid #E2E8E3", background: "#fff", color: C.muted }}
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── MÓDULO UNIDADES ──────────────────────────────────────────────────────
 // Columnas reales en Supabase:
 // id (uuid), economico, placas, tipo_unidad, marca, modelo, anio, km_actual, rendimiento_km_l, estatus, created_at
@@ -387,7 +430,12 @@ function ModUnidades({ data, reload }) {
 
   return (
     <div>
-      <FormPanel visible={open} title={isEdit ? "Editar unidad" : "Nueva unidad"} isEdit={isEdit}>
+      <FilterBar filters={filters} setFilters={setFilters} options={[
+        { key: "tipo_unidad", label: "Tipo",      type: "select", choices: ["Moto","Sedán","Small Van","Van","Large Van","Otro"] },
+        { key: "prop",        label: "Propiedad", type: "select", choices: ["Propia","Tercera"] },
+        { key: "estatus",     label: "Estatus",   type: "select", choices: ["Activo","En taller","Baja"] },
+      ]} />
+            <FormPanel visible={open} title={isEdit ? "Editar unidad" : "Nueva unidad"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Económico">
@@ -437,8 +485,8 @@ function ModUnidades({ data, reload }) {
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             data.length === 0 ? <EmptyRow cols={9} msg="Sin unidades registradas" /> :
-             data.map(r => (
+             rows.length === 0 ? <EmptyRow cols={9} msg="Sin unidades registradas" /> :
+             rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
@@ -526,12 +574,25 @@ function ModOperadores({ data, reload, unidades }) {
     } catch (e) { alert(e.message); }
   };
 
+  const [filters, setFilters] = useState({});
+  const rows = useMemo(() => (data || []).filter(r => {
+    if (filters.estatus && r.estatus !== filters.estatus) return false;
+    if (filters.tipo_op && r.tipo_op !== filters.tipo_op) return false;
+    if (filters.nombre  && !(r.nombre || "").toLowerCase().includes(filters.nombre.toLowerCase())) return false;
+    return true;
+  }), [data, filters]);
+
   const propios  = (data || []).filter(r => r.tipo_op === "Propia").length;
   const terceros = (data || []).filter(r => r.tipo_op === "Tercera").length;
   const activos  = (data || []).filter(r => r.estatus === "Activo").length;
 
   return (
     <div>
+      <FilterBar filters={filters} setFilters={setFilters} options={[
+        { key: "nombre",  label: "Nombre",  type: "text" },
+        { key: "estatus", label: "Estatus", type: "select", choices: ["Activo","Inactivo","Vacaciones","Baja"] },
+        { key: "tipo_op", label: "Tipo",    type: "select", choices: ["Propia","Tercera"] },
+      ]} />
       {(data || []).length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
           <MiniKpi label="Operadores activos" value={activos}  sub={`de ${(data||[]).length} totales`} color={C.green} />
@@ -590,8 +651,8 @@ function ModOperadores({ data, reload, unidades }) {
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             data.length === 0 ? <EmptyRow cols={7} msg="Sin operadores registrados" /> :
-             data.map(r => (
+             rows.length === 0 ? <EmptyRow cols={7} msg="Sin operadores registrados" /> :
+             rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
@@ -695,7 +756,14 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     } catch (e) { alert(e.message); }
   };
 
-  const rows       = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const [filters, setFilters] = useState({});
+  const rows       = useMemo(() => (data || []).filter(r => {
+    if (!inRange(r.fecha, desde, hasta)) return false;
+    if (filters.cliente_id && !(r.cliente_id || "").toLowerCase().includes(filters.cliente_id.toLowerCase())) return false;
+    if (filters.operador   && !(r.operador   || "").toLowerCase().includes(filters.operador.toLowerCase()))   return false;
+    if (filters.unidad_id  && !(r.unidad_id  || "").toLowerCase().includes(filters.unidad_id.toLowerCase()))  return false;
+    return true;
+  }), [data, desde, hasta, filters]);
   const unidadSel  = form.unidad_id  ? (unidades || []).find(u => u.economico === form.unidad_id)  : null;
   const clienteSel = form.cliente_id ? (clientes  || []).find(c => c.nombre   === form.cliente_id) : null;
   const tarifaAct  = getTarifa(form.cliente_id, form.unidad_id);
@@ -787,6 +855,11 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
 
+      <FilterBar filters={filters} setFilters={setFilters} options={[
+        { key: "cliente_id", label: "Cliente",  type: "text" },
+        { key: "operador",   label: "Operador", type: "text" },
+        { key: "unidad_id",  label: "Unidad",   type: "text" },
+      ]} />
       {!open && <AddBtn onClick={openNew} label="+ Nueva ruta" />}
 
       <div style={{ overflowX: "auto" }}>
@@ -951,7 +1024,14 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
     } catch (e) { alert(e.message); }
   };
 
-  const rows    = useMemo(() => (data || []).filter(r => inRange(r.fecha, desde, hasta)), [data, desde, hasta]);
+  const [filters, setFilters] = useState({});
+  const rows    = useMemo(() => (data || []).filter(r => {
+    if (!inRange(r.fecha, desde, hasta)) return false;
+    if (filters.tipo_gasto   && r.tipo_gasto   !== filters.tipo_gasto)   return false;
+    if (filters.estatus_pago && r.estatus_pago !== filters.estatus_pago) return false;
+    if (filters.operador     && !(r.operador || "").toLowerCase().includes(filters.operador.toLowerCase())) return false;
+    return true;
+  }), [data, desde, hasta, filters]);
   const rutaSel = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
 
   // Contadores
@@ -961,6 +1041,11 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
 
   return (
     <div>
+      <FilterBar filters={filters} setFilters={setFilters} options={[
+        { key: "tipo_gasto",   label: "Tipo",     type: "select", choices: ["Nómina","Combustible","Impuesto","Gasolina","Estacionamiento","Caseta","Mantenimiento","Llantas","Otro"] },
+        { key: "estatus_pago", label: "Estatus",  type: "select", choices: ["Pagado","Por pagar","En revisión"] },
+        { key: "operador",     label: "Operador", type: "text" },
+      ]} />
       {rows.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
           <MiniKpi label="Total gastos"  value={fmt(totalMonto)} sub={`${rows.length} registros`} />
@@ -1677,19 +1762,34 @@ export default function VDLModulos() {
     const ingFilt = (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta));
     const gasFilt = (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta));
     const rutFilt = (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta));
-    const totalIng   = ingFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
-    const totalGas   = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
-    const totalFlete = rutFilt.reduce((s, r) => s + parseFloat(r.flete  || 0), 0);
-    const util = totalIng - totalGas;
-    const pct  = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
-    // IVA: solo facturas con estatus "Activo" (pagadas)
+
+    // Ingresos
+    const ingConIVA  = ingFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+    const ingSinIVA  = ingFilt.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+
+    // Gastos
+    const gasMonto   = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
+    const gasSinIVA  = gasFilt.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+    const gasConIVA  = gasFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+
+    // Fletes: campo guardado = sin IVA, con IVA = *1.16
+    const fleteSinIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete || 0), 0);
+    const fleteConIVA = fleteSinIVA * 1.16;
+
+    // Utilidad CORRECTA: ingresos sin IVA - gastos sin IVA
+    const util  = ingSinIVA - gasSinIVA;
+    const pct   = ingSinIVA > 0 ? Math.round(util / ingSinIVA * 100) : 0;
+
+    // IVA cobrado: solo facturas Activo
     const ingPagadas = ingFilt.filter(r => r.estatus === "Activo");
-    const totalIVA   = ingPagadas.reduce((s, r) => {
-      const coniva = parseFloat(r.coniva || 0);
-      const siniva = parseFloat(r.siniva || 0);
-      return s + (coniva - siniva);
-    }, 0);
-    return { totalIng, totalGas, totalFlete, totalIVA, util, pct, ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length };
+    const totalIVA   = ingPagadas.reduce((s, r) =>
+      s + (parseFloat(r.coniva || 0) - parseFloat(r.siniva || 0)), 0);
+
+    return {
+      ingConIVA, ingSinIVA, gasMonto, gasSinIVA, gasConIVA,
+      fleteSinIVA, fleteConIVA, totalIVA, util, pct,
+      ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length,
+    };
   }, [ingresos, gastos, rutas, desde, hasta]);
 
   const navIds = ["dashboard", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
@@ -1736,15 +1836,23 @@ export default function VDLModulos() {
       <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {/* KPIs */}
         <div style={{ padding: "20px 28px 0" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0,1fr))", gap: 12, marginBottom: 20 }}>
-            <KpiCard label="Ingresos"  value={fmt(kpi.totalIng)}   sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""} · con IVA`}      badge="▲ Cobros"   badgeType="up" />
-            <KpiCard label="Gastos"    value={fmt(kpi.totalGas)}   sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} · operativos`}  badge="Egresos"    badgeType={kpi.totalGas > 0 ? "down" : "neu"} />
-            <KpiCard label="Utilidad"  value={fmt(kpi.util)}       sub={`Margen ${kpi.pct}%`}
-              badge={kpi.totalIng === 0 && kpi.totalGas === 0 ? "Sin datos" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
-              badgeType={kpi.totalIng === 0 && kpi.totalGas === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
-            <KpiCard label="IVA cobrado" value={fmt(kpi.totalIVA)} sub="facturas activas · período"                                        badge="Solo Activos" badgeType="up" />
-            <KpiCard label="Fletes"    value={fmt(kpi.totalFlete)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""} · estimado`}        badge="Prefactura"  badgeType="up" />
-            <KpiCard label="Rutas"     value={kpi.rutN}            sub="en el período"                                                     badge="Viajes"      badgeType="neu" />
+          {/* Fila 1: Ingresos + Utilidad */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 10 }}>
+            <KpiCard label="Ingresos con IVA" value={fmt(kpi.ingConIVA)}  sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""}`}  badge="Con IVA"  badgeType="up" />
+            <KpiCard label="Ingresos sin IVA" value={fmt(kpi.ingSinIVA)}  sub="Base gravable"                                       badge="Sin IVA"  badgeType="up" />
+            <KpiCard label="IVA cobrado"       value={fmt(kpi.totalIVA)}   sub="Solo facturas Activo"                                badge="Pagadas"  badgeType="up" />
+            <KpiCard label="Utilidad neta"     value={fmt(kpi.util)}
+              sub={`Margen ${kpi.pct}% · sin IVA / sin IVA`}
+              badge={kpi.ingSinIVA === 0 && kpi.gasSinIVA === 0 ? "Sin datos" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
+              badgeType={kpi.ingSinIVA === 0 && kpi.gasSinIVA === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
+          </div>
+          {/* Fila 2: Gastos + Fletes */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 10, marginBottom: 20 }}>
+            <KpiCard label="Gastos total"   value={fmt(kpi.gasMonto)}    sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""}`} badge="Monto"    badgeType="down" />
+            <KpiCard label="Gastos sin IVA" value={fmt(kpi.gasSinIVA)}   sub="Base gravable"                                       badge="Sin IVA"  badgeType="down" />
+            <KpiCard label="Gastos con IVA" value={fmt(kpi.gasConIVA)}   sub="IVA incluido"                                        badge="Con IVA"  badgeType="down" />
+            <KpiCard label="Fletes sin IVA" value={fmt(kpi.fleteSinIVA)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""}`}     badge="Sin IVA"  badgeType="up" />
+            <KpiCard label="Fletes con IVA" value={fmt(kpi.fleteConIVA)} sub="+16% estimado"                                       badge="Con IVA"  badgeType="up" />
           </div>
         </div>
 
