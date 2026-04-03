@@ -735,7 +735,14 @@ function ModOperadores({ data, reload, unidades }) {
 
 // ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
 function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }) {
-  const EMPTY = { fecha: "", cliente_id: "", operador: "", unidad_id: "", flete: "", flete_siniva: "", flete_coniva: "" };
+  const EMPTY = { fecha: "", cliente_id: "", operador: "", unidad_id: "", flete: "", flete_siniva: "", flete_coniva: "", iva_pct: "16", ret_pct: "4", isr_pct: "1.25" };
+
+  const calcConIva = (siniva, iva, ret, isr) => {
+    const base = parseFloat(siniva) || 0;
+    if (!base) return "";
+    const result = base * (1 + (parseFloat(iva)||0)/100 - (parseFloat(ret)||0)/100 - (parseFloat(isr)||0)/100);
+    return result.toFixed(2);
+  };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -758,11 +765,13 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 
   const selCliente  = (nombre) => setForm(f => {
     const tarifa = getTarifa(nombre, f.unidad_id);
-    return { ...f, cliente_id: nombre, flete: tarifa ? tarifa.toString() : f.flete, flete_siniva: tarifa ? tarifa.toString() : f.flete_siniva };
+    const siniva = tarifa ? tarifa.toString() : f.flete_siniva;
+    return { ...f, cliente_id: nombre, flete: siniva, flete_siniva: siniva, flete_coniva: calcConIva(siniva, f.iva_pct, f.ret_pct, f.isr_pct) };
   });
   const selUnidad   = (eco)    => setForm(f => {
     const tarifa = getTarifa(f.cliente_id, eco);
-    return { ...f, unidad_id: eco, flete: tarifa ? tarifa.toString() : f.flete, flete_siniva: tarifa ? tarifa.toString() : f.flete_siniva };
+    const siniva = tarifa ? tarifa.toString() : f.flete_siniva;
+    return { ...f, unidad_id: eco, flete: siniva, flete_siniva: siniva, flete_coniva: calcConIva(siniva, f.iva_pct, f.ret_pct, f.isr_pct) };
   });
   const selOperador = (nombre) => setForm(f => {
     // Auto-asignar unidad si el operador tiene una registrada
@@ -901,16 +910,58 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
               <Input type="number" placeholder="0.00" value={form.flete_siniva}
-                onChange={e => { set("flete_siniva", e.target.value); set("flete", e.target.value); }} />
+                onChange={e => {
+                  const v = e.target.value;
+                  setForm(f => ({ ...f, flete_siniva: v, flete: v, flete_coniva: calcConIva(v, f.iva_pct, f.ret_pct, f.isr_pct) }));
+                }} />
             </div>
             {tarifaAct && <div style={{ fontSize: 10, color: C.greenStrong, marginTop: 3 }}>Tarifa {unidadSel?.tipo_unidad}: {fmt(tarifaAct)}</div>}
           </Field>
-          <Field label="Flete con IVA">
+          <Field label="Flete con IVA (editable)">
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
               <Input type="number" placeholder="0.00" value={form.flete_coniva}
                 onChange={e => set("flete_coniva", e.target.value)} />
             </div>
+            {form.flete_siniva && (
+              <div style={{ marginTop: 6, padding: "8px 10px", background: "#F0FAF0", borderRadius: 8, border: "1px solid #C8E6C9", fontSize: 11 }}>
+                {/* Tasas editables */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                  {[
+                    { key: "iva_pct", label: "IVA %", sign: "+" },
+                    { key: "ret_pct", label: "Ret. IVA %", sign: "−" },
+                    { key: "isr_pct", label: "ISR %", sign: "−" },
+                  ].map(({ key, label, sign }) => (
+                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ color: sign === "+" ? "#2E7D32" : "#B45309", fontWeight: 700, fontSize: 10 }}>{sign}</span>
+                      <span style={{ color: C.muted, fontSize: 10 }}>{label}</span>
+                      <input type="number" value={form[key]} step="0.01" min="0" max="100"
+                        onChange={e => {
+                          const v = e.target.value;
+                          setForm(f => ({ ...f, [key]: v, flete_coniva: calcConIva(f.flete_siniva, key==="iva_pct"?v:f.iva_pct, key==="ret_pct"?v:f.ret_pct, key==="isr_pct"?v:f.isr_pct) }));
+                        }}
+                        style={{ width: 48, padding: "2px 6px", borderRadius: 6, border: "1px solid #C8E6C9", fontSize: 11, textAlign: "center", outline: "none", fontFamily: "inherit" }} />
+                    </div>
+                  ))}
+                </div>
+                {/* Desglose */}
+                {(() => {
+                  const base = parseFloat(form.flete_siniva) || 0;
+                  const iva  = base * (parseFloat(form.iva_pct)  || 0) / 100;
+                  const ret  = base * (parseFloat(form.ret_pct)  || 0) / 100;
+                  const isr  = base * (parseFloat(form.isr_pct)  || 0) / 100;
+                  return (
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", color: C.muted }}>
+                      <span>{fmt(base)}</span>
+                      <span style={{ color: "#2E7D32" }}>+IVA {fmt(iva)}</span>
+                      <span style={{ color: "#B45309" }}>−Ret {fmt(ret)}</span>
+                      <span style={{ color: "#B45309" }}>−ISR {fmt(isr)}</span>
+                      <span style={{ fontWeight: 700, color: C.text }}>= {fmt(base + iva - ret - isr)}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </Field>
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
