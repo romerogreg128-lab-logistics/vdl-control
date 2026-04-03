@@ -1207,12 +1207,6 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
           <Field label="Fecha">
             <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
           </Field>
-          <Field label="Monto sin IVA">
-            <Input type="number" placeholder="0.00" value={form.siniva} onChange={e => set("siniva", e.target.value)} />
-          </Field>
-          <Field label="Monto con IVA">
-            <Input type="number" placeholder="0.00" value={form.coniva} onChange={e => set("coniva", e.target.value)} />
-          </Field>
           <Field label="Concepto">
             <Input placeholder="Ej. Carga de diésel" value={form.concepto} onChange={e => set("concepto", e.target.value)} />
           </Field>
@@ -1267,13 +1261,13 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <Th>Fecha</Th><Th>Concepto</Th><Th>Monto</Th><Th>Sin IVA</Th><Th>Con IVA</Th>
+              <Th>Fecha</Th><Th>Concepto</Th><Th>Monto</Th>
               <Th>Tipo</Th><Th>Estatus</Th><Th>Operador</Th><Th>Viaje</Th><Th>Acciones</Th>
             </tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={10} msg="Sin gastos en este período" /> :
+             rows.length === 0 ? <EmptyRow cols={8} msg="Sin gastos en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
@@ -1281,8 +1275,6 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
                  <Td>{r.fecha || "—"}</Td>
                  <Td>{r.concepto || "—"}</Td>
                  <Td bold>{fmt(r.monto)}</Td>
-                 <Td>{r.siniva ? fmt(r.siniva) : "—"}</Td>
-                 <Td>{r.coniva ? fmt(r.coniva) : "—"}</Td>
                  <Td><Chip label={r.tipo_gasto} /></Td>
                  <Td><Chip label={r.estatus_pago || "Por pagar"} /></Td>
                  <Td>{r.operador || "—"}</Td>
