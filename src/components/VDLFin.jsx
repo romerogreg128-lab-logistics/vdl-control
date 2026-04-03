@@ -28,36 +28,37 @@ const C = {
 };
 
 const CHIP_MAP = {
-  // tipo_gasto values (real column name in gastos table)
-  Combustible:    { bg: "#E6F1FB", color: "#0C447C" },
-  Gasolina:       { bg: "#E6F1FB", color: "#0C447C" },
-  Caseta:         { bg: "#E2E8E3", color: "#4A5C52" },
-  "Nómina":       { bg: "#FAEEDA", color: "#633806" },
-  Impuesto:       { bg: "#FCEBEB", color: "#791F1F" },
-  Estacionamiento:{ bg: "#E2E8E3", color: "#4A5C52" },
-  Mantenimiento:  { bg: "#EEEDFE", color: "#3C3489" },
-  Llantas:        { bg: "#EEEDFE", color: "#3C3489" },
-  Otro:           { bg: "#E2E8E3", color: "#4A5C52" },
-  Pagado:         { bg: "#DDEEDC", color: "#1B5E20" },
-  "Por pagar":    { bg: "#FAEEDA", color: "#633806" },
-  "En revisión":  { bg: "#E6F1FB", color: "#0C447C" },
-  // estatus
-  Activo:         { bg: "#DDEEDC", color: "#1B5E20" },
-  Pendiente:      { bg: "#FAEEDA", color: "#633806" },
-  Vencido:        { bg: "#FCEBEB", color: "#791F1F" },
-  Cancelado:      { bg: "#E2E8E3", color: "#4A5C52" },
-  "En taller":    { bg: "#FAEEDA", color: "#633806" },
-  Inactivo:       { bg: "#E2E8E3", color: "#4A5C52" },
-  Vacaciones:     { bg: "#E6F1FB", color: "#0C447C" },
-  Baja:           { bg: "#FCEBEB", color: "#791F1F" },
-  // tipo_unidad
-  Tercera:        { bg: "#EEEDFE", color: "#3C3489" },
-  Propia:         { bg: "#DDEEDC", color: "#1B5E20" },
-  Moto:           { bg: "#E2E8E3", color: "#4A5C52" },
-  "Sedán":        { bg: "#E2E8E3", color: "#4A5C52" },
-  "Small Van":    { bg: "#E6F1FB", color: "#0C447C" },
-  Van:            { bg: "#E6F1FB", color: "#0C447C" },
-  "Large Van":    { bg: "#E6F1FB", color: "#0C447C" },
+  // tipo_gasto
+  Combustible:    { bg: "#1565C0", color: "#fff" },
+  Gasolina:       { bg: "#1565C0", color: "#fff" },
+  Caseta:         { bg: "#37474F", color: "#fff" },
+  "Nómina":       { bg: "#E65100", color: "#fff" },
+  Impuesto:       { bg: "#B71C1C", color: "#fff" },
+  Estacionamiento:{ bg: "#546E7A", color: "#fff" },
+  Mantenimiento:  { bg: "#4527A0", color: "#fff" },
+  Llantas:        { bg: "#6A1B9A", color: "#fff" },
+  Otro:           { bg: "#455A64", color: "#fff" },
+  // estatus pago gastos
+  Pagado:         { bg: "#1B5E20", color: "#fff" },
+  "Por pagar":    { bg: "#E65100", color: "#fff" },
+  "En revisión":  { bg: "#0D47A1", color: "#fff" },
+  // estatus ingresos
+  Activo:         { bg: "#2E7D32", color: "#fff" },
+  Pendiente:      { bg: "#F57F17", color: "#fff" },
+  Vencido:        { bg: "#C62828", color: "#fff" },
+  Cancelado:      { bg: "#546E7A", color: "#fff" },
+  "En taller":    { bg: "#BF360C", color: "#fff" },
+  Inactivo:       { bg: "#546E7A", color: "#fff" },
+  Vacaciones:     { bg: "#1565C0", color: "#fff" },
+  Baja:           { bg: "#B71C1C", color: "#fff" },
+  // tipo_unidad / propiedad
+  Tercera:        { bg: "#4527A0", color: "#fff" },
+  Propia:         { bg: "#1B5E20", color: "#fff" },
+  Moto:           { bg: "#37474F", color: "#fff" },
+  "Sedán":        { bg: "#37474F", color: "#fff" },
+  "Small Van":    { bg: "#0D47A1", color: "#fff" },
+  Van:            { bg: "#1565C0", color: "#fff" },
+  "Large Van":    { bg: "#283593", color: "#fff" },
 };
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────
@@ -1255,7 +1256,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
         filters={filters}
         setFilters={setFilters}
         options={[
-          { key: "estatus", label: "Estatus", type: "select", choices: ["Activo", "Pendiente", "Vencido", "Cancelado"] },
+          { key: "estatus", label: "Estatus", type: "select", choices: ["Pagado", "Activo", "Pendiente", "Vencido", "Cancelado"] },
           { key: "factura", label: "Factura", type: "text" },
         ]}
       />
@@ -1269,7 +1270,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
           <Field label="Fecha de carga"><Input type="date" value={form.fcarga} onChange={e => set("fcarga", e.target.value)} /></Field>
           <Field label="Fecha de vencimiento"><Input type="date" value={form.fvence} onChange={e => set("fvence", e.target.value)} /></Field>
           <Field label="Estatus" span2>
-            <Select value={form.estatus} onChange={v => set("estatus", v)} options={["Activo", "Pendiente", "Vencido", "Cancelado"]} placeholder="Seleccionar estatus..." />
+            <Select value={form.estatus} onChange={v => set("estatus", v)} options={["Pagado", "Activo", "Pendiente", "Vencido", "Cancelado"]} placeholder="Seleccionar estatus..." />
           </Field>
           <Field label="Notas" span2>
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
@@ -1535,15 +1536,20 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   const gas  = useMemo(() => (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta)), [gastos,   desde, hasta]);
   const rut  = useMemo(() => (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta)), [rutas,    desde, hasta]);
 
+  const ingPag      = ing.filter(r => r.estatus === "Pagado");
   const totalIng    = ing.reduce((s, r) => s + parseFloat(r.coniva  || 0), 0);
   const totalSinIva = ing.reduce((s, r) => s + parseFloat(r.siniva  || 0), 0);
+  const totalIngPag    = ingPag.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+  const totalSinIvaPag = ingPag.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
   const totalGas    = gas.reduce((s, r) => s + parseFloat(r.monto   || 0), 0);
-  const totalFlete  = rut.reduce((s, r) => s + parseFloat(r.flete   || 0), 0);
-  const util        = totalIng - totalGas;
-  const margen      = totalIng > 0 ? Math.round(util / totalIng * 100) : 0;
+  const gasSinIva   = gas.reduce((s, r) => s + parseFloat(r.siniva  || 0), 0);
+  const totalFlete  = rut.reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
+  const util        = totalSinIvaPag - gasSinIva;
+  const margen      = totalSinIvaPag > 0 ? Math.round(util / totalSinIvaPag * 100) : 0;
 
   // Estatus ingresos
-  const ingPagados  = ing.filter(r => r.estatus === "Activo").length;
+  const ingPagados  = ing.filter(r => r.estatus === "Pagado").length;
+  const ingActivos  = ing.filter(r => r.estatus === "Activo").length;
   const ingPending  = ing.filter(r => r.estatus === "Pendiente").length;
   const ingVencidos = ing.filter(r => r.estatus === "Vencido").length;
 
@@ -1660,10 +1666,10 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
 
       {/* ── KPI Cards Row ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Ingresos (con IVA)"  value={fmtM(totalIng)}   sub={`${ing.length} facturas`}                    color="#2E7D32" icon="💰" />
-        <StatCard label="Gastos operativos"   value={fmtM(totalGas)}   sub={`${gas.length} registros`}                   color="#C62828" icon="📤" />
-        <StatCard label="Utilidad neta"       value={fmtM(util)}       sub={`Margen ${margen}%`}                          color={util >= 0 ? "#2E7D32" : "#C62828"} icon="📊" />
-        <StatCard label="Fletes estimados"    value={fmtM(totalFlete)} sub={`${rut.length} rutas`}                        color="#74B72E" icon="🚛" />
+        <StatCard label="Ingresos (pagados)"  value={fmtM(totalIngPag)}  sub={`${ingPag.length} de ${ing.length} facturas`}   color="#2E7D32" icon="💰" />
+        <StatCard label="Gastos operativos"  value={fmtM(totalGas)}    sub={`${gas.length} registros`}                    color="#C62828" icon="📤" />
+        <StatCard label="Utilidad neta"      value={fmtM(util)}        sub={`Margen ${margen}% · solo pagadas`}           color={util >= 0 ? "#2E7D32" : "#C62828"} icon="📊" />
+        <StatCard label="Fletes sin IVA"     value={fmtM(totalFlete)}  sub={`${rut.length} rutas`}                        color="#74B72E" icon="🚛" />
       </div>
 
       {/* ── Charts Row ── */}
@@ -1770,10 +1776,11 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Ingresos por estatus</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            <MiniKpi label="Activos"    value={ingPagados} sub="facturas" color="#2E7D32" />
-            <MiniKpi label="Pendientes" value={ingPending}  sub="facturas" color="#B45309" />
-            <MiniKpi label="Vencidos"   value={ingVencidos} sub="facturas" color="#C62828" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+            <MiniKpi label="Pagadas"    value={ingPagados} sub="facturas" color="#1B5E20" />
+            <MiniKpi label="Activas"    value={ingActivos} sub="facturas" color="#2E7D32" />
+            <MiniKpi label="Pendientes" value={ingPending}  sub="facturas" color="#E65100" />
+            <MiniKpi label="Vencidas"   value={ingVencidos} sub="facturas" color="#C62828" />
           </div>
         </div>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
@@ -1833,32 +1840,36 @@ export default function VDLModulos() {
     const gasFilt = (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta));
     const rutFilt = (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta));
 
-    // Ingresos
+    // Ingresos — totales (todas las facturas del período)
     const ingConIVA  = ingFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
     const ingSinIVA  = ingFilt.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+
+    // Ingresos — solo Pagadas (para margen e IVA cobrado)
+    const ingPagadas   = ingFilt.filter(r => r.estatus === "Pagado");
+    const ingPagConIVA = ingPagadas.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+    const ingPagSinIVA = ingPagadas.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+    const totalIVA     = ingPagadas.reduce((s, r) =>
+      s + (parseFloat(r.coniva || 0) - parseFloat(r.siniva || 0)), 0);
 
     // Gastos
     const gasMonto   = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
     const gasSinIVA  = gasFilt.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
     const gasConIVA  = gasFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
 
-    // Fletes: usar campos dedicados sin/con IVA
+    // Fletes
     const fleteSinIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
     const fleteConIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete_coniva || 0), 0);
 
-    // Utilidad CORRECTA: ingresos sin IVA - gastos sin IVA
-    const util  = ingSinIVA - gasSinIVA;
-    const pct   = ingSinIVA > 0 ? Math.round(util / ingSinIVA * 100) : 0;
-
-    // IVA cobrado: solo facturas Activo
-    const ingPagadas = ingFilt.filter(r => r.estatus === "Activo");
-    const totalIVA   = ingPagadas.reduce((s, r) =>
-      s + (parseFloat(r.coniva || 0) - parseFloat(r.siniva || 0)), 0);
+    // Utilidad: solo facturas PAGADAS sin IVA vs gastos sin IVA
+    const util  = ingPagSinIVA - gasSinIVA;
+    const pct   = ingPagSinIVA > 0 ? Math.round(util / ingPagSinIVA * 100) : 0;
 
     return {
-      ingConIVA, ingSinIVA, gasMonto, gasSinIVA, gasConIVA,
+      ingConIVA, ingSinIVA, ingPagConIVA, ingPagSinIVA,
+      gasMonto, gasSinIVA, gasConIVA,
       fleteSinIVA, fleteConIVA, totalIVA, util, pct,
-      ingN: ingFilt.length, gasN: gasFilt.length, rutN: rutFilt.length,
+      ingN: ingFilt.length, ingPagN: ingPagadas.length,
+      gasN: gasFilt.length, rutN: rutFilt.length,
     };
   }, [ingresos, gastos, rutas, desde, hasta]);
 
@@ -1908,13 +1919,13 @@ export default function VDLModulos() {
         <div style={{ padding: "20px 28px 0" }}>
           {/* Fila 1: Ingresos + Utilidad */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 10 }}>
-            <KpiCard label="Ingresos con IVA" value={fmt(kpi.ingConIVA)}  sub={`${kpi.ingN} factura${kpi.ingN !== 1 ? "s" : ""}`}  badge="Con IVA"  badgeType="up" />
-            <KpiCard label="Ingresos sin IVA" value={fmt(kpi.ingSinIVA)}  sub="Base gravable"                                       badge="Sin IVA"  badgeType="up" />
-            <KpiCard label="IVA cobrado"       value={fmt(kpi.totalIVA)}   sub="Solo facturas Activo"                                badge="Pagadas"  badgeType="up" />
+            <KpiCard label="Ingresos con IVA" value={fmt(kpi.ingConIVA)}    sub={`${kpi.ingN} facturas · ${kpi.ingPagN} pagadas`}     badge="Con IVA"   badgeType="up" />
+            <KpiCard label="Ingresos sin IVA" value={fmt(kpi.ingSinIVA)}    sub="Todas las facturas"                                    badge="Sin IVA"   badgeType="up" />
+            <KpiCard label="IVA cobrado"       value={fmt(kpi.totalIVA)}     sub={`${kpi.ingPagN} facturas pagadas`}                     badge="Pagadas"   badgeType="up" />
             <KpiCard label="Utilidad neta"     value={fmt(kpi.util)}
-              sub={`Margen ${kpi.pct}% · sin IVA / sin IVA`}
-              badge={kpi.ingSinIVA === 0 && kpi.gasSinIVA === 0 ? "Sin datos" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
-              badgeType={kpi.ingSinIVA === 0 && kpi.gasSinIVA === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
+              sub={`Margen ${kpi.pct}% · solo facturas pagadas`}
+              badge={kpi.ingPagN === 0 ? "Sin pagadas" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
+              badgeType={kpi.ingPagN === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
           </div>
           {/* Fila 2: Gastos + Fletes */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 10, marginBottom: 20 }}>
