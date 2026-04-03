@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 // Font loaded via next/font or <link> in layout — uses system stack as fallback
 const LOGO_SRC = "data:image/png;base64,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";
 import { createClient } from "@supabase/supabase-js";
@@ -151,21 +151,46 @@ function Td({ children, bold }) {
 }
 
 function RowActions({ onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   return (
     <td style={{ padding: "6px 12px", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>
-      <div style={{ display: "flex", gap: 6 }}>
-        <button onClick={onEdit}
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #E2E8E3", background: "#FFFFFF", color: C.muted }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#EFF3EF"; e.currentTarget.style.color = C.green; e.currentTarget.style.borderColor = C.green; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "#E2E8E3"; }}>
-          ✎ Editar
-        </button>
-        <button onClick={onDelete}
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #E2E8E3", background: "#FFFFFF", color: C.muted }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#FEF2F2"; e.currentTarget.style.color = "#B91C1C"; e.currentTarget.style.borderColor = "#FECACA"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "#E2E8E3"; }}>
-          ✕ Eliminar
-        </button>
+      <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+        <button onClick={() => setOpen(o => !o)} style={{
+          width: 30, height: 30, borderRadius: 8, border: "1px solid #E2E8E3",
+          background: "#FFFFFF", cursor: "pointer", fontSize: 16, color: C.muted,
+          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700,
+        }}>⋯</button>
+        {open && (
+          <div style={{
+            position: "absolute", right: 0, top: 34, zIndex: 100,
+            background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 10,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: 120, overflow: "hidden",
+          }}>
+            <button onClick={() => { setOpen(false); onEdit(); }} style={{
+              display: "block", width: "100%", padding: "9px 14px", textAlign: "left",
+              background: "transparent", border: "none", fontSize: 13, cursor: "pointer", color: C.text,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#F5F7F4"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              ✎ Editar
+            </button>
+            <button onClick={() => { setOpen(false); onDelete(); }} style={{
+              display: "block", width: "100%", padding: "9px 14px", textAlign: "left",
+              background: "transparent", border: "none", fontSize: 13, cursor: "pointer", color: "#C62828",
+              borderTop: "1px solid #F3F4F6",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#FEF2F2"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              ✕ Eliminar
+            </button>
+          </div>
+        )}
       </div>
     </td>
   );
@@ -306,7 +331,7 @@ function NavItem({ id, active, onClick }) {
 // ─── FILTER BAR ───────────────────────────────────────────────────────────
 const MOD_META = {
   dashboard:  { title: "Dashboard",  sub: "Resumen completo de métricas del período" },
-  ingresos:   { title: "Ingresos",   sub: "Registro de facturas y cobros" },
+  ingresos:   { title: "Flujo de trabajo",   sub: "Registro de facturas · solo las pagadas cuentan como ingreso" },
   gastos:     { title: "Gastos",     sub: "Control de egresos operativos" },
   clientes:   { title: "Clientes",   sub: "Tarifas por tipo de unidad y datos de contacto" },
   operadores: { title: "Operadores", sub: "Registro de conductores y asignación" },
@@ -1197,7 +1222,7 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
 
 // ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
 function ModIngresos({ data, reload, desde, hasta }) {
-  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "" };
+  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -1208,14 +1233,14 @@ function ModIngresos({ data, reload, desde, hasta }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
-  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "" }); setEditRow(r); setErr(""); setOpen(true); };
+  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "" }); setEditRow(r); setErr(""); setOpen(true); };
   const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
   const save = async () => {
     if (!form.factura || !form.siniva) { setErr("Factura y monto son obligatorios"); return; }
     setLoading(true); setErr("");
     try {
-      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas };
+      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null };
       if (isEdit) {
         const { error } = await sb.from("ingresos").update(payload).eq("id", editRow.id);
         if (error) throw error;
@@ -1272,9 +1297,34 @@ function ModIngresos({ data, reload, desde, hasta }) {
           <Field label="Estatus" span2>
             <Select value={form.estatus} onChange={v => set("estatus", v)} options={["Pagado", "Activo", "Pendiente", "Vencido", "Cancelado"]} placeholder="Seleccionar estatus..." />
           </Field>
+          <Field label="NAR">
+            <Input type="number" placeholder="0" value={form.nar} onChange={e => set("nar", e.target.value)} />
+          </Field>
           <Field label="Notas" span2>
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
+          {/* Pagado checkbox */}
+          <div style={{ gridColumn: "span 2", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: form.estatus === "Pagado" ? "#DCFCE7" : "#F9FAFB", borderRadius: 10, border: `1px solid ${form.estatus === "Pagado" ? "#86EFAC" : "#E2E8E3"}` }}>
+            <input
+              type="checkbox"
+              id="chk-pagado"
+              checked={form.estatus === "Pagado"}
+              onChange={e => {
+                if (e.target.checked) {
+                  const fecha = window.prompt("Fecha de pago (YYYY-MM-DD):", new Date().toISOString().split("T")[0]);
+                  if (fecha) {
+                    setForm(f => ({ ...f, estatus: "Pagado", fecha_pago: fecha }));
+                  }
+                } else {
+                  setForm(f => ({ ...f, estatus: "Pendiente", fecha_pago: "" }));
+                }
+              }}
+              style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#16A34A" }}
+            />
+            <label htmlFor="chk-pagado" style={{ fontSize: 13, fontWeight: 600, cursor: "pointer", color: form.estatus === "Pagado" ? "#15803D" : C.muted, userSelect: "none" }}>
+              {form.estatus === "Pagado" ? `✓ Pagado${form.fecha_pago ? " — " + form.fecha_pago : ""}` : "Marcar como pagado"}
+            </label>
+          </div>
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
@@ -1283,22 +1333,36 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Factura</Th><Th>Período</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>Vencimiento</Th><Th>Estatus</Th><Th>Notas</Th><Th>Acciones</Th></tr></thead>
+          <thead><tr><Th>Pagado</Th><Th>Factura</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>F. Pago</Th><Th>Estatus</Th><Th>Acciones</Th></tr></thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={9} msg="Sin ingresos en este período" /> :
+             rows.length === 0 ? <EmptyRow cols={10} msg="Sin facturas en este período" /> :
              rows.map(r => (
-               <tr key={r.id} style={{ background: "#FFFFFF" }}
-                 onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
-                 onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
+               <tr key={r.id} style={{ background: r.estatus === "Pagado" ? "#F0FDF4" : "#FFFFFF" }}
+                 onMouseEnter={e => e.currentTarget.style.background = r.estatus === "Pagado" ? "#DCFCE7" : "#FAFCFA"}
+                 onMouseLeave={e => e.currentTarget.style.background = r.estatus === "Pagado" ? "#F0FDF4" : "#FFFFFF"}>
+                 <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3", textAlign: "center" }}>
+                   <input type="checkbox" checked={r.estatus === "Pagado"} onChange={async e => {
+                     if (e.target.checked) {
+                       const fecha = window.prompt("Fecha de pago (YYYY-MM-DD):", new Date().toISOString().split("T")[0]);
+                       if (fecha) {
+                         await sb.from("ingresos").update({ estatus: "Pagado", fecha_pago: fecha }).eq("id", r.id);
+                         reload();
+                       }
+                     } else {
+                       await sb.from("ingresos").update({ estatus: "Pendiente", fecha_pago: null }).eq("id", r.id);
+                       reload();
+                     }
+                   }} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#16A34A" }} />
+                 </td>
                  <Td bold>{r.factura}</Td>
                  <Td>{r.periodo || "—"}</Td>
+                 <Td>{r.nar || "—"}</Td>
                  <Td>{fmt(r.siniva)}</Td>
                  <Td>{fmt(r.coniva)}</Td>
                  <Td>{r.fcarga || "—"}</Td>
-                 <Td>{r.fvence || "—"}</Td>
-                 <Td><Chip label={r.estatus} /></Td>
-                 <Td><span style={{ color: C.muted, fontSize: 11, display: "block", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</span></Td>
+                 <Td>{r.fecha_pago ? <span style={{ color: "#16A34A", fontWeight: 600 }}>{r.fecha_pago}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
+                 <Td><Chip label={r.estatus || "Pendiente"} /></Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
              ))
@@ -1973,5 +2037,4 @@ export default function VDLModulos() {
       </section>
     </main>
   );
-}// viernes,  3 de abril de 2026, 00:15:56 CST
-// force-1775197174
+}
