@@ -1973,4 +1973,4 @@ export default function VDLModulos() {
       </section>
     </main>
   );
-}
+}// viernes,  3 de abril de 2026, 00:15:56 CST
