@@ -918,7 +918,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 
       <FilterBar filters={filters} setFilters={setFilters} options={[
         { key: "cliente_id", label: "Cliente",  type: "text" },
-        { key: "operador",   label: "Operador", type: "text" },
+        { key: "operador",   label: "Operador", type: "select", choices: operadorOpts },
         { key: "unidad_id",  label: "Unidad",   type: "text" },
       ]} />
       {!open && <AddBtn onClick={openNew} label="+ Nueva ruta" />}
@@ -2003,21 +2003,78 @@ export default function VDLModulos() {
         </div>
 
         {/* FILTRO FECHA */}
-        <div style={{ padding: "12px 28px", borderTop: "1px solid #E2E8E3", borderBottom: "1px solid #E2E8E3", background: "#EFF4EF", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Filtrar por fecha</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <label style={{ fontSize: 12, color: C.muted }}>Desde</label>
-            <input type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ ...inputStyle, width: "auto", fontSize: 12, padding: "6px 10px" }} />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <label style={{ fontSize: 12, color: C.muted }}>Hasta</label>
-            <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ ...inputStyle, width: "auto", fontSize: 12, padding: "6px 10px" }} />
-          </div>
-          <button onClick={() => { setDesde(""); setHasta(""); }} style={{ padding: "6px 14px", borderRadius: 10, fontSize: 12, fontWeight: 500, cursor: "pointer", border: "1px solid #E2E8E3", background: C.card, color: C.muted }}>Limpiar</button>
-          <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>
-            {desde || hasta ? `Filtrado: ${desde || "inicio"} → ${hasta || "hoy"}` : "Mostrando todos los registros"}
-          </span>
-        </div>
+        {(() => {
+          const activo = !!(desde || hasta);
+          const hoy = new Date();
+          const pad = n => String(n).padStart(2, "0");
+          const fmt0 = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+          const presets = [
+            { label: "Hoy", fn: () => { const d = fmt0(hoy); setDesde(d); setHasta(d); } },
+            { label: "Esta semana", fn: () => {
+              const dow = hoy.getDay() || 7;
+              const mon = new Date(hoy); mon.setDate(hoy.getDate() - dow + 1);
+              const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+              setDesde(fmt0(mon)); setHasta(fmt0(sun));
+            }},
+            { label: "Este mes", fn: () => {
+              setDesde(`${hoy.getFullYear()}-${pad(hoy.getMonth()+1)}-01`);
+              const last = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0);
+              setHasta(fmt0(last));
+            }},
+            { label: "Mes anterior", fn: () => {
+              const first = new Date(hoy.getFullYear(), hoy.getMonth()-1, 1);
+              const last  = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+              setDesde(fmt0(first)); setHasta(fmt0(last));
+            }},
+            { label: "Trimestre", fn: () => {
+              const q = Math.floor(hoy.getMonth() / 3);
+              setDesde(`${hoy.getFullYear()}-${pad(q*3+1)}-01`);
+              const last = new Date(hoy.getFullYear(), q*3+3, 0);
+              setHasta(fmt0(last));
+            }},
+          ];
+          return (
+            <div style={{ padding: "10px 28px", borderTop: "1px solid #E2E8E3", borderBottom: `2px solid ${activo ? "#74B72E" : "#E2E8E3"}`, background: activo ? "#F0FAF0" : "#F7F9F7", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {/* Ícono + label */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4" strokeLinecap="round"/></svg>
+                <span style={{ fontSize: 11, fontWeight: 700, color: activo ? "#2E7D32" : C.muted, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>Período</span>
+              </div>
+              {/* Inputs de fecha */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff", border: `1.5px solid ${activo ? "#86EFAC" : "#E2E8E3"}`, borderRadius: 10, padding: "3px 10px" }}>
+                <label style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>Desde</label>
+                <input type="date" value={desde} onChange={e => setDesde(e.target.value)}
+                  style={{ border: "none", outline: "none", fontSize: 12, color: C.text, background: "transparent", fontFamily: "inherit", cursor: "pointer" }} />
+                <span style={{ color: C.muted, fontSize: 12 }}>→</span>
+                <label style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>Hasta</label>
+                <input type="date" value={hasta} onChange={e => setHasta(e.target.value)}
+                  style={{ border: "none", outline: "none", fontSize: 12, color: C.text, background: "transparent", fontFamily: "inherit", cursor: "pointer" }} />
+              </div>
+              {/* Presets */}
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {presets.map(p => (
+                  <button key={p.label} onClick={p.fn} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, cursor: "pointer", border: "1px solid #D1E8D0", background: "#E8F5E8", color: "#1B5E20", whiteSpace: "nowrap" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#C8E6C9"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#E8F5E8"; }}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {/* Limpiar + estado */}
+              {activo && (
+                <button onClick={() => { setDesde(""); setHasta(""); }}
+                  style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#FEE2E2"}
+                  onMouseLeave={e => e.currentTarget.style.background = "#FEF2F2"}>
+                  ✕ Limpiar
+                </button>
+              )}
+              <span style={{ fontSize: 11, color: activo ? "#2E7D32" : C.muted, marginLeft: "auto", fontWeight: activo ? 600 : 400, whiteSpace: "nowrap" }}>
+                {activo ? `${desde || "inicio"} → ${hasta || "hoy"}` : "Sin filtro de fecha · mostrando todo"}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* MODULE HEADER */}
         <div style={{ padding: "16px 28px", borderBottom: "1px solid #E2E8E3" }}>
