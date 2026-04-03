@@ -537,16 +537,6 @@ function ModUnidades({ data, reload }) {
 
       {!open && <AddBtn onClick={openNew} label="+ Nueva unidad" />}
 
-      <FilterBar
-        filters={filters}
-        setFilters={setFilters}
-        options={[
-          { key: "tipo_unidad", label: "Tipo",      type: "select", choices: ["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"] },
-          { key: "prop",        label: "Propiedad", type: "select", choices: ["Propia", "Tercera"] },
-          { key: "estatus",     label: "Estatus",   type: "select", choices: ["Activo", "En taller", "Baja"] },
-        ]}
-      />
-
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -636,8 +626,6 @@ function ModOperadores({ data, reload, unidades }) {
     }
   };
 
-  const [filtOp, setFiltOp] = useState({ tipo_op: "", estatus: "" });
-
   const remove = async (r) => {
     if (!window.confirm(`¿Eliminar operador ${r.nombre}?`)) return;
     try {
@@ -716,15 +704,6 @@ function ModOperadores({ data, reload, unidades }) {
       </FormPanel>
 
       {!open && <AddBtn onClick={openNew} label="+ Nuevo operador" />}
-
-      <FilterBar
-        filters={[
-          { key: "tipo_op", label: "Tipo",    value: filtOp?.tipo_op || "", options: ["Propia", "Tercera"] },
-          { key: "estatus", label: "Estatus", value: filtOp?.estatus || "", options: ["Activo", "Inactivo", "Vacaciones", "Baja"] },
-        ]}
-        onChange={(k, v) => setFiltOp(f => ({ ...f, [k]: v }))}
-        onClear={() => setFiltOp({ tipo_op: "", estatus: "" })}
-      />
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1129,15 +1108,6 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
         { key: "estatus_pago", label: "Estatus",  type: "select", choices: ["Pagado","Por pagar","En revisión"] },
         { key: "operador",     label: "Operador", type: "text" },
       ]} />
-      <FilterBar
-        filters={filt}
-        setFilters={setFilt}
-        options={[
-          { key: "tipo_gasto",   label: "Tipo",     type: "select", choices: ["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Mantenimiento", "Llantas", "Otro"] },
-          { key: "estatus_pago", label: "Estatus",  type: "select", choices: ["Pagado", "Por pagar", "En revisión"] },
-          { key: "operador",     label: "Operador", type: "select", choices: operadoresOpts },
-        ]}
-      />
       {rows.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
           <MiniKpi label="Total gastos"  value={fmt(totalMonto)} sub={`${rows.length} registros`} />
