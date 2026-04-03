@@ -150,6 +150,31 @@ function Td({ children, bold }) {
   return <td style={{ padding: "9px 12px", fontSize: 12, color: C.text, borderBottom: "1px solid #E2E8E3", fontWeight: bold ? 600 : 400, verticalAlign: "middle" }}>{children}</td>;
 }
 
+function PagoModal({ open, onConfirm, onCancel }) {
+  const [fecha, setFecha] = React.useState(new Date().toISOString().split("T")[0]);
+  React.useEffect(() => { if (open) setFecha(new Date().toISOString().split("T")[0]); }, [open]);
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)" }}
+      onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", width: 320, boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}>
+        <p style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 6 }}>Registrar pago</p>
+        <p style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>Selecciona la fecha en que se realizó el pago.</p>
+        <input
+          type="date"
+          value={fecha}
+          onChange={e => setFecha(e.target.value)}
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #86EFAC", fontSize: 14, outline: "none", boxSizing: "border-box", accentColor: "#16A34A" }}
+        />
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid #E2E8E3", background: "#F5F7F4", fontSize: 13, cursor: "pointer", color: C.muted, fontWeight: 500 }}>Cancelar</button>
+          <button onClick={() => fecha && onConfirm(fecha)} disabled={!fecha} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: fecha ? "#16A34A" : "#A7F3D0", fontSize: 13, cursor: fecha ? "pointer" : "not-allowed", color: "#fff", fontWeight: 700 }}>Confirmar pago</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RowActions({ onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = React.useRef(null);
@@ -1228,7 +1253,11 @@ function ModIngresos({ data, reload, desde, hasta }) {
   const [form, setForm]       = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [err, setErr]         = useState("");
+  const [pagoModal, setPagoModal] = useState({ open: false, onConfirm: null });
   const isEdit = !!editRow;
+
+  const openPagoModal = (onConfirm) => setPagoModal({ open: true, onConfirm });
+  const closePagoModal = () => setPagoModal({ open: false, onConfirm: null });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1311,10 +1340,10 @@ function ModIngresos({ data, reload, desde, hasta }) {
               checked={form.estatus === "Pagado"}
               onChange={e => {
                 if (e.target.checked) {
-                  const fecha = window.prompt("Fecha de pago (YYYY-MM-DD):", new Date().toISOString().split("T")[0]);
-                  if (fecha) {
+                  openPagoModal(fecha => {
                     setForm(f => ({ ...f, estatus: "Pagado", fecha_pago: fecha }));
-                  }
+                    closePagoModal();
+                  });
                 } else {
                   setForm(f => ({ ...f, estatus: "Pendiente", fecha_pago: "" }));
                 }
@@ -1331,6 +1360,8 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
       {!open && <AddBtn onClick={openNew} label="+ Nuevo ingreso" />}
 
+      <PagoModal open={pagoModal.open} onConfirm={pagoModal.onConfirm} onCancel={closePagoModal} />
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr><Th>Pagado</Th><Th>Factura</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>F. Pago</Th><Th>Estatus</Th><Th>Acciones</Th></tr></thead>
@@ -1344,11 +1375,11 @@ function ModIngresos({ data, reload, desde, hasta }) {
                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3", textAlign: "center" }}>
                    <input type="checkbox" checked={r.estatus === "Pagado"} onChange={async e => {
                      if (e.target.checked) {
-                       const fecha = window.prompt("Fecha de pago (YYYY-MM-DD):", new Date().toISOString().split("T")[0]);
-                       if (fecha) {
+                       openPagoModal(async fecha => {
                          await sb.from("ingresos").update({ estatus: "Pagado", fecha_pago: fecha }).eq("id", r.id);
+                         closePagoModal();
                          reload();
-                       }
+                       });
                      } else {
                        await sb.from("ingresos").update({ estatus: "Pendiente", fecha_pago: null }).eq("id", r.id);
                        reload();
