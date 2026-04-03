@@ -839,6 +839,25 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const clienteSel = form.cliente_id ? (clientes  || []).find(c => c.nombre   === form.cliente_id) : null;
   const tarifaAct  = getTarifa(form.cliente_id, form.unidad_id);
 
+  const [filling, setFilling] = useState(false);
+  const sinConIva = (data || []).filter(r => (r.flete_siniva || r.flete) && !r.flete_coniva);
+
+  const fillConIva = async () => {
+    if (sinConIva.length === 0) return;
+    if (!window.confirm(`¿Calcular Flete c/IVA para ${sinConIva.length} rutas usando +16% IVA −4% Ret −1.25% ISR?`)) return;
+    setFilling(true);
+    try {
+      const FACTOR = 1 + 0.16 - 0.04 - 0.0125; // 1.1075
+      for (const r of sinConIva) {
+        const base = parseFloat(r.flete_siniva || r.flete || 0);
+        const coniva = parseFloat((base * FACTOR).toFixed(2));
+        await sb.from("rutas").update({ flete_coniva: coniva }).eq("id", r.id);
+      }
+      await reload();
+    } catch (e) { alert(e.message); }
+    finally { setFilling(false); }
+  };
+
   return (
     <div>
       <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta — ID generado automáticamente"} isEdit={isEdit}>
@@ -972,7 +991,20 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         { key: "operador",   label: "Operador", type: "select", choices: operadorOpts },
         { key: "unidad_id",  label: "Unidad",   type: "text" },
       ]} />
-      {!open && <AddBtn onClick={openNew} label="+ Nueva ruta" />}
+      {!open && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
+          <AddBtn onClick={openNew} label="+ Nueva ruta" />
+          {sinConIva.length > 0 && (
+            <button onClick={fillConIva} disabled={filling} style={{
+              padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600,
+              cursor: filling ? "not-allowed" : "pointer", border: "1.5px solid #F59E0B",
+              background: filling ? "#FEF3C7" : "#FFFBEB", color: "#92400E", opacity: filling ? 0.7 : 1,
+            }}>
+              {filling ? "Calculando..." : `⚡ Calcular Flete c/IVA (${sinConIva.length} rutas)`}
+            </button>
+          )}
+        </div>
+      )}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
