@@ -940,7 +940,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                  <Td bold>{r.cliente_id || "—"}</Td>
                  <Td>{r.operador || "—"}</Td>
                  <Td><IdBadge id={r.unidad_id} /></Td>
-                 <Td>{r.flete_siniva ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_siniva)}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
+                 <Td>{(r.flete_siniva || r.flete) ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_siniva ?? r.flete)}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <Td>{r.flete_coniva ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_coniva)}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
