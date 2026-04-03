@@ -2068,12 +2068,10 @@ export default function VDLModulos() {
               badgeType={kpi.ingPagN === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
           </div>
           {/* Fila 2: Gastos + Fletes */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 10, marginBottom: 20 }}>
-            <KpiCard label="Gastos total"   value={fmt(kpi.gasMonto)}    sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""}`} badge="Monto"    badgeType="down" />
-            <KpiCard label="Gastos sin IVA" value={fmt(kpi.gasSinIVA)}   sub="Base gravable"                                       badge="Sin IVA"  badgeType="down" />
-            <KpiCard label="Gastos con IVA" value={fmt(kpi.gasConIVA)}   sub="IVA incluido"                                        badge="Con IVA"  badgeType="down" />
-            <KpiCard label="Fletes sin IVA" value={fmt(kpi.fleteSinIVA)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""}`}     badge="Sin IVA"  badgeType="up" />
-            <KpiCard label="Fletes con IVA" value={fmt(kpi.fleteConIVA)} sub="+16% estimado"                                       badge="Con IVA"  badgeType="up" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 20 }}>
+            <KpiCard label="Gastos"         value={fmt(kpi.gasMonto)}    sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""}`} badge="Monto neto" badgeType="down" />
+            <KpiCard label="Fletes sin IVA" value={fmt(kpi.fleteSinIVA)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""}`}     badge="Sin IVA"    badgeType="up" />
+            <KpiCard label="Fletes con IVA" value={fmt(kpi.fleteConIVA)} sub="+16% −4% −1.25%"                                    badge="Con IVA"    badgeType="up" />
           </div>
         </div>
 
