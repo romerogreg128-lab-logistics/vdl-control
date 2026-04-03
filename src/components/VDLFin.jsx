@@ -2024,9 +2024,9 @@ export default function VDLModulos() {
   const navIds = ["dashboard", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
 
   return (
-    <main style={{ minHeight: "100vh", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <main style={{ height: "100vh", overflow: "hidden", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       {/* SIDEBAR */}
-      <aside style={{ width: 230, flexShrink: 0, background: C.sidebar, color: "#fff", display: "flex", flexDirection: "column" }}>
+      <aside style={{ width: 230, height: "100vh", flexShrink: 0, background: C.sidebar, color: "#fff", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "16px 14px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img
@@ -2062,7 +2062,7 @@ export default function VDLModulos() {
       </aside>
 
       {/* MAIN */}
-      <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <section style={{ flex: 1, minWidth: 0, height: "100vh", overflowY: "auto", display: "flex", flexDirection: "column" }}>
         {/* KPIs */}
         <div style={{ padding: "20px 28px 0" }}>
           {/* Fila 1: Ingresos + Utilidad */}
@@ -2166,7 +2166,7 @@ export default function VDLModulos() {
         </div>
 
         {/* MODULE CONTENT */}
-        <div style={{ flex: 1, padding: "20px 28px", overflowY: "auto" }}>
+        <div style={{ flex: 1, padding: "20px 28px" }}>
           {mod === "dashboard"  && <ModDashboard  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} desde={desde} hasta={hasta} />}
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} operadores={operadores || []} />}
