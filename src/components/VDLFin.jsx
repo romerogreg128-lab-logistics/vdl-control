@@ -908,6 +908,9 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const [err, setErr]         = useState("");
   const isEdit = !!editRow;
   const topRef = useRef(null);
+  const [bulkOpen, setBulkOpen]           = useState(false);
+  const [bulkFechas, setBulkFechas]       = useState([]);
+  const [bulkFechaInput, setBulkFechaInput] = useState("");
 
   useEffect(() => {
     if (open && topRef.current) {
@@ -952,6 +955,42 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     setEditRow(r); setErr(""); setOpen(true);
   };
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const openBulk  = () => { setForm(EMPTY); setBulkFechas([]); setBulkFechaInput(""); setEditRow(null); setErr(""); setBulkOpen(true); setOpen(false); };
+  const cancelBulk = () => { setBulkOpen(false); setBulkFechas([]); setBulkFechaInput(""); setForm(EMPTY); setErr(""); };
+  const addBulkFecha = (val) => {
+    const v = val !== undefined ? val : bulkFechaInput;
+    if (!v || bulkFechas.includes(v)) return;
+    setBulkFechas(prev => [...prev, v].sort());
+    setBulkFechaInput("");
+  };
+  const removeBulkFecha = (fecha) => setBulkFechas(prev => prev.filter(d => d !== fecha));
+  const saveBulk = async () => {
+    if (!form.cliente_id) { setErr("Selecciona un cliente"); return; }
+    if (!form.operador)   { setErr("Selecciona un operador"); return; }
+    if (bulkFechas.length === 0) { setErr("Agrega al menos una fecha"); return; }
+    setLoading(true); setErr("");
+    try {
+      const basePayload = {
+        cliente_id:   form.cliente_id,
+        operador:     form.operador,
+        unidad_id:    form.unidad_id    || null,
+        flete:        form.flete        ? parseFloat(form.flete)        : null,
+        flete_siniva: form.flete_siniva ? parseFloat(form.flete_siniva) : null,
+        flete_coniva: form.flete_coniva ? parseFloat(form.flete_coniva) : null,
+      };
+      for (const fecha of bulkFechas) {
+        const { error } = await sb.from("rutas").insert({ id: nextRutaId(), ...basePayload, fecha });
+        if (error) throw error;
+      }
+      await reload();
+      cancelBulk();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const save = async () => {
     if (!form.cliente_id) { setErr("Selecciona un cliente"); return; }
@@ -1159,14 +1198,123 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
 
+      {/* ── Formulario masivo ── */}
+      <FormPanel visible={bulkOpen} title="Rutas en varios días — mismo operador y unidad" isEdit={false}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Cliente">
+            {clienteOpts.length === 0
+              ? <EmptyHint msg="No hay clientes. Agrega clientes primero." />
+              : <Select value={form.cliente_id} onChange={selCliente} options={clienteOpts} placeholder="Seleccionar cliente..." />}
+          </Field>
+          <Field label="Operador">
+            {operadorOpts.length === 0
+              ? <EmptyHint msg="No hay operadores registrados." />
+              : <Select value={form.operador} onChange={selOperador} options={operadorOpts} placeholder="Seleccionar operador..." />}
+          </Field>
+          <Field label="Unidad">
+            {(() => {
+              const op = (operadores || []).find(o => o.nombre === form.operador);
+              const opTieneUnidad = !!op?.unidad_id;
+              if (!form.operador) {
+                return unidadOpts.length === 0
+                  ? <EmptyHint msg="No hay unidades registradas." />
+                  : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />;
+              }
+              if (opTieneUnidad) {
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, padding: "8px 12px", borderRadius: 10, background: C.greenSoft, border: "1px solid #B7D9B7", fontSize: 13, fontWeight: 600, color: C.greenStrong }}>
+                      {form.unidad_id} — asignada al operador
+                    </div>
+                    <button onClick={() => setForm(f => ({ ...f, unidad_id: "" }))} style={{ fontSize: 11, color: C.muted, background: "transparent", border: "1px solid #E2E8E3", borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>
+                      Cambiar
+                    </button>
+                  </div>
+                );
+              }
+              return unidadOpts.length === 0
+                ? <EmptyHint msg="No hay unidades registradas." />
+                : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />;
+            })()}
+          </Field>
+          <Field label="Flete sin IVA">
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
+              <Input type="number" placeholder="0.00" value={form.flete_siniva}
+                onChange={e => {
+                  const v = e.target.value;
+                  setForm(f => ({ ...f, flete_siniva: v, flete: v, flete_coniva: calcConIva(v, f.iva_pct, f.ret_pct, f.isr_pct) }));
+                }} />
+            </div>
+          </Field>
+          <Field label="Flete con IVA">
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
+              <Input type="number" placeholder="0.00" value={form.flete_coniva} onChange={e => set("flete_coniva", e.target.value)} />
+            </div>
+          </Field>
+        </div>
+
+        {/* Selector de fechas */}
+        <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FAF0", borderRadius: 12, border: "1px solid #C8E6C9" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.greenStrong, marginBottom: 10 }}>
+            Fechas a replicar{bulkFechas.length > 0 ? ` · ${bulkFechas.length} seleccionada${bulkFechas.length !== 1 ? "s" : ""}` : ""}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input
+              type="date"
+              value={bulkFechaInput}
+              onChange={e => setBulkFechaInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addBulkFecha(); } }}
+              style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }}
+            />
+            <button
+              onClick={() => addBulkFecha()}
+              style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong }}
+            >
+              + Agregar
+            </button>
+          </div>
+          {bulkFechas.length === 0 && (
+            <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Aún no has agregado fechas. Puedes agregar tantas como necesites.</div>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {bulkFechas.map(f => (
+              <div key={f} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#fff", border: "1.5px solid #A5D6A7", fontSize: 12, fontWeight: 600, color: C.greenStrong }}>
+                {f}
+                <button
+                  onClick={() => removeBulkFecha(f)}
+                  style={{ marginLeft: 2, width: 16, height: 16, borderRadius: "50%", border: "none", background: "#FFCDD2", color: "#C62828", cursor: "pointer", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
+          <button onClick={cancelBulk} style={{ padding: "9px 20px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #E2E8E3", background: "#fff", color: C.muted }}>
+            Cancelar
+          </button>
+          <button onClick={saveBulk} disabled={loading} style={{ padding: "9px 20px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", border: "none", background: bulkFechas.length > 0 ? C.green : "#B0BEC5", color: "#fff", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Guardando..." : `Guardar ${bulkFechas.length > 0 ? `${bulkFechas.length} ruta${bulkFechas.length !== 1 ? "s" : ""}` : "rutas"}`}
+          </button>
+        </div>
+      </FormPanel>
+
       <FilterBar filters={filters} setFilters={setFilters} options={[
         { key: "cliente_id", label: "Cliente",  type: "text" },
         { key: "operador",   label: "Operador", type: "select", choices: operadorOpts },
         { key: "unidad_id",  label: "Unidad",   type: "text" },
       ]} />
-      {!open && (
+      {!open && !bulkOpen && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
           <AddBtn onClick={openNew} label="+ Nueva ruta" />
+          <button onClick={openBulk} style={{ padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong }}>
+            Agregar en varios días
+          </button>
           {sinConIva.length > 0 && (
             <button onClick={fillConIva} disabled={filling} style={{
               padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600,
