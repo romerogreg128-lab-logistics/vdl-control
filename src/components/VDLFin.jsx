@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 // Font loaded via next/font or <link> in layout — uses system stack as fallback
 const LOGO_SRC = "data:image/png;base64,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";
 import { createClient } from "@supabase/supabase-js";
@@ -297,6 +297,164 @@ function KpiCard({ label, value, sub, badge, badgeType }) {
       <div style={{ fontSize: "clamp(16px, 1.6vw, 24px)", fontWeight: 800, color: C.text, lineHeight: 1.1, marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
       <div style={{ fontSize: 10, color: C.muted, marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>
       {badge && <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600, background: bc.bg, color: bc.color, whiteSpace: "nowrap" }}>{badge}</span>}
+    </div>
+  );
+}
+
+// ─── DATE RANGE PICKER ────────────────────────────────────────────────────
+function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
+  const hoy = new Date();
+  const toStr = d => {
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
+  };
+  const parseStr = s => s ? new Date(s + "T00:00:00") : null;
+
+  const [open, setOpen]   = useState(false);
+  const [viewY, setViewY] = useState(hoy.getFullYear());
+  const [viewM, setViewM] = useState(hoy.getMonth());
+  const [phase, setPhase] = useState(1); // 1=seleccionando inicio, 2=seleccionando fin
+  const [hover, setHover] = useState(null);
+  const ref = useRef(null);
+
+  // Cerrar al click fuera
+  useEffect(() => {
+    if (!open) return;
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const DIAS  = ["lu","ma","mi","ju","vi","sá","do"];
+
+  const prevMonth = () => { if (viewM === 0) { setViewM(11); setViewY(y => y-1); } else setViewM(m => m-1); };
+  const nextMonth = () => { if (viewM === 11) { setViewM(0); setViewY(y => y+1); } else setViewM(m => m+1); };
+
+  // Celdas del calendario (incluyendo días del mes anterior/siguiente para completar semanas)
+  const cells = useMemo(() => {
+    const first = new Date(viewY, viewM, 1);
+    const dow = (first.getDay() + 6) % 7; // lunes=0
+    const arr = [];
+    for (let i = 0; i < dow; i++) {
+      const d = new Date(viewY, viewM, 1 - (dow - i));
+      arr.push({ date: d, out: true });
+    }
+    const total = new Date(viewY, viewM+1, 0).getDate();
+    for (let i = 1; i <= total; i++) arr.push({ date: new Date(viewY, viewM, i), out: false });
+    while (arr.length % 7 !== 0) {
+      const last = arr[arr.length-1].date;
+      const d = new Date(last); d.setDate(last.getDate()+1);
+      arr.push({ date: d, out: true });
+    }
+    return arr;
+  }, [viewY, viewM]);
+
+  const clickDay = (d) => {
+    const s = toStr(d);
+    if (phase === 1) {
+      setDesde(s); setHasta(""); setPhase(2);
+    } else {
+      if (desde && s < desde) { setDesde(s); setHasta(desde); }
+      else setHasta(s);
+      setPhase(1); setOpen(false);
+    }
+  };
+
+  const inRange = (d) => {
+    const s = toStr(d);
+    const end = phase === 2 && hover ? (hover < desde ? desde : hover) : hasta;
+    const start = phase === 2 && hover && hover < desde ? hover : desde;
+    if (!start) return false;
+    return s >= start && s <= (end || start);
+  };
+  const isStart = d => toStr(d) === desde;
+  const isEnd   = d => toStr(d) === (phase === 2 && hover ? (hover < desde ? desde : hover) : hasta);
+
+  const displayDesde = desde ? parseStr(desde)?.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }) : "Inicio";
+  const displayHasta = hasta ? parseStr(hasta)?.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }) : (phase === 2 ? "Fin…" : "Fin");
+  const activo = !!(desde || hasta);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <button
+        onClick={() => { setOpen(o => !o); setPhase(desde && !hasta ? 2 : 1); }}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "#fff", border: `1.5px solid ${activo ? "#86EFAC" : "#E2E8E3"}`,
+          borderRadius: 10, padding: "5px 12px", cursor: "pointer", fontSize: 13,
+          color: activo ? C.text : C.muted, fontFamily: "inherit", fontWeight: activo ? 600 : 400,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+        <span style={{ color: desde ? C.text : C.muted }}>{displayDesde}</span>
+        <span style={{ color: C.muted, fontSize: 11 }}>→</span>
+        <span style={{ color: hasta ? C.text : C.muted }}>{displayHasta}</span>
+        {activo && (
+          <span
+            onClick={e => { e.stopPropagation(); setDesde(""); setHasta(""); setPhase(1); setOpen(false); }}
+            style={{ marginLeft: 4, color: "#B91C1C", fontSize: 14, lineHeight: 1, cursor: "pointer" }}
+            title="Limpiar"
+          >✕</span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 9999,
+          background: "#fff", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.13)",
+          border: "1.5px solid #E2E8E3", padding: "16px 18px", minWidth: 280,
+        }}>
+          {/* Encabezado mes */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <button onClick={prevMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: "2px 6px" }}>‹</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.text, textTransform: "capitalize" }}>
+              {MESES[viewM]} {viewY}
+            </span>
+            <button onClick={nextMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: "2px 6px" }}>›</button>
+          </div>
+
+          {/* Días semana */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+            {DIAS.map(d => (
+              <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: C.muted, padding: "2px 0", textTransform: "uppercase" }}>{d}</div>
+            ))}
+          </div>
+
+          {/* Celdas */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+            {cells.map(({ date, out }, i) => {
+              const s = toStr(date);
+              const start = isStart(date);
+              const end   = isEnd(date);
+              const range = inRange(date);
+              const isToday = s === toStr(hoy);
+              return (
+                <div
+                  key={i}
+                  onClick={() => !out && clickDay(date)}
+                  onMouseEnter={() => phase === 2 && !out && setHover(s)}
+                  onMouseLeave={() => phase === 2 && setHover(null)}
+                  style={{
+                    textAlign: "center", padding: "6px 2px", borderRadius: start || end ? 8 : range ? 0 : 8,
+                    fontSize: 13, cursor: out ? "default" : "pointer",
+                    color: out ? "#C8D6C8" : (start || end) ? "#fff" : range ? "#1B5E20" : isToday ? "#2E7D32" : C.text,
+                    background: (start || end) ? "#2E7D32" : range ? "#DCFCE7" : "transparent",
+                    fontWeight: (start || end || isToday) ? 700 : 400,
+                    borderRadius: start ? "8px 0 0 8px" : end ? "0 8px 8px 0" : range ? 0 : 8,
+                    userSelect: "none",
+                  }}
+                >{date.getDate()}</div>
+              );
+            })}
+          </div>
+
+          {/* Hint */}
+          <div style={{ marginTop: 10, fontSize: 11, color: C.muted, textAlign: "center" }}>
+            {phase === 1 ? "Selecciona la fecha de inicio" : "Selecciona la fecha de fin"}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -749,6 +907,13 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const [loading, setLoading] = useState(false);
   const [err, setErr]         = useState("");
   const isEdit = !!editRow;
+  const topRef = useRef(null);
+
+  useEffect(() => {
+    if (open && topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [open]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const operadorOpts = (operadores || []).map(o => o.nombre).filter(Boolean);
@@ -783,7 +948,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
   const openEdit = (r) => {
-    setForm({ fecha: r.fecha || "", cliente_id: r.cliente_id || "", operador: r.operador || "", unidad_id: r.unidad_id || "", flete: r.flete?.toString() || "", flete_siniva: r.flete_siniva?.toString() || "", flete_coniva: r.flete_coniva?.toString() || "" });
+    setForm({ fecha: r.fecha || "", cliente_id: r.cliente_id || "", operador: r.operador || "", unidad_id: r.unidad_id || "", flete: r.flete?.toString() || "", flete_siniva: r.flete_siniva?.toString() || "", flete_coniva: r.flete_coniva?.toString() || "", iva_pct: "16", ret_pct: "4", isr_pct: "1.25" });
     setEditRow(r); setErr(""); setOpen(true);
   };
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
@@ -860,6 +1025,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 
   return (
     <div>
+      <div ref={topRef} />
       <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta — ID generado automáticamente"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1292,12 +1458,14 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
 
 // ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
 function ModIngresos({ data, reload, desde, hasta }) {
-  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "" };
+  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", tipo: "Factura", factura_ref: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [err, setErr]         = useState("");
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfUploading, setPdfUploading] = useState(false);
   const [pagoModal, setPagoModal] = useState({ open: false, onConfirm: null });
   const isEdit = !!editRow;
 
@@ -1306,15 +1474,26 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
-  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "" }); setEditRow(r); setErr(""); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "", pdf_url: r.pdf_url || "", tipo: r.tipo || "Factura", factura_ref: r.factura_ref || "" }); setEditRow(r); setErr(""); setPdfFile(null); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setOpen(false); };
 
   const save = async () => {
     if (!form.factura || !form.siniva) { setErr("Factura y monto son obligatorios"); return; }
     setLoading(true); setErr("");
     try {
-      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null };
+      let pdf_url = form.pdf_url || null;
+      if (pdfFile) {
+        setPdfUploading(true);
+        const ext = pdfFile.name.split(".").pop();
+        const path = `${Date.now()}_${form.factura.replace(/[^a-zA-Z0-9]/g, "_")}.${ext}`;
+        const { error: upErr } = await sb.storage.from("facturas-pdf").upload(path, pdfFile, { upsert: true });
+        setPdfUploading(false);
+        if (upErr) throw upErr;
+        const { data: urlData } = sb.storage.from("facturas-pdf").getPublicUrl(path);
+        pdf_url = urlData.publicUrl;
+      }
+      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null, pdf_url, tipo: form.tipo || "Factura", factura_ref: form.tipo === "NC" ? (form.factura_ref || null) : null };
       if (isEdit) {
         const { error } = await sb.from("ingresos").update(payload).eq("id", editRow.id);
         if (error) throw error;
@@ -1345,6 +1524,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
   const rows = useMemo(() => {
     let d = (data || []).filter(r => inRange(r.fcarga, desde, hasta));
     if (filters.estatus) d = d.filter(r => r.estatus === filters.estatus);
+    if (filters.tipo)    d = d.filter(r => (r.tipo || "Factura") === filters.tipo);
     if (filters.factura) d = d.filter(r => (r.factura || "").toLowerCase().includes((filters.factura || "").toLowerCase()));
     return d;
   }, [data, desde, hasta, filters]);
@@ -1356,13 +1536,66 @@ function ModIngresos({ data, reload, desde, hasta }) {
         setFilters={setFilters}
         options={[
           { key: "estatus", label: "Estatus", type: "select", choices: ["Pagado", "Activo", "Pendiente", "Vencido", "Cancelado"] },
+          { key: "tipo",    label: "Tipo",    type: "select", choices: ["Factura", "NC"] },
           { key: "factura", label: "Factura", type: "text" },
         ]}
       />
       <FormPanel visible={open} title={isEdit ? "Editar ingreso" : "Nuevo ingreso"} isEdit={isEdit}>
         <ErrBanner msg={err} />
+        {/* Tipo toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Tipo:</span>
+          {["Factura", "NC"].map(t => (
+            <button key={t} onClick={() => set("tipo", t)} style={{
+              padding: "5px 16px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer",
+              border: form.tipo === t ? "none" : "1.5px solid #E2E8E3",
+              background: form.tipo === t ? (t === "Factura" ? "#2E7D32" : "#B45309") : "#F5F7F4",
+              color: form.tipo === t ? "#fff" : C.muted,
+              transition: "all 0.15s",
+            }}>{t === "NC" ? "NC — Nota de Crédito" : "Factura"}</button>
+          ))}
+          {form.tipo === "NC" && (
+            <span style={{ fontSize: 11, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "3px 10px", fontWeight: 600 }}>
+              Esta NC restará del total de ingresos
+            </span>
+          )}
+        </div>
+        {/* Ligado a factura — solo para NC */}
+        {form.tipo === "NC" && (
+          <div style={{ marginBottom: 14, padding: "12px 14px", background: "#FFF7ED", border: "1.5px solid #FCD34D", borderRadius: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+              Factura relacionada
+            </div>
+            <select
+              value={form.factura_ref}
+              onChange={e => set("factura_ref", e.target.value)}
+              style={{
+                width: "100%", padding: "8px 12px", borderRadius: 10, fontSize: 13,
+                border: `1.5px solid ${form.factura_ref ? "#F59E0B" : "#E2E8E3"}`,
+                background: "#fff", color: form.factura_ref ? C.text : C.muted,
+                fontFamily: "inherit", outline: "none", cursor: "pointer",
+              }}
+            >
+              <option value="">— Sin ligar (opcional) —</option>
+              {(data || [])
+                .filter(r => r.tipo !== "NC" && r.id !== editRow?.id)
+                .sort((a, b) => (b.fcarga || "").localeCompare(a.fcarga || ""))
+                .map(r => (
+                  <option key={r.id} value={r.factura}>
+                    {r.factura}{r.periodo ? ` · ${r.periodo}` : ""}{r.coniva ? ` · ${fmt(r.coniva)}` : ""}
+                  </option>
+                ))
+              }
+            </select>
+            {form.factura_ref && (
+              <div style={{ marginTop: 6, fontSize: 11, color: "#92400E" }}>
+                Esta NC se aplicará sobre: <strong>{form.factura_ref}</strong>
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Factura"><Input placeholder="FAC-2025-001" value={form.factura} onChange={e => set("factura", e.target.value)} /></Field>
+          <Field label={form.tipo === "NC" ? "Folio NC" : "Factura"}><Input placeholder={form.tipo === "NC" ? "NC-2025-001" : "FAC-2025-001"} value={form.factura} onChange={e => set("factura", e.target.value)} /></Field>
           <Field label="Período"><Input placeholder="Feb 2025" value={form.periodo} onChange={e => set("periodo", e.target.value)} /></Field>
           <Field label="Monto sin IVA"><Input type="number" placeholder="0.00" value={form.siniva} onChange={e => set("siniva", e.target.value)} /></Field>
           <Field label="Monto con IVA"><Input type="number" placeholder="0.00" value={form.coniva} onChange={e => set("coniva", e.target.value)} /></Field>
@@ -1376,6 +1609,23 @@ function ModIngresos({ data, reload, desde, hasta }) {
           </Field>
           <Field label="Notas" span2>
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
+          </Field>
+          <Field label="Factura PDF" span2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={e => setPdfFile(e.target.files[0] || null)}
+                style={{ fontSize: 13, color: C.text, cursor: "pointer" }}
+              />
+              {pdfFile && <span style={{ fontSize: 12, color: C.muted }}>{pdfFile.name}</span>}
+              {!pdfFile && form.pdf_url && (
+                <a href={form.pdf_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", textDecoration: "underline" }}>
+                  Ver PDF actual
+                </a>
+              )}
+              {pdfUploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo PDF…</span>}
+            </div>
           </Field>
           {/* Pagado checkbox */}
           <div style={{ gridColumn: "span 2", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: form.estatus === "Pagado" ? "#DCFCE7" : "#F9FAFB", borderRadius: 10, border: `1px solid ${form.estatus === "Pagado" ? "#86EFAC" : "#E2E8E3"}` }}>
@@ -1409,10 +1659,10 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Pagado</Th><Th>Factura</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>F. Pago</Th><Th>Estatus</Th><Th>Acciones</Th></tr></thead>
+          <thead><tr><Th>Pagado</Th><Th>Tipo</Th><Th>Factura / NC</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>F. Pago</Th><Th>Estatus</Th><Th>PDF</Th><Th>Acciones</Th></tr></thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={10} msg="Sin facturas en este período" /> :
+             rows.length === 0 ? <EmptyRow cols={12} msg="Sin facturas en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: r.estatus === "Pagado" ? "#F0FDF4" : "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = r.estatus === "Pagado" ? "#DCFCE7" : "#FAFCFA"}
@@ -1431,7 +1681,19 @@ function ModIngresos({ data, reload, desde, hasta }) {
                      }
                    }} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#16A34A" }} />
                  </td>
-                 <Td bold>{r.factura}</Td>
+                 <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3" }}>
+                   {r.tipo === "NC"
+                     ? <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D" }}>NC</span>
+                     : <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#DCFCE7", color: "#15803D", border: "1px solid #86EFAC" }}>FAC</span>}
+                 </td>
+                 <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3", fontWeight: 600, fontSize: 13 }}>
+                   {r.factura}
+                   {r.tipo === "NC" && r.factura_ref && (
+                     <div style={{ fontSize: 10, fontWeight: 500, color: "#92400E", marginTop: 2 }}>
+                       ↳ ref: {r.factura_ref}
+                     </div>
+                   )}
+                 </td>
                  <Td>{r.periodo || "—"}</Td>
                  <Td>{r.nar || "—"}</Td>
                  <Td>{fmt(r.siniva)}</Td>
@@ -1439,6 +1701,11 @@ function ModIngresos({ data, reload, desde, hasta }) {
                  <Td>{r.fcarga || "—"}</Td>
                  <Td>{r.fecha_pago ? <span style={{ color: "#16A34A", fontWeight: 600 }}>{r.fecha_pago}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <Td><Chip label={r.estatus || "Pendiente"} /></Td>
+                 <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3", textAlign: "center" }}>
+                   {r.pdf_url
+                     ? <a href={r.pdf_url} target="_blank" rel="noreferrer" title="Ver factura PDF" style={{ color: "#2563EB", fontSize: 18, lineHeight: 1 }}>📄</a>
+                     : <span style={{ color: C.muted, fontSize: 13 }}>—</span>}
+                 </td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
              ))
@@ -1676,16 +1943,15 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   const gas  = useMemo(() => (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta)), [gastos,   desde, hasta]);
   const rut  = useMemo(() => (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta)), [rutas,    desde, hasta]);
 
-  const ingPag      = ing.filter(r => r.estatus === "Pagado");
-  const totalIng    = ing.reduce((s, r) => s + parseFloat(r.coniva  || 0), 0);
-  const totalSinIva = ing.reduce((s, r) => s + parseFloat(r.siniva  || 0), 0);
-  const totalIngPag    = ingPag.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
-  const totalSinIvaPag = ingPag.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
-  const totalGas    = gas.reduce((s, r) => s + parseFloat(r.monto   || 0), 0);
-  const gasSinIva   = gas.reduce((s, r) => s + parseFloat(r.siniva  || 0), 0);
-  const totalFlete  = rut.reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
-  const util        = totalSinIvaPag - gasSinIva;
-  const margen      = totalSinIvaPag > 0 ? Math.round(util / totalSinIvaPag * 100) : 0;
+  const ingSign        = r => r.tipo === "NC" ? -1 : 1;
+  const ingPag         = ing.filter(r => r.estatus === "Pagado");
+  const totalIngPag    = ingPag.reduce((s, r) => s + ingSign(r) * parseFloat(r.coniva  || 0), 0);
+  const totalSinIvaPag = ingPag.reduce((s, r) => s + ingSign(r) * parseFloat(r.siniva  || 0), 0);
+  const totalGas       = gas.reduce((s, r) => s + parseFloat(r.monto || 0), 0);
+  const gasSinIva      = gas.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+  const totalFlete     = rut.reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
+  const util           = totalSinIvaPag - gasSinIva;
+  const margen         = totalSinIvaPag > 0 ? Math.round(util / totalSinIvaPag * 100) : 0;
 
   // Estatus ingresos
   const ingPagados  = ing.filter(r => r.estatus === "Pagado").length;
@@ -1697,14 +1963,16 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   const gasPagados  = gas.filter(r => r.estatus_pago === "Pagado").length;
   const gasPorPagar = gas.filter(r => r.estatus_pago !== "Pagado").length;
 
-  // Gastos por tipo para distribución
-  const gasXTipo = gas.reduce((acc, r) => {
-    const t = r.tipo_gasto || "Sin tipo";
-    acc[t] = (acc[t] || 0) + parseFloat(r.monto || 0);
-    return acc;
-  }, {});
+  // Alertas
+  const ingVencidosArr = ing.filter(r => r.estatus === "Vencido");
+  const gasPorPagarArr = gas.filter(r => r.estatus_pago === "Por pagar" || r.estatus_pago === "En revisión");
+  const totalPorCobrar = ingVencidosArr.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+  const totalPorPagar  = gasPorPagarArr.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
+
+  // Gastos por tipo
+  const gasXTipo    = gas.reduce((acc, r) => { const t = r.tipo_gasto || "Sin tipo"; acc[t] = (acc[t] || 0) + parseFloat(r.monto || 0); return acc; }, {});
   const gasXTipoArr = Object.entries(gasXTipo).sort((a, b) => b[1] - a[1]);
-  const DIST_COLORS = ["#2E7D32", "#69A96D", "#74B72E", "#0F5C2E", "#AACFAA", "#E2E8E3"];
+  const DIST_COLORS = ["#2E7D32", "#69A96D", "#74B72E", "#0F5C2E", "#AACFAA", "#D5E8D4", "#C62828"];
 
   // Rutas por tipo unidad
   const rutXTipo = rut.reduce((acc, r) => {
@@ -1718,16 +1986,71 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   const months = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d   = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = d.toLocaleString("es-MX", { month: "short" }).replace(".", "");
-    const ingM   = (ingresos || []).filter(r => (r.fcarga || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
-    const gasM   = (gastos   || []).filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
-    const fleM   = (rutas    || []).filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.flete  || 0), 0);
-    months.push({ label, ingM, gasM, fleM, rutN: (rutas || []).filter(r => (r.fecha || "").startsWith(key)).length });
+    const ingM = (ingresos || []).filter(r => (r.fcarga || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
+    const gasM = (gastos   || []).filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
+    const fleM = (rutas    || []).filter(r => (r.fecha  || "").startsWith(key)).reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
+    const margenM = ingM > 0 ? Math.round(((ingM - gasM) / ingM) * 100) : 0;
+    months.push({ label, ingM, gasM, fleM, margenM, rutN: (rutas || []).filter(r => (r.fecha || "").startsWith(key)).length });
   }
 
-  // Bar chart helper
+  // Deltas mes vs mes anterior (comparando mes actual vs mes previo en la serie)
+  const curr = months[5];
+  const prev = months[4];
+  const calcDelta  = (c, p) => p > 0 ? Math.round(((c - p) / p) * 100) : null;
+  const ingDelta   = calcDelta(curr.ingM,    prev.ingM);
+  const gasDelta   = calcDelta(curr.gasM,    prev.gasM);
+  const fleDelta   = calcDelta(curr.fleM,    prev.fleM);
+  const margenDelta = prev.margenM !== 0 ? curr.margenM - prev.margenM : null;
+
+  // Top clientes por flete
+  const topClientes = Object.entries(
+    rut.reduce((acc, r) => {
+      const c = r.cliente_id || "Sin cliente";
+      acc[c] = (acc[c] || 0) + parseFloat(r.flete_siniva || r.flete || 0);
+      return acc;
+    }, {})
+  ).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  // Top operadores por rutas
+  const topOperadores = Object.entries(
+    rut.reduce((acc, r) => {
+      const o = r.operador || "Sin operador";
+      if (!acc[o]) acc[o] = { flete: 0, rutas: 0 };
+      acc[o].flete += parseFloat(r.flete_siniva || r.flete || 0);
+      acc[o].rutas++;
+      return acc;
+    }, {})
+  ).sort((a, b) => b[1].rutas - a[1].rutas).slice(0, 5);
+
+  const fmtM = (n) => {
+    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1) + "M";
+    if (n >= 1000)    return "$" + (n / 1000).toFixed(0) + "k";
+    return fmt(n);
+  };
+
+  const periodoLabel = desde || hasta ? `${desde || "inicio"} → ${hasta || "hoy"}` : "Todo el período";
+
+  // ── Sub-components ──────────────────────────────────────────────────────
+
+  const DeltaBadge = ({ delta, invert }) => {
+    if (delta === null || delta === undefined) return null;
+    const positive = invert ? delta <= 0 : delta >= 0;
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: 3,
+        padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+        background: positive ? "#DDEEDC" : "#FCEBEB",
+        color: positive ? "#0F5C2E" : "#791F1F",
+      }}>
+        {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}%
+        <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.75 }}>vs mes ant.</span>
+      </span>
+    );
+  };
+
   const BarChart = ({ data, color, valueKey, labelFn }) => {
     const max = Math.max(...data.map(d => d[valueKey]), 1);
     const H = 100; const bw = 32;
@@ -1739,14 +2062,12 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           const isLast = i === data.length - 1;
           return (
             <g key={d.label}>
-              <rect x={x} y={H - h} width={bw} height={h}
-                fill={isLast ? color : color + "99"} rx={4} />
-              <text x={x + bw / 2} y={H - h - 5} textAnchor="middle"
-                fontSize={9} fill="#6B7A72">
+              <rect x={x} y={H - h} width={bw} height={h} fill={isLast ? color : color + "88"} rx={4} />
+              <text x={x + bw / 2} y={H - h - 5} textAnchor="middle" fontSize={9} fill="#6B7A72">
                 {labelFn ? labelFn(d[valueKey]) : d[valueKey]}
               </text>
               <text x={x + bw / 2} y={H + 16} textAnchor="middle"
-                fontSize={10} fill="#6B7A72">{d.label}</text>
+                fontSize={10} fill={isLast ? "#132019" : "#6B7A72"} fontWeight={isLast ? 700 : 400}>{d.label}</text>
             </g>
           );
         })}
@@ -1755,44 +2076,59 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     );
   };
 
-  // Stat card with icon + bar chart
-  const StatCard = ({ label, value, sub, delta, color, icon, chartData, chartKey, chartLabelFn }) => (
-    <div style={{
-      background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20,
-      padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-        <div style={{ fontSize: 13, color: "#6B7A72", fontWeight: 500 }}>{label}</div>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: color + "18", display: "flex", alignItems: "center",
-          justifyContent: "center", fontSize: 16,
-        }}>{icon}</div>
-      </div>
-      <div style={{ fontSize: 32, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{value}</div>
-      {sub  && <div style={{ fontSize: 12, color: "#6B7A72", marginBottom: 2 }}>{sub}</div>}
-      {delta !== undefined && (
-        <div style={{ fontSize: 12, fontWeight: 600, color: delta >= 0 ? "#2E7D32" : "#C62828" }}>
-          {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}%
-        </div>
-      )}
-      {chartData && (
-        <div style={{ marginTop: 12, overflowX: "auto" }}>
-          <BarChart data={chartData} color={color} valueKey={chartKey} labelFn={chartLabelFn} />
-        </div>
-      )}
-    </div>
-  );
-
-  const fmtM = (n) => {
-    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1) + "M";
-    if (n >= 1000)    return "$" + (n / 1000).toFixed(0) + "k";
-    return fmt(n);
+  // Ingresos vs Gastos — grouped bars
+  const CombinedChart = () => {
+    const max = Math.max(...months.map(d => Math.max(d.ingM, d.gasM)), 1);
+    const H = 110; const bw = 20; const gap = 4; const grpW = 54;
+    return (
+      <svg width={months.length * grpW + 20} height={H + 40} style={{ display: "block", overflow: "visible" }}>
+        {months.map((d, i) => {
+          const hIng = Math.max(3, (d.ingM / max) * H);
+          const hGas = Math.max(3, (d.gasM / max) * H);
+          const x = i * grpW + 6;
+          const isLast = i === months.length - 1;
+          return (
+            <g key={d.label}>
+              <rect x={x}            y={H - hIng} width={bw} height={hIng} fill={isLast ? "#2E7D32" : "#2E7D3278"} rx={3} />
+              <rect x={x + bw + gap} y={H - hGas} width={bw} height={hGas} fill={isLast ? "#C62828" : "#C6282878"} rx={3} />
+              <text x={x + bw} y={H + 16} textAnchor="middle"
+                fontSize={10} fill={isLast ? "#132019" : "#6B7A72"} fontWeight={isLast ? 700 : 400}>{d.label}</text>
+            </g>
+          );
+        })}
+        <line x1={0} y1={H} x2={months.length * grpW + 20} y2={H} stroke="#E2E8E3" strokeWidth={1} />
+      </svg>
+    );
   };
 
-  const periodoLabel = desde || hasta
-    ? `${desde || "inicio"} → ${hasta || "hoy"}`
-    : "Todo el período";
+  // Margen % sparkline
+  const MarginSparkline = () => {
+    const values = months.map(m => m.margenM);
+    const min = Math.min(...values);
+    const range = Math.max(...values) - min || 1;
+    const W = 300; const H = 52;
+    const pts = values.map((v, i) => `${(i / (values.length - 1)) * W},${H - ((v - min) / range) * (H - 14) - 7}`);
+    return (
+      <svg width={W} height={H + 18} style={{ display: "block", overflow: "visible" }}>
+        <polyline points={pts.join(" ")} fill="none" stroke="#2E7D32" strokeWidth={2} strokeLinejoin="round" />
+        {values.map((v, i) => {
+          const x = (i / (values.length - 1)) * W;
+          const y = H - ((v - min) / range) * (H - 14) - 7;
+          return (
+            <g key={i}>
+              <circle cx={x} cy={y} r={i === values.length - 1 ? 4 : 3}
+                fill={i === values.length - 1 ? "#2E7D32" : "#AACFAA"}
+                stroke={i === values.length - 1 ? "#fff" : "none"} strokeWidth={1.5} />
+              <text x={x} y={y - 8} textAnchor="middle" fontSize={9} fill="#6B7A72" fontWeight={i === values.length - 1 ? 700 : 400}>{v}%</text>
+              <text x={x} y={H + 14} textAnchor="middle" fontSize={9}
+                fill={i === values.length - 1 ? "#132019" : "#6B7A72"}
+                fontWeight={i === values.length - 1 ? 700 : 400}>{months[i].label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  };
 
   return (
     <div>
@@ -1802,42 +2138,183 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#132019", margin: 0 }}>Dashboard VDL</h1>
           <p style={{ fontSize: 13, color: "#6B7A72", margin: "4px 0 0" }}>Métricas de flotilla · {periodoLabel}</p>
         </div>
+        <div style={{ background: "#DDEEDC", color: "#0F5C2E", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+          {rut.length} rutas · {(operadores || []).filter(o => o.estatus === "Activo").length} ops activos
+        </div>
       </div>
 
-      {/* ── KPI Cards Row ── */}
+      {/* ── Alertas ── */}
+      {(ingVencidosArr.length > 0 || gasPorPagarArr.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: ingVencidosArr.length > 0 && gasPorPagarArr.length > 0 ? "1fr 1fr" : "1fr", gap: 12, marginBottom: 20 }}>
+          {ingVencidosArr.length > 0 && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ fontSize: 22 }}>⚠️</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#B91C1C" }}>Facturas vencidas</div>
+                <div style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>{ingVencidosArr.length} factura{ingVencidosArr.length !== 1 ? "s" : ""} · {fmtM(totalPorCobrar)} por cobrar</div>
+              </div>
+            </div>
+          )}
+          {gasPorPagarArr.length > 0 && (
+            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ fontSize: 22 }}>💳</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#B45309" }}>Gastos pendientes</div>
+                <div style={{ fontSize: 12, color: "#92400E", marginTop: 2 }}>{gasPorPagarArr.length} registro{gasPorPagarArr.length !== 1 ? "s" : ""} · {fmtM(totalPorPagar)} por pagar</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── KPI Cards con tendencia ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Ingresos (pagados)"  value={fmtM(totalIngPag)}  sub={`${ingPag.length} de ${ing.length} facturas`}   color="#2E7D32" icon="💰" />
-        <StatCard label="Gastos operativos"  value={fmtM(totalGas)}    sub={`${gas.length} registros`}                    color="#C62828" icon="📤" />
-        <StatCard label="Utilidad neta"      value={fmtM(util)}        sub={`Margen ${margen}% · solo pagadas`}           color={util >= 0 ? "#2E7D32" : "#C62828"} icon="📊" />
-        <StatCard label="Fletes sin IVA"     value={fmtM(totalFlete)}  sub={`${rut.length} rutas`}                        color="#74B72E" icon="🚛" />
+        {/* Ingresos */}
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Ingresos pagados</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#2E7D3215", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💰</div>
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{fmtM(totalIngPag)}</div>
+          <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>{ingPag.length} de {ing.length} facturas</div>
+          <DeltaBadge delta={ingDelta} />
+        </div>
+        {/* Gastos */}
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Gastos operativos</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#C6282815", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📤</div>
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{fmtM(totalGas)}</div>
+          <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>{gas.length} registros</div>
+          <DeltaBadge delta={gasDelta} invert />
+        </div>
+        {/* Utilidad */}
+        <div style={{ background: util >= 0 ? "#F0FAF0" : "#FEF2F2", border: `1px solid ${util >= 0 ? "#AACFAA" : "#FECACA"}`, borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Utilidad neta</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: util >= 0 ? "#2E7D3215" : "#C6282815", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📊</div>
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: util >= 0 ? "#2E7D32" : "#C62828", lineHeight: 1, marginBottom: 4 }}>{fmtM(util)}</div>
+          <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>Margen {margen}% · solo pagadas</div>
+          {margenDelta !== null && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 3,
+              padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: margenDelta >= 0 ? "#DDEEDC" : "#FCEBEB",
+              color: margenDelta >= 0 ? "#0F5C2E" : "#791F1F",
+            }}>
+              {margenDelta >= 0 ? "▲" : "▼"} {Math.abs(margenDelta)}pp <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.75 }}>vs mes ant.</span>
+            </span>
+          )}
+        </div>
+        {/* Fletes */}
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Fletes sin IVA</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#74B72E15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🚛</div>
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{fmtM(totalFlete)}</div>
+          <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>{rut.length} rutas</div>
+          <DeltaBadge delta={fleDelta} />
+        </div>
       </div>
 
-      {/* ── Charts Row ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
-        {/* Ingresos por mes */}
-        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Ingresos por mes</div>
-          <div style={{ overflowX: "auto" }}>
-            <BarChart data={months} color="#2E7D32" valueKey="ingM" labelFn={fmtM} />
+      {/* ── Tendencia de margen mensual (sparkline) ── */}
+      <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 24px", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>Tendencia de margen mensual</div>
+            <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 2 }}>Últimos 6 meses · % utilidad sobre ingresos</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: margen >= 0 ? "#2E7D32" : "#C62828", lineHeight: 1 }}>{margen}%</div>
+            <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 2 }}>mes actual</div>
           </div>
         </div>
-        {/* Gastos por mes */}
+        <div style={{ overflowX: "auto" }}>
+          <MarginSparkline />
+        </div>
+      </div>
+
+      {/* ── Ingresos vs Gastos + Fletes ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 14, marginBottom: 20 }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Gastos por mes</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 6 }}>Ingresos vs Gastos</div>
+          <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: "#2E7D32", display: "inline-block" }} />
+              <span style={{ color: "#6B7A72" }}>Ingresos</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: "#C62828", display: "inline-block" }} />
+              <span style={{ color: "#6B7A72" }}>Gastos</span>
+            </div>
+          </div>
           <div style={{ overflowX: "auto" }}>
-            <BarChart data={months} color="#C62828" valueKey="gasM" labelFn={fmtM} />
+            <CombinedChart />
           </div>
         </div>
-        {/* Fletes por mes */}
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Fletes por mes</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 6 }}>Fletes por mes</div>
+          <div style={{ fontSize: 12, color: "#6B7A72", marginBottom: 14 }}>Flete sin IVA · últimos 6 meses</div>
           <div style={{ overflowX: "auto" }}>
             <BarChart data={months} color="#74B72E" valueKey="fleM" labelFn={fmtM} />
           </div>
         </div>
       </div>
 
-      {/* ── Distribución gastos por tipo (barra horizontal) ── */}
+      {/* ── Top Clientes + Top Operadores ── */}
+      {(topClientes.length > 0 || topOperadores.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+          {topClientes.length > 0 && (
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Top clientes por flete</div>
+              {topClientes.map(([nombre, monto], i) => {
+                const pct = Math.round((monto / topClientes[0][1]) * 100);
+                return (
+                  <div key={nombre} style={{ marginBottom: i < topClientes.length - 1 ? 12 : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 6, background: i === 0 ? "#2E7D32" : "#E2E8E3", color: i === 0 ? "#fff" : "#6B7A72", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#132019", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>{nombre}</span>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#2E7D32", flexShrink: 0 }}>{fmtM(monto)}</span>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 3, background: "#F5F7F4", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: i === 0 ? "#2E7D32" : "#AACFAA", borderRadius: 3, transition: "width 0.4s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {topOperadores.length > 0 && (
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Top operadores por rutas</div>
+              {topOperadores.map(([nombre, stats], i) => {
+                const pct = Math.round((stats.rutas / topOperadores[0][1].rutas) * 100);
+                return (
+                  <div key={nombre} style={{ marginBottom: i < topOperadores.length - 1 ? 12 : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 6, background: i === 0 ? "#0F5C2E" : "#E2E8E3", color: i === 0 ? "#fff" : "#6B7A72", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#132019", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>{nombre}</span>
+                      </div>
+                      <span style={{ fontSize: 12, color: "#6B7A72", flexShrink: 0 }}>{stats.rutas} ruta{stats.rutas !== 1 ? "s" : ""} · {fmtM(stats.flete)}</span>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 3, background: "#F5F7F4", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: i === 0 ? "#0F5C2E" : "#AACFAA", borderRadius: 3, transition: "width 0.4s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Distribución gastos por tipo ── */}
       {gasXTipoArr.length > 0 && (
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", marginBottom: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Distribución de gastos por tipo</div>
@@ -1846,7 +2323,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
               const pct = Math.round((monto / totalGas) * 100);
               return (
                 <div key={tipo} style={{
-                  width: `${pct}%`, minWidth: pct > 5 ? "auto" : 0,
+                  width: `${pct}%`, minWidth: pct > 4 ? "auto" : 0,
                   background: DIST_COLORS[i % DIST_COLORS.length],
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 11, fontWeight: 700, color: "#fff",
@@ -1863,15 +2340,16 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                 <span style={{ width: 10, height: 10, borderRadius: 3, background: DIST_COLORS[i % DIST_COLORS.length], display: "inline-block", flexShrink: 0 }} />
                 <span style={{ color: "#6B7A72" }}>{tipo}:</span>
                 <span style={{ fontWeight: 700, color: "#132019" }}>{fmt(monto)}</span>
+                <span style={{ color: "#6B7A72" }}>({Math.round((monto / totalGas) * 100)}%)</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── Tabla resumen por tipo de unidad ── */}
+      {/* ── Resumen por tipo de unidad ── */}
       <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", marginBottom: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>VDL — Resumen por tipo de unidad</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Resumen por tipo de unidad</div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
@@ -1980,16 +2458,19 @@ export default function VDLModulos() {
     const gasFilt = (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta));
     const rutFilt = (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta));
 
+    // NC restan, Facturas suman
+    const ingSign = r => r.tipo === "NC" ? -1 : 1;
+
     // Ingresos — totales (todas las facturas del período)
-    const ingConIVA  = ingFilt.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
-    const ingSinIVA  = ingFilt.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+    const ingConIVA  = ingFilt.reduce((s, r) => s + ingSign(r) * parseFloat(r.coniva || 0), 0);
+    const ingSinIVA  = ingFilt.reduce((s, r) => s + ingSign(r) * parseFloat(r.siniva || 0), 0);
 
     // Ingresos — solo Pagadas (para margen e IVA cobrado)
     const ingPagadas   = ingFilt.filter(r => r.estatus === "Pagado");
-    const ingPagConIVA = ingPagadas.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
-    const ingPagSinIVA = ingPagadas.reduce((s, r) => s + parseFloat(r.siniva || 0), 0);
+    const ingPagConIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * parseFloat(r.coniva || 0), 0);
+    const ingPagSinIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * parseFloat(r.siniva || 0), 0);
     const totalIVA     = ingPagadas.reduce((s, r) =>
-      s + (parseFloat(r.coniva || 0) - parseFloat(r.siniva || 0)), 0);
+      s + ingSign(r) * (parseFloat(r.coniva || 0) - parseFloat(r.siniva || 0)), 0);
 
     // Gastos
     const gasMonto   = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
@@ -2113,16 +2594,8 @@ export default function VDLModulos() {
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4" strokeLinecap="round"/></svg>
                 <span style={{ fontSize: 11, fontWeight: 700, color: activo ? "#2E7D32" : C.muted, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>Período</span>
               </div>
-              {/* Inputs de fecha */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff", border: `1.5px solid ${activo ? "#86EFAC" : "#E2E8E3"}`, borderRadius: 10, padding: "3px 10px" }}>
-                <label style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>Desde</label>
-                <input type="date" value={desde} onChange={e => setDesde(e.target.value)}
-                  style={{ border: "none", outline: "none", fontSize: 12, color: C.text, background: "transparent", fontFamily: "inherit", cursor: "pointer" }} />
-                <span style={{ color: C.muted, fontSize: 12 }}>→</span>
-                <label style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>Hasta</label>
-                <input type="date" value={hasta} onChange={e => setHasta(e.target.value)}
-                  style={{ border: "none", outline: "none", fontSize: 12, color: C.text, background: "transparent", fontFamily: "inherit", cursor: "pointer" }} />
-              </div>
+              {/* Date range picker */}
+              <DateRangePicker desde={desde} hasta={hasta} setDesde={setDesde} setHasta={setHasta} />
               {/* Presets */}
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {presets.map(p => (
@@ -2133,15 +2606,6 @@ export default function VDLModulos() {
                   </button>
                 ))}
               </div>
-              {/* Limpiar + estado */}
-              {activo && (
-                <button onClick={() => { setDesde(""); setHasta(""); }}
-                  style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#FEE2E2"}
-                  onMouseLeave={e => e.currentTarget.style.background = "#FEF2F2"}>
-                  ✕ Limpiar
-                </button>
-              )}
               <span style={{ fontSize: 11, color: activo ? "#2E7D32" : C.muted, marginLeft: "auto", fontWeight: activo ? 600 : 400, whiteSpace: "nowrap" }}>
                 {activo ? `${desde || "inicio"} → ${hasta || "hoy"}` : "Sin filtro de fecha · mostrando todo"}
               </span>
