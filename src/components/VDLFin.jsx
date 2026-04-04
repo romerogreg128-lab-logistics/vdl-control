@@ -459,6 +459,120 @@ function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
   );
 }
 
+// ─── BULK CALENDAR (inline, sin dropdown) ─────────────────────────────────
+function BulkCalendar({ onAddFechas }) {
+  const hoy = new Date();
+  const toStr = d => {
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
+  };
+  const [viewY, setViewY] = useState(hoy.getFullYear());
+  const [viewM, setViewM] = useState(hoy.getMonth());
+  const [phase, setPhase] = useState(1); // 1=elige inicio, 2=elige fin
+  const [desde, setDesde] = useState("");
+  const [hover, setHover] = useState(null);
+
+  const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const DIAS  = ["LU","MA","MI","JU","VI","SÁ","DO"];
+
+  const prevMonth = () => { if (viewM === 0) { setViewM(11); setViewY(y => y-1); } else setViewM(m => m-1); };
+  const nextMonth = () => { if (viewM === 11) { setViewM(0); setViewY(y => y+1); } else setViewM(m => m+1); };
+
+  const cells = useMemo(() => {
+    const first = new Date(viewY, viewM, 1);
+    const dow = (first.getDay() + 6) % 7;
+    const arr = [];
+    for (let i = 0; i < dow; i++) {
+      const d = new Date(viewY, viewM, 1 - (dow - i));
+      arr.push({ date: d, out: true });
+    }
+    const total = new Date(viewY, viewM+1, 0).getDate();
+    for (let i = 1; i <= total; i++) arr.push({ date: new Date(viewY, viewM, i), out: false });
+    while (arr.length % 7 !== 0) {
+      const last = arr[arr.length-1].date;
+      const d = new Date(last); d.setDate(last.getDate()+1);
+      arr.push({ date: d, out: true });
+    }
+    return arr;
+  }, [viewY, viewM]);
+
+  const clickDay = (d) => {
+    const s = toStr(d);
+    if (phase === 1) {
+      setDesde(s); setPhase(2);
+    } else {
+      // Confirmar rango (o día solo si s === desde)
+      const start = s < desde ? s : desde;
+      const end   = s < desde ? desde : s;
+      const nuevas = [];
+      const cur = new Date(start + "T12:00:00");
+      const endDate = new Date(end + "T12:00:00");
+      while (cur <= endDate) { nuevas.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate()+1); }
+      onAddFechas(nuevas);
+      setDesde(""); setPhase(1); setHover(null);
+    }
+  };
+
+  const effectiveEnd = phase === 2 && hover ? (hover < desde ? desde : hover) : "";
+  const effectiveStart = phase === 2 && hover && hover < desde ? hover : desde;
+
+  const isStart = s => s === (phase === 2 && hover && hover < desde ? hover : desde);
+  const isEnd   = s => s === effectiveEnd;
+  const inRng   = s => {
+    if (!effectiveStart) return false;
+    const e = effectiveEnd || effectiveStart;
+    return s >= effectiveStart && s <= e;
+  };
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #C8E6C9", padding: "14px 16px", userSelect: "none" }}>
+      {/* Encabezado mes */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <button onClick={prevMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: "2px 8px", borderRadius: 8 }}>‹</button>
+        <span style={{ fontSize: 14, fontWeight: 700, color: C.text, textTransform: "capitalize" }}>
+          {MESES[viewM]} {viewY}
+        </span>
+        <button onClick={nextMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: "2px 8px", borderRadius: 8 }}>›</button>
+      </div>
+      {/* Días semana */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+        {DIAS.map(d => <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: C.muted, padding: "2px 0" }}>{d}</div>)}
+      </div>
+      {/* Celdas */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {cells.map(({ date, out }, i) => {
+          const s = toStr(date);
+          const start = isStart(s);
+          const end   = isEnd(s);
+          const range = inRng(s);
+          const isToday = s === toStr(hoy);
+          return (
+            <div key={i}
+              onClick={() => !out && clickDay(date)}
+              onMouseEnter={() => phase === 2 && !out && setHover(s)}
+              onMouseLeave={() => phase === 2 && setHover(null)}
+              style={{
+                textAlign: "center", padding: "7px 2px", fontSize: 13,
+                cursor: out ? "default" : "pointer",
+                color: out ? "#D1D5DB" : (start || end) ? "#fff" : range ? "#1B5E20" : isToday ? "#2E7D32" : C.text,
+                background: (start || end) ? "#2E7D32" : range ? "#DCFCE7" : "transparent",
+                fontWeight: (start || end || isToday) ? 700 : 400,
+                borderRadius: start ? "8px 0 0 8px" : end ? "0 8px 8px 0" : range ? 0 : 8,
+              }}
+            >{date.getDate()}</div>
+          );
+        })}
+      </div>
+      {/* Hint */}
+      <div style={{ marginTop: 10, fontSize: 11, color: C.muted, textAlign: "center" }}>
+        {phase === 1
+          ? "Click en un día para iniciar selección"
+          : `Desde ${desde} — click en otro día para el rango, o en el mismo para un solo día`}
+      </div>
+    </div>
+  );
+}
+
 // SVG icons for nav
 const NAV_ICONS = {
   dashboard:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/></svg>,
@@ -908,11 +1022,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const [err, setErr]         = useState("");
   const isEdit = !!editRow;
   const topRef = useRef(null);
-  const [bulkOpen, setBulkOpen]           = useState(false);
-  const [bulkFechas, setBulkFechas]       = useState([]);
-  const [bulkFechaInput, setBulkFechaInput] = useState("");
-  const [bulkRangeDesde, setBulkRangeDesde] = useState("");
-  const [bulkRangeHasta, setBulkRangeHasta] = useState("");
+  const [bulkOpen, setBulkOpen]     = useState(false);
+  const [bulkFechas, setBulkFechas] = useState([]);
 
   useEffect(() => {
     if (open && topRef.current) {
@@ -958,29 +1069,10 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   };
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
-  const openBulk  = () => { setForm(EMPTY); setBulkFechas([]); setBulkFechaInput(""); setBulkRangeDesde(""); setBulkRangeHasta(""); setEditRow(null); setErr(""); setBulkOpen(true); setOpen(false); };
-  const cancelBulk = () => { setBulkOpen(false); setBulkFechas([]); setBulkFechaInput(""); setBulkRangeDesde(""); setBulkRangeHasta(""); setForm(EMPTY); setErr(""); };
-  const addBulkFecha = (val) => {
-    const v = val !== undefined ? val : bulkFechaInput;
-    if (!v || bulkFechas.includes(v)) return;
-    setBulkFechas(prev => [...prev, v].sort());
-    setBulkFechaInput("");
-  };
-  const removeBulkFecha = (fecha) => setBulkFechas(prev => prev.filter(d => d !== fecha));
-  const addBulkRango = () => {
-    if (!bulkRangeDesde || !bulkRangeHasta) return;
-    if (bulkRangeHasta < bulkRangeDesde) return;
-    const nuevas = [];
-    const cur = new Date(bulkRangeDesde + "T12:00:00");
-    const end = new Date(bulkRangeHasta + "T12:00:00");
-    while (cur <= end) {
-      const iso = cur.toISOString().slice(0, 10);
-      nuevas.push(iso);
-      cur.setDate(cur.getDate() + 1);
-    }
-    setBulkFechas(prev => [...new Set([...prev, ...nuevas])].sort());
-    setBulkRangeDesde(""); setBulkRangeHasta("");
-  };
+  const openBulk   = () => { setForm(EMPTY); setBulkFechas([]); setEditRow(null); setErr(""); setBulkOpen(true); setOpen(false); };
+  const cancelBulk = () => { setBulkOpen(false); setBulkFechas([]); setForm(EMPTY); setErr(""); };
+  const removeBulkFecha  = (fecha)  => setBulkFechas(prev => prev.filter(d => d !== fecha));
+  const onBulkCalendarAdd = (nuevas) => setBulkFechas(prev => [...new Set([...prev, ...nuevas])].sort());
   const saveBulk = async () => {
     if (!form.cliente_id) { setErr("Selecciona un cliente"); return; }
     if (!form.operador)   { setErr("Selecciona un operador"); return; }
@@ -1272,62 +1364,26 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
           </Field>
         </div>
 
-        {/* Selector de fechas */}
-        <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FAF0", borderRadius: 12, border: "1px solid #C8E6C9" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.greenStrong, marginBottom: 12 }}>
+        {/* Selector de fechas — calendario inline */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.greenStrong, marginBottom: 8 }}>
             Fechas a replicar{bulkFechas.length > 0 ? ` · ${bulkFechas.length} seleccionada${bulkFechas.length !== 1 ? "s" : ""}` : ""}
           </div>
-
-          {/* Rango */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Rango de fechas</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <input type="date" value={bulkRangeDesde} onChange={e => setBulkRangeDesde(e.target.value)}
-                style={{ flex: 1, minWidth: 130, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }} />
-              <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>al</span>
-              <input type="date" value={bulkRangeHasta} onChange={e => setBulkRangeHasta(e.target.value)}
-                min={bulkRangeDesde}
-                style={{ flex: 1, minWidth: 130, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }} />
-              <button onClick={addBulkRango} disabled={!bulkRangeDesde || !bulkRangeHasta || bulkRangeHasta < bulkRangeDesde}
-                style={{ padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: (!bulkRangeDesde || !bulkRangeHasta || bulkRangeHasta < bulkRangeDesde) ? "not-allowed" : "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong, opacity: (!bulkRangeDesde || !bulkRangeHasta || bulkRangeHasta < bulkRangeDesde) ? 0.5 : 1, flexShrink: 0 }}>
-                + Agregar rango
-              </button>
+          <BulkCalendar onAddFechas={onBulkCalendarAdd} />
+          {/* Chips */}
+          {bulkFechas.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {bulkFechas.map(f => (
+                <div key={f} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#F0FAF0", border: "1.5px solid #A5D6A7", fontSize: 12, fontWeight: 600, color: C.greenStrong }}>
+                  {f}
+                  <button onClick={() => removeBulkFecha(f)}
+                    style={{ marginLeft: 2, width: 16, height: 16, borderRadius: "50%", border: "none", background: "#FFCDD2", color: "#C62828", cursor: "pointer", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
-
-          {/* Divisor */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0" }}>
-            <div style={{ flex: 1, height: 1, background: "#C8E6C9" }} />
-            <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>O días individuales</span>
-            <div style={{ flex: 1, height: 1, background: "#C8E6C9" }} />
-          </div>
-
-          {/* Individual */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <input type="date" value={bulkFechaInput} onChange={e => setBulkFechaInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addBulkFecha(); } }}
-              style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }} />
-            <button onClick={() => addBulkFecha()}
-              style={{ padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong, flexShrink: 0 }}>
-              + Agregar
-            </button>
-          </div>
-
-          {/* Chips de fechas seleccionadas */}
-          {bulkFechas.length === 0
-            ? <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Aún no has agregado fechas.</div>
-            : <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                {bulkFechas.map(f => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#fff", border: "1.5px solid #A5D6A7", fontSize: 12, fontWeight: 600, color: C.greenStrong }}>
-                    {f}
-                    <button onClick={() => removeBulkFecha(f)}
-                      style={{ marginLeft: 2, width: 16, height: 16, borderRadius: "50%", border: "none", background: "#FFCDD2", color: "#C62828", cursor: "pointer", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-          }
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
