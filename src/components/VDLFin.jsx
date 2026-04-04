@@ -911,6 +911,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const [bulkOpen, setBulkOpen]           = useState(false);
   const [bulkFechas, setBulkFechas]       = useState([]);
   const [bulkFechaInput, setBulkFechaInput] = useState("");
+  const [bulkRangeDesde, setBulkRangeDesde] = useState("");
+  const [bulkRangeHasta, setBulkRangeHasta] = useState("");
 
   useEffect(() => {
     if (open && topRef.current) {
@@ -956,8 +958,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   };
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
-  const openBulk  = () => { setForm(EMPTY); setBulkFechas([]); setBulkFechaInput(""); setEditRow(null); setErr(""); setBulkOpen(true); setOpen(false); };
-  const cancelBulk = () => { setBulkOpen(false); setBulkFechas([]); setBulkFechaInput(""); setForm(EMPTY); setErr(""); };
+  const openBulk  = () => { setForm(EMPTY); setBulkFechas([]); setBulkFechaInput(""); setBulkRangeDesde(""); setBulkRangeHasta(""); setEditRow(null); setErr(""); setBulkOpen(true); setOpen(false); };
+  const cancelBulk = () => { setBulkOpen(false); setBulkFechas([]); setBulkFechaInput(""); setBulkRangeDesde(""); setBulkRangeHasta(""); setForm(EMPTY); setErr(""); };
   const addBulkFecha = (val) => {
     const v = val !== undefined ? val : bulkFechaInput;
     if (!v || bulkFechas.includes(v)) return;
@@ -965,6 +967,20 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     setBulkFechaInput("");
   };
   const removeBulkFecha = (fecha) => setBulkFechas(prev => prev.filter(d => d !== fecha));
+  const addBulkRango = () => {
+    if (!bulkRangeDesde || !bulkRangeHasta) return;
+    if (bulkRangeHasta < bulkRangeDesde) return;
+    const nuevas = [];
+    const cur = new Date(bulkRangeDesde + "T12:00:00");
+    const end = new Date(bulkRangeHasta + "T12:00:00");
+    while (cur <= end) {
+      const iso = cur.toISOString().slice(0, 10);
+      nuevas.push(iso);
+      cur.setDate(cur.getDate() + 1);
+    }
+    setBulkFechas(prev => [...new Set([...prev, ...nuevas])].sort());
+    setBulkRangeDesde(""); setBulkRangeHasta("");
+  };
   const saveBulk = async () => {
     if (!form.cliente_id) { setErr("Selecciona un cliente"); return; }
     if (!form.operador)   { setErr("Selecciona un operador"); return; }
@@ -1258,40 +1274,60 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 
         {/* Selector de fechas */}
         <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FAF0", borderRadius: 12, border: "1px solid #C8E6C9" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.greenStrong, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.greenStrong, marginBottom: 12 }}>
             Fechas a replicar{bulkFechas.length > 0 ? ` · ${bulkFechas.length} seleccionada${bulkFechas.length !== 1 ? "s" : ""}` : ""}
           </div>
+
+          {/* Rango */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Rango de fechas</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input type="date" value={bulkRangeDesde} onChange={e => setBulkRangeDesde(e.target.value)}
+                style={{ flex: 1, minWidth: 130, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }} />
+              <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>al</span>
+              <input type="date" value={bulkRangeHasta} onChange={e => setBulkRangeHasta(e.target.value)}
+                min={bulkRangeDesde}
+                style={{ flex: 1, minWidth: 130, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }} />
+              <button onClick={addBulkRango} disabled={!bulkRangeDesde || !bulkRangeHasta || bulkRangeHasta < bulkRangeDesde}
+                style={{ padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: (!bulkRangeDesde || !bulkRangeHasta || bulkRangeHasta < bulkRangeDesde) ? "not-allowed" : "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong, opacity: (!bulkRangeDesde || !bulkRangeHasta || bulkRangeHasta < bulkRangeDesde) ? 0.5 : 1, flexShrink: 0 }}>
+                + Agregar rango
+              </button>
+            </div>
+          </div>
+
+          {/* Divisor */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "#C8E6C9" }} />
+            <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>O días individuales</span>
+            <div style={{ flex: 1, height: 1, background: "#C8E6C9" }} />
+          </div>
+
+          {/* Individual */}
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <input
-              type="date"
-              value={bulkFechaInput}
-              onChange={e => setBulkFechaInput(e.target.value)}
+            <input type="date" value={bulkFechaInput} onChange={e => setBulkFechaInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addBulkFecha(); } }}
-              style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }}
-            />
-            <button
-              onClick={() => addBulkFecha()}
-              style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong }}
-            >
+              style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #C8E6C9", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }} />
+            <button onClick={() => addBulkFecha()}
+              style={{ padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong, flexShrink: 0 }}>
               + Agregar
             </button>
           </div>
-          {bulkFechas.length === 0 && (
-            <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Aún no has agregado fechas. Puedes agregar tantas como necesites.</div>
-          )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {bulkFechas.map(f => (
-              <div key={f} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#fff", border: "1.5px solid #A5D6A7", fontSize: 12, fontWeight: 600, color: C.greenStrong }}>
-                {f}
-                <button
-                  onClick={() => removeBulkFecha(f)}
-                  style={{ marginLeft: 2, width: 16, height: 16, borderRadius: "50%", border: "none", background: "#FFCDD2", color: "#C62828", cursor: "pointer", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
-                >
-                  ×
-                </button>
+
+          {/* Chips de fechas seleccionadas */}
+          {bulkFechas.length === 0
+            ? <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Aún no has agregado fechas.</div>
+            : <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                {bulkFechas.map(f => (
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#fff", border: "1.5px solid #A5D6A7", fontSize: 12, fontWeight: 600, color: C.greenStrong }}>
+                    {f}
+                    <button onClick={() => removeBulkFecha(f)}
+                      style={{ marginLeft: 2, width: 16, height: 16, borderRadius: "50%", border: "none", background: "#FFCDD2", color: "#C62828", cursor: "pointer", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+          }
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
