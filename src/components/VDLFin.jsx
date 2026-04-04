@@ -1458,14 +1458,15 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
 
 // ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
 function ModIngresos({ data, reload, desde, hasta }) {
-  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", tipo: "Factura", factura_ref: "" };
+  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", xml_url: "", tipo: "Factura", factura_ref: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [err, setErr]         = useState("");
   const [pdfFile, setPdfFile] = useState(null);
-  const [pdfUploading, setPdfUploading] = useState(false);
+  const [xmlFile, setXmlFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [pagoModal, setPagoModal] = useState({ open: false, onConfirm: null });
   const isEdit = !!editRow;
 
@@ -1474,26 +1475,32 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "", pdf_url: r.pdf_url || "", tipo: r.tipo || "Factura", factura_ref: r.factura_ref || "" }); setEditRow(r); setErr(""); setPdfFile(null); setOpen(true); };
-  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setOpen(false); };
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "", pdf_url: r.pdf_url || "", xml_url: r.xml_url || "", tipo: r.tipo || "Factura", factura_ref: r.factura_ref || "" }); setEditRow(r); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(true); };
+  const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(false); };
 
   const save = async () => {
     if (!form.factura || !form.siniva) { setErr("Factura y monto son obligatorios"); return; }
     setLoading(true); setErr("");
     try {
+      setUploading(true);
+      const slug = form.factura.replace(/[^a-zA-Z0-9]/g, "_");
       let pdf_url = form.pdf_url || null;
       if (pdfFile) {
-        setPdfUploading(true);
-        const ext = pdfFile.name.split(".").pop();
-        const path = `${Date.now()}_${form.factura.replace(/[^a-zA-Z0-9]/g, "_")}.${ext}`;
-        const { error: upErr } = await sb.storage.from("facturas-pdf").upload(path, pdfFile, { upsert: true });
-        setPdfUploading(false);
+        const ppath = `${Date.now()}_${slug}.pdf`;
+        const { error: upErr } = await sb.storage.from("facturas-pdf").upload(ppath, pdfFile, { upsert: true });
         if (upErr) throw upErr;
-        const { data: urlData } = sb.storage.from("facturas-pdf").getPublicUrl(path);
-        pdf_url = urlData.publicUrl;
+        pdf_url = sb.storage.from("facturas-pdf").getPublicUrl(ppath).data.publicUrl;
       }
-      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null, pdf_url, tipo: form.tipo || "Factura", factura_ref: form.tipo === "NC" ? (form.factura_ref || null) : null };
+      let xml_url = form.xml_url || null;
+      if (xmlFile) {
+        const xpath = `${Date.now()}_${slug}.xml`;
+        const { error: xErr } = await sb.storage.from("facturas-pdf").upload(xpath, xmlFile, { upsert: true });
+        if (xErr) throw xErr;
+        xml_url = sb.storage.from("facturas-pdf").getPublicUrl(xpath).data.publicUrl;
+      }
+      setUploading(false);
+      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null, pdf_url, xml_url, tipo: form.tipo || "Factura", factura_ref: form.tipo === "NC" ? (form.factura_ref || null) : null };
       if (isEdit) {
         const { error } = await sb.from("ingresos").update(payload).eq("id", editRow.id);
         if (error) throw error;
@@ -1504,6 +1511,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
       await reload();
       cancel();
     } catch (e) {
+      setUploading(false);
       setErr(e.message || "Error al guardar");
     } finally {
       setLoading(false);
@@ -1610,37 +1618,43 @@ function ModIngresos({ data, reload, desde, hasta }) {
           <Field label="Notas" span2>
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
-          <Field label="Factura PDF" span2>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <label style={{
-                display: "inline-flex", alignItems: "center", gap: 7,
-                padding: "8px 16px", borderRadius: 10, cursor: "pointer",
-                background: pdfFile ? "#DCFCE7" : "#F0F4FF",
-                border: `1.5px solid ${pdfFile ? "#86EFAC" : "#C7D7FF"}`,
-                fontSize: 13, fontWeight: 600,
-                color: pdfFile ? "#15803D" : "#3B5BDB",
-              }}>
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1v9M5 4l3-3 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                </svg>
-                {pdfFile ? "Cambiar archivo" : "Seleccionar PDF"}
-                <input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files[0] || null)} style={{ display: "none" }} />
-              </label>
-              {pdfFile && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8 }}>
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#16A34A" strokeWidth="1.4"/><path d="M10 2v4h4" stroke="#16A34A" strokeWidth="1.4"/></svg>
-                  <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfFile.name}</span>
-                  <button onClick={() => setPdfFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
-                </div>
-              )}
-              {!pdfFile && form.pdf_url && (
-                <a href={form.pdf_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#2563EB", fontWeight: 600, textDecoration: "none", padding: "6px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#2563EB" strokeWidth="1.4"/><path d="M10 2v4h4" stroke="#2563EB" strokeWidth="1.4"/></svg>
-                  Ver PDF actual
-                </a>
-              )}
-              {pdfUploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo…</span>}
+          <Field label="Archivos" span2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* PDF */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, width: 32 }}>PDF</span>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, cursor: "pointer", background: pdfFile ? "#DCFCE7" : "#F5F7F4", border: `1.5px solid ${pdfFile ? "#86EFAC" : "#E2E8E3"}`, fontSize: 13, fontWeight: 600, color: pdfFile ? "#15803D" : C.text }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M5 4l3-3 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                  Cargar archivos
+                  <input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files[0] || null)} style={{ display: "none" }} />
+                </label>
+                {pdfFile ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8 }}>
+                    <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfFile.name}</span>
+                    <button onClick={() => setPdfFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
+                  </div>
+                ) : form.pdf_url ? (
+                  <a href={form.pdf_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, textDecoration: "none", padding: "5px 10px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>Ver PDF</a>
+                ) : null}
+              </div>
+              {/* XML */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, width: 32 }}>XML</span>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, cursor: "pointer", background: xmlFile ? "#DCFCE7" : "#F5F7F4", border: `1.5px solid ${xmlFile ? "#86EFAC" : "#E2E8E3"}`, fontSize: 13, fontWeight: 600, color: xmlFile ? "#15803D" : C.text }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M5 4l3-3 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                  Cargar archivos
+                  <input type="file" accept=".xml,text/xml,application/xml" onChange={e => setXmlFile(e.target.files[0] || null)} style={{ display: "none" }} />
+                </label>
+                {xmlFile ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8 }}>
+                    <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{xmlFile.name}</span>
+                    <button onClick={() => setXmlFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
+                  </div>
+                ) : form.xml_url ? (
+                  <a href={form.xml_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, textDecoration: "none", padding: "5px 10px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>Ver XML</a>
+                ) : null}
+              </div>
+              {uploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo archivos…</span>}
             </div>
           </Field>
           {/* Pagado checkbox */}
@@ -1718,9 +1732,14 @@ function ModIngresos({ data, reload, desde, hasta }) {
                  <Td>{r.fecha_pago ? <span style={{ color: "#16A34A", fontWeight: 600 }}>{r.fecha_pago}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <Td><Chip label={r.estatus || "Pendiente"} /></Td>
                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3", textAlign: "center" }}>
-                   {r.pdf_url
-                     ? <a href={r.pdf_url} target="_blank" rel="noreferrer" title="Ver factura PDF" style={{ color: "#2563EB", fontSize: 18, lineHeight: 1 }}>📄</a>
-                     : <span style={{ color: C.muted, fontSize: 13 }}>—</span>}
+                   <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                     {r.pdf_url
+                       ? <a href={r.pdf_url} target="_blank" rel="noreferrer" title="Ver PDF" style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", textDecoration: "none", padding: "2px 7px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 6 }}>PDF</a>
+                       : <span style={{ fontSize: 11, color: "#D1D5DB" }}>PDF</span>}
+                     {r.xml_url
+                       ? <a href={r.xml_url} target="_blank" rel="noreferrer" title="Ver XML" style={{ fontSize: 11, fontWeight: 600, color: "#2563EB", textDecoration: "none", padding: "2px 7px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6 }}>XML</a>
+                       : <span style={{ fontSize: 11, color: "#D1D5DB" }}>XML</span>}
+                   </div>
                  </td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
