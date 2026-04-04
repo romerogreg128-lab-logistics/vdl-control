@@ -1611,20 +1611,36 @@ function ModIngresos({ data, reload, desde, hasta }) {
             <Textarea placeholder="Observaciones adicionales..." value={form.notas} onChange={e => set("notas", e.target.value)} />
           </Field>
           <Field label="Factura PDF" span2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={e => setPdfFile(e.target.files[0] || null)}
-                style={{ fontSize: 13, color: C.text, cursor: "pointer" }}
-              />
-              {pdfFile && <span style={{ fontSize: 12, color: C.muted }}>{pdfFile.name}</span>}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <label style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "8px 16px", borderRadius: 10, cursor: "pointer",
+                background: pdfFile ? "#DCFCE7" : "#F0F4FF",
+                border: `1.5px solid ${pdfFile ? "#86EFAC" : "#C7D7FF"}`,
+                fontSize: 13, fontWeight: 600,
+                color: pdfFile ? "#15803D" : "#3B5BDB",
+              }}>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 1v9M5 4l3-3 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                {pdfFile ? "Cambiar archivo" : "Seleccionar PDF"}
+                <input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files[0] || null)} style={{ display: "none" }} />
+              </label>
+              {pdfFile && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8 }}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#16A34A" strokeWidth="1.4"/><path d="M10 2v4h4" stroke="#16A34A" strokeWidth="1.4"/></svg>
+                  <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfFile.name}</span>
+                  <button onClick={() => setPdfFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
+                </div>
+              )}
               {!pdfFile && form.pdf_url && (
-                <a href={form.pdf_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", textDecoration: "underline" }}>
+                <a href={form.pdf_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#2563EB", fontWeight: 600, textDecoration: "none", padding: "6px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#2563EB" strokeWidth="1.4"/><path d="M10 2v4h4" stroke="#2563EB" strokeWidth="1.4"/></svg>
                   Ver PDF actual
                 </a>
               )}
-              {pdfUploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo PDF…</span>}
+              {pdfUploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo…</span>}
             </div>
           </Field>
           {/* Pagado checkbox */}
