@@ -540,22 +540,6 @@ function FilterBar({ filters, setFilters, options }) {
               <option value="">Todos</option>
               {opt.choices.map(ch => <option key={ch} value={ch}>{ch}</option>)}
             </select>
-          ) : opt.type === "daterange" ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <input
-                type="date"
-                value={filters[opt.keyFrom] || ""}
-                onChange={e => setFilters(f => ({ ...f, [opt.keyFrom]: e.target.value }))}
-                style={{ ...inputStyle, width: 130, fontSize: 12, padding: "5px 9px" }}
-              />
-              <span style={{ fontSize: 11, color: C.muted }}>→</span>
-              <input
-                type="date"
-                value={filters[opt.keyTo] || ""}
-                onChange={e => setFilters(f => ({ ...f, [opt.keyTo]: e.target.value }))}
-                style={{ ...inputStyle, width: 130, fontSize: 12, padding: "5px 9px" }}
-              />
-            </div>
           ) : (
             <input
               type="text"
@@ -1009,15 +993,20 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   };
 
   const [filters, setFilters] = useState({});
-  const rows       = useMemo(() => (data || []).filter(r => {
-    if (!inRange(r.fecha, desde, hasta)) return false;
-    if (filters.fecha_desde && (r.fecha || "") < filters.fecha_desde) return false;
-    if (filters.fecha_hasta && (r.fecha || "") > filters.fecha_hasta) return false;
-    if (filters.cliente_id && !(r.cliente_id || "").toLowerCase().includes(filters.cliente_id.toLowerCase())) return false;
-    if (filters.operador   && !(r.operador   || "").toLowerCase().includes(filters.operador.toLowerCase()))   return false;
-    if (filters.unidad_id  && !(r.unidad_id  || "").toLowerCase().includes(filters.unidad_id.toLowerCase()))  return false;
-    return true;
-  }), [data, desde, hasta, filters]);
+  const [fechaSort, setFechaSort] = useState("desc"); // "asc" | "desc"
+  const rows       = useMemo(() => {
+    let d = (data || []).filter(r => {
+      if (!inRange(r.fecha, desde, hasta)) return false;
+      if (filters.cliente_id && !(r.cliente_id || "").toLowerCase().includes(filters.cliente_id.toLowerCase())) return false;
+      if (filters.operador   && !(r.operador   || "").toLowerCase().includes(filters.operador.toLowerCase()))   return false;
+      if (filters.unidad_id  && !(r.unidad_id  || "").toLowerCase().includes(filters.unidad_id.toLowerCase()))  return false;
+      return true;
+    });
+    d = [...d].sort((a, b) => fechaSort === "asc"
+      ? (a.fecha || "").localeCompare(b.fecha || "")
+      : (b.fecha || "").localeCompare(a.fecha || ""));
+    return d;
+  }, [data, desde, hasta, filters, fechaSort]);
   const unidadSel  = form.unidad_id  ? (unidades || []).find(u => u.economico === form.unidad_id)  : null;
   const clienteSel = form.cliente_id ? (clientes  || []).find(c => c.nombre   === form.cliente_id) : null;
   const tarifaAct  = getTarifa(form.cliente_id, form.unidad_id);
@@ -1171,7 +1160,6 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
       </FormPanel>
 
       <FilterBar filters={filters} setFilters={setFilters} options={[
-        { label: "Fecha", type: "daterange", keyFrom: "fecha_desde", keyTo: "fecha_hasta" },
         { key: "cliente_id", label: "Cliente",  type: "text" },
         { key: "operador",   label: "Operador", type: "select", choices: operadorOpts },
         { key: "unidad_id",  label: "Unidad",   type: "text" },
@@ -1194,7 +1182,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr><Th>ID Ruta</Th><Th>Fecha</Th><Th>Cliente</Th><Th>Operador</Th><Th>Unidad</Th><Th>Flete s/IVA</Th><Th>Flete c/IVA</Th><Th>Acciones</Th></tr>
+            <tr><Th>ID Ruta</Th><th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>Fecha {fechaSort === "asc" ? "↑" : "↓"}</th><Th>Cliente</Th><Th>Operador</Th><Th>Unidad</Th><Th>Flete s/IVA</Th><Th>Flete c/IVA</Th><Th>Acciones</Th></tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
@@ -1355,15 +1343,20 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   };
 
   const [filters, setFilters] = useState({});
-  const rows    = useMemo(() => (data || []).filter(r => {
-    if (!inRange(r.fecha, desde, hasta)) return false;
-    if (filters.fecha_desde && (r.fecha || "") < filters.fecha_desde) return false;
-    if (filters.fecha_hasta && (r.fecha || "") > filters.fecha_hasta) return false;
-    if (filters.tipo_gasto   && r.tipo_gasto   !== filters.tipo_gasto)   return false;
-    if (filters.estatus_pago && r.estatus_pago !== filters.estatus_pago) return false;
-    if (filters.operador     && !(r.operador || "").toLowerCase().includes(filters.operador.toLowerCase())) return false;
-    return true;
-  }), [data, desde, hasta, filters]);
+  const [fechaSort, setFechaSort] = useState("desc");
+  const rows    = useMemo(() => {
+    let d = (data || []).filter(r => {
+      if (!inRange(r.fecha, desde, hasta)) return false;
+      if (filters.tipo_gasto   && r.tipo_gasto   !== filters.tipo_gasto)   return false;
+      if (filters.estatus_pago && r.estatus_pago !== filters.estatus_pago) return false;
+      if (filters.operador     && !(r.operador || "").toLowerCase().includes(filters.operador.toLowerCase())) return false;
+      return true;
+    });
+    d = [...d].sort((a, b) => fechaSort === "asc"
+      ? (a.fecha || "").localeCompare(b.fecha || "")
+      : (b.fecha || "").localeCompare(a.fecha || ""));
+    return d;
+  }, [data, desde, hasta, filters, fechaSort]);
   const rutaSel = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
 
   // Contadores
@@ -1374,7 +1367,6 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   return (
     <div>
       <FilterBar filters={filters} setFilters={setFilters} options={[
-        { label: "Fecha", type: "daterange", keyFrom: "fecha_desde", keyTo: "fecha_hasta" },
         { key: "tipo_gasto",   label: "Tipo",     type: "select", choices: ["Nómina","Combustible","Impuesto","Gasolina","Estacionamiento","Caseta","Mantenimiento","Llantas","Otro"] },
         { key: "estatus_pago", label: "Estatus",  type: "select", choices: ["Pagado","Por pagar","En revisión"] },
         { key: "operador",     label: "Operador", type: "text" },
@@ -1449,7 +1441,8 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <Th>Fecha</Th><Th>Concepto</Th><Th>Monto</Th>
+              <th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>Fecha {fechaSort === "asc" ? "↑" : "↓"}</th>
+              <Th>Concepto</Th><Th>Monto</Th>
               <Th>Tipo</Th><Th>Estatus</Th><Th>Operador</Th><Th>Viaje</Th><Th>Acciones</Th>
             </tr>
           </thead>
@@ -1550,16 +1543,18 @@ function ModIngresos({ data, reload, desde, hasta }) {
   };
 
   const [filters, setFilters] = useState({});
+  const [fechaSort, setFechaSort] = useState("desc");
 
   const rows = useMemo(() => {
     let d = (data || []).filter(r => inRange(r.fcarga, desde, hasta));
-    if (filters.fcarga_desde) d = d.filter(r => (r.fcarga || "") >= filters.fcarga_desde);
-    if (filters.fcarga_hasta) d = d.filter(r => (r.fcarga || "") <= filters.fcarga_hasta);
     if (filters.estatus) d = d.filter(r => r.estatus === filters.estatus);
     if (filters.tipo)    d = d.filter(r => (r.tipo || "Factura") === filters.tipo);
     if (filters.factura) d = d.filter(r => (r.factura || "").toLowerCase().includes((filters.factura || "").toLowerCase()));
+    d = [...d].sort((a, b) => fechaSort === "asc"
+      ? (a.fcarga || "").localeCompare(b.fcarga || "")
+      : (b.fcarga || "").localeCompare(a.fcarga || ""));
     return d;
-  }, [data, desde, hasta, filters]);
+  }, [data, desde, hasta, filters, fechaSort]);
 
   return (
     <div>
@@ -1567,7 +1562,6 @@ function ModIngresos({ data, reload, desde, hasta }) {
         filters={filters}
         setFilters={setFilters}
         options={[
-          { label: "Fecha carga", type: "daterange", keyFrom: "fcarga_desde", keyTo: "fcarga_hasta" },
           { key: "estatus", label: "Estatus", type: "select", choices: ["Pagado", "Activo", "Pendiente", "Vencido", "Cancelado"] },
           { key: "tipo",    label: "Tipo",    type: "select", choices: ["Factura", "NC"] },
           { key: "factura", label: "Factura", type: "text" },
@@ -1714,7 +1708,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Pagado</Th><Th>Tipo</Th><Th>Factura / NC</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><Th>F. Carga</Th><Th>F. Pago</Th><Th>Estatus</Th><Th>PDF</Th><Th>Acciones</Th></tr></thead>
+          <thead><tr><Th>Pagado</Th><Th>Tipo</Th><Th>Factura / NC</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>F. Carga {fechaSort === "asc" ? "↑" : "↓"}</th><Th>F. Pago</Th><Th>Estatus</Th><Th>PDF</Th><Th>Acciones</Th></tr></thead>
           <tbody>
             {data === null ? <Loading /> :
              rows.length === 0 ? <EmptyRow cols={12} msg="Sin facturas en este período" /> :
