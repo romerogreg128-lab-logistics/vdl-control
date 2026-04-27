@@ -2424,6 +2424,183 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     );
   };
 
+  // Flujo de caja proyectado — fletes cobrados a 30d post-cierre, gastos en su fecha
+  const CashflowTimeline = () => {
+    const proyectarCobro = (fechaStr) => {
+      if (!fechaStr) return null;
+      const [y, m, d] = fechaStr.split("-").map(Number);
+      if (!y || !m || !d) return null;
+      let cYear = y, cMonth = m, cDay;
+      if (d >= 26)      { cMonth = m + 1; if (cMonth > 12) { cMonth = 1; cYear += 1; } cDay = 10; }
+      else if (d <= 10) { cDay = 10; }
+      else              { cDay = 25; }
+      const cierre = new Date(cYear, cMonth - 1, cDay);
+      cierre.setDate(cierre.getDate() + 30);
+      return `${cierre.getFullYear()}-${String(cierre.getMonth()+1).padStart(2,"0")}-${String(cierre.getDate()).padStart(2,"0")}`;
+    };
+
+    const buckets = new Map();
+    const add = (fecha, key, val) => {
+      if (!buckets.has(fecha)) buckets.set(fecha, { in: 0, out: 0 });
+      buckets.get(fecha)[key] += val;
+    };
+    (rutas || []).forEach(r => {
+      const cobro = proyectarCobro(r.fecha);
+      if (!cobro) return;
+      const monto = parseFloat(r.flete || r.flete_siniva || 0);
+      if (monto > 0) add(cobro, "in", monto);
+    });
+    (gastos || []).forEach(g => {
+      if (!g.fecha) return;
+      const monto = parseFloat(g.monto || 0);
+      if (monto > 0) add(g.fecha, "out", monto);
+    });
+
+    if (buckets.size === 0) {
+      return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72", fontSize: 13 }}>Sin datos suficientes para proyectar el flujo de caja.</div>;
+    }
+
+    const dates = Array.from(buckets.keys()).sort();
+    let cumIn = 0, cumOut = 0;
+    const series = dates.map(fecha => {
+      const b = buckets.get(fecha);
+      cumIn += b.in; cumOut += b.out;
+      return { fecha, in: b.in, out: b.out, cumIn, cumOut, saldo: cumIn - cumOut };
+    });
+
+    let breakEven = null;
+    for (let i = 0; i < series.length; i++) {
+      if (series[i].saldo >= 0 && (i === 0 || series[i-1].saldo < 0)) { breakEven = series[i].fecha; break; }
+    }
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    let saldoHoy = 0;
+    let proxIngreso = null;
+    for (let i = 0; i < series.length; i++) {
+      if (series[i].fecha <= todayStr) saldoHoy = series[i].saldo;
+      else if (!proxIngreso && series[i].in > 0) { proxIngreso = { fecha: series[i].fecha, monto: series[i].in }; break; }
+    }
+    const totalCumIn  = series[series.length - 1].cumIn;
+    const totalCumOut = series[series.length - 1].cumOut;
+    const ingresosPendientes = totalCumIn - (() => {
+      let acc = 0;
+      for (const s of series) { if (s.fecha <= todayStr) acc = s.cumIn; else break; }
+      return acc;
+    })();
+
+    const W = 920, H = 240;
+    const padL = 80, padR = 24, padT = 28, padB = 36;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+
+    const allValues = series.flatMap(s => [s.cumIn, s.cumOut, s.saldo]);
+    const maxV = Math.max(...allValues, 0);
+    const minV = Math.min(...allValues, 0);
+    const rangeV = (maxV - minV) || 1;
+
+    const parseFecha = (s) => new Date(s + "T12:00:00").getTime();
+    const minT = parseFecha(series[0].fecha);
+    const maxT = parseFecha(series[series.length - 1].fecha);
+    const rangeT = (maxT - minT) || 1;
+    const xPos = (fecha) => padL + ((parseFecha(fecha) - minT) / rangeT) * chartW;
+    const yPos = (v)     => padT + chartH - ((v - minV) / rangeV) * chartH;
+
+    const pathFor = (key) => series.map((s, i) => `${i === 0 ? "M" : "L"}${xPos(s.fecha).toFixed(1)} ${yPos(s[key]).toFixed(1)}`).join(" ");
+
+    const yTicks = Array.from({ length: 5 }, (_, i) => minV + (rangeV * i) / 4);
+
+    const monthsSet = new Set();
+    const xLabels = [];
+    series.forEach(s => {
+      const mKey = s.fecha.slice(0, 7);
+      if (!monthsSet.has(mKey)) {
+        monthsSet.add(mKey);
+        const [yy, mm] = mKey.split("-");
+        const monthName = new Date(parseInt(yy), parseInt(mm) - 1, 1).toLocaleString("es-MX", { month: "short" }).replace(".", "");
+        xLabels.push({ fecha: s.fecha, label: `${monthName} ${yy.slice(2)}` });
+      }
+    });
+
+    const todayInRange = todayStr >= series[0].fecha && todayStr <= series[series.length - 1].fecha;
+
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+          <div style={{ background: saldoHoy >= 0 ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Saldo acumulado al día de hoy</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: saldoHoy >= 0 ? "#2E7D32" : "#C62828", marginTop: 2 }}>{fmtM(saldoHoy)}</div>
+          </div>
+          <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Próximo cobro proyectado</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#132019", marginTop: 2 }}>{proxIngreso ? fmtM(proxIngreso.monto) : "—"}</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{proxIngreso ? proxIngreso.fecha : "sin pendientes"}</div>
+          </div>
+          <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Por cobrar (proyectado)</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>{fmtM(ingresosPendientes)}</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>fletes con cobro futuro</div>
+          </div>
+          <div style={{ background: breakEven ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Punto de equilibrio (saldo ≥ 0)</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: breakEven ? "#0F5C2E" : "#C62828", marginTop: 2 }}>{breakEven || "No alcanzado"}</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{breakEven ? "fecha estimada" : "en horizonte de datos"}</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>
+          {[
+            { c: "#2E7D32", l: "Ingresos acumulados (cobrados)" },
+            { c: "#C62828", l: "Gastos acumulados (pagados)" },
+            { c: "#1565C0", l: "Saldo (Ingresos − Gastos)" },
+          ].map(it => (
+            <div key={it.l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <span style={{ width: 14, height: 3, background: it.c, display: "inline-block", borderRadius: 2 }} />
+              <span style={{ color: "#6B7A72" }}>{it.l}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ overflowX: "auto" }}>
+          <svg width={W} height={H + 6} style={{ display: "block" }}>
+            {yTicks.map((v, i) => (
+              <g key={i}>
+                <line x1={padL} y1={yPos(v)} x2={W - padR} y2={yPos(v)} stroke="#F0F2F0" strokeWidth={1} />
+                <text x={padL - 6} y={yPos(v) + 3} textAnchor="end" fontSize={10} fill="#6B7A72">{fmtM(v)}</text>
+              </g>
+            ))}
+            <line x1={padL} y1={yPos(0)} x2={W - padR} y2={yPos(0)} stroke="#9CA89F" strokeDasharray="3,3" strokeWidth={1} />
+
+            {todayInRange && (
+              <g>
+                <line x1={xPos(todayStr)} y1={padT} x2={xPos(todayStr)} y2={padT + chartH} stroke="#132019" strokeDasharray="2,3" strokeWidth={1} opacity={0.55} />
+                <text x={xPos(todayStr)} y={padT - 8} textAnchor="middle" fontSize={10} fill="#132019" fontWeight={700}>HOY</text>
+              </g>
+            )}
+
+            <path d={pathFor("cumOut")} fill="none" stroke="#C62828" strokeWidth={2} />
+            <path d={pathFor("cumIn")}  fill="none" stroke="#2E7D32" strokeWidth={2} />
+            <path d={pathFor("saldo")}  fill="none" stroke="#1565C0" strokeWidth={2.5} />
+
+            {breakEven && (
+              <g>
+                <circle cx={xPos(breakEven)} cy={yPos(0)} r={6} fill="#74B72E" stroke="#fff" strokeWidth={2} />
+                <text x={xPos(breakEven)} y={yPos(0) - 12} textAnchor="middle" fontSize={10} fontWeight={700} fill="#0F5C2E">⚖ Equilibrio</text>
+                <text x={xPos(breakEven)} y={yPos(0) + 22} textAnchor="middle" fontSize={9} fill="#0F5C2E">{breakEven}</text>
+              </g>
+            )}
+
+            {xLabels.map((l, i) => (
+              <text key={i} x={xPos(l.fecha)} y={padT + chartH + 16} textAnchor="middle" fontSize={10} fill="#6B7A72">{l.label}</text>
+            ))}
+
+            <line x1={padL} y1={padT + chartH} x2={W - padR} y2={padT + chartH} stroke="#E2E8E3" strokeWidth={1} />
+          </svg>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       {/* ── Header ── */}
@@ -2556,6 +2733,19 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
             <BarChart data={months} color="#74B72E" valueKey="fleM" labelFn={fmtM} />
           </div>
         </div>
+      </div>
+
+      {/* ── Flujo de caja proyectado · línea de tiempo ── */}
+      <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 24px", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>Flujo de caja proyectado · línea de tiempo</div>
+            <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 2 }}>
+              Fletes facturados al cierre (día 10 / día 25) y cobrados 30 días después · Gastos en su fecha real
+            </div>
+          </div>
+        </div>
+        <CashflowTimeline />
       </div>
 
       {/* ── Top Clientes + Top Operadores ── */}
@@ -2708,7 +2898,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
 }
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────
-export default function VDLModulos() {
+export default function VDLModulos({ onLogout }) {
   const [mod, setMod] = useState("ingresos");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
@@ -2823,8 +3013,25 @@ export default function VDLModulos() {
             </div>
           ))}
         </nav>
-        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-          VDL · Control Financiero
+        <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL · Control Financiero</div>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              style={{
+                width: "100%", padding: "8px 0",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 7, color: "rgba(255,255,255,0.55)",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                letterSpacing: 0.2, transition: "background 0.2s, color 0.2s",
+              }}
+              onMouseEnter={e => { e.target.style.background = "rgba(198,40,40,0.25)"; e.target.style.color = "#ff8a8a"; }}
+              onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.06)"; e.target.style.color = "rgba(255,255,255,0.55)"; }}
+            >
+              Cerrar sesión
+            </button>
+          )}
         </div>
       </aside>
 
