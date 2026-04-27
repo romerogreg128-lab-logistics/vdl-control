@@ -2694,7 +2694,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
 
         {/* ── KPIs ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 16 }}>
           <div style={{ background: saldoHoy >= 0 ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px", border: `1px solid ${saldoHoy >= 0 ? "#DDEEDC" : "#FECACA"}` }}>
             <div style={{ fontSize: 11, color: "#6B7A72" }}>Saldo acumulado a hoy</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: saldoHoy >= 0 ? "#2E7D32" : "#C62828", marginTop: 2 }}>{fmtM(saldoHoy)}</div>
@@ -2819,6 +2819,101 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </svg>
         </div>
 
+        {/* ── Tabla resumen mensual ── */}
+        {(() => {
+          const monthlyMap = new Map();
+          const todayMonth = todayStr.slice(0, 7);
+          const peMonth = breakEven ? breakEven.slice(0, 7) : null;
+          series.forEach(s => {
+            const mKey = s.fecha.slice(0, 7);
+            if (!monthlyMap.has(mKey)) monthlyMap.set(mKey, { ingresos: 0, gastos: 0, saldoFin: 0 });
+            const m = monthlyMap.get(mKey);
+            m.ingresos += s.in;
+            m.gastos += s.out;
+            m.saldoFin = s.saldo;
+          });
+          const rows = Array.from(monthlyMap.entries()).map(([mKey, m]) => {
+            const [yy, mm] = mKey.split("-");
+            const monthName = new Date(parseInt(yy), parseInt(mm) - 1, 1).toLocaleString("es-MX", { month: "long" });
+            return {
+              mKey,
+              mes: `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${yy}`,
+              ingresos: m.ingresos,
+              gastos: m.gastos,
+              neto: m.ingresos - m.gastos,
+              saldoFin: m.saldoFin,
+              isFuture: mKey > todayMonth,
+              isCurrent: mKey === todayMonth,
+              isPE: peMonth === mKey,
+            };
+          });
+
+          return (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>📋 Resumen mensual del flujo</div>
+                  <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 2 }}>Cobros, pagos y saldo de cada mes — datos reales y proyectados</div>
+                </div>
+                <div style={{ display: "flex", gap: 10, fontSize: 11, color: "#6B7A72", flexWrap: "wrap" }}>
+                  <span>◀ Mes actual</span>
+                  <span style={{ color: "#0F5C2E", fontWeight: 600 }}>⚖ Mes del PE</span>
+                </div>
+              </div>
+              <div style={{ overflowX: "auto", border: "1px solid #E2E8E3", borderRadius: 12 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 540 }}>
+                  <thead>
+                    <tr style={{ background: "#F5F7F4" }}>
+                      <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "#3a4a40", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>Mes</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#3a4a40", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>Cobros</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#3a4a40", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>Pagos</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#3a4a40", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>Neto del mes</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#3a4a40", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>Saldo acumulado</th>
+                      <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "#3a4a40", borderBottom: "1px solid #E2E8E3", whiteSpace: "nowrap" }}>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, i) => {
+                      const bgRow = row.isPE ? "#F0FAF0" : row.isCurrent ? "#FFFBEB" : row.isFuture ? "#FAFBFA" : "#FFFFFF";
+                      const borderL = row.isPE ? "3px solid #74B72E" : row.isCurrent ? "3px solid #F59E0B" : "3px solid transparent";
+                      return (
+                        <tr key={row.mKey} style={{ background: bgRow, borderLeft: borderL }}>
+                          <td style={{ padding: "10px 14px", fontWeight: row.isCurrent || row.isPE ? 700 : 500, color: "#132019", borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
+                            {row.mes}
+                          </td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", color: "#0F5C2E", fontWeight: 600, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
+                            {row.ingresos > 0 ? fmtM(row.ingresos) : "—"}
+                          </td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", color: "#791F1F", fontWeight: 600, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
+                            {row.gastos > 0 ? fmtM(row.gastos) : "—"}
+                          </td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", color: row.neto >= 0 ? "#0F5C2E" : "#C62828", fontWeight: 700, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
+                            {row.neto >= 0 ? "+" : ""}{fmtM(row.neto)}
+                          </td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", color: row.saldoFin >= 0 ? "#0F5C2E" : "#C62828", fontWeight: 700, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
+                            {fmtM(row.saldoFin)}
+                          </td>
+                          <td style={{ padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
+                            {row.isPE ? (
+                              <span style={{ background: "#74B72E", color: "#FFFFFF", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>⚖ PE</span>
+                            ) : row.isCurrent ? (
+                              <span style={{ background: "#F59E0B", color: "#FFFFFF", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>◀ Hoy</span>
+                            ) : row.isFuture ? (
+                              <span style={{ background: "#E2E8E3", color: "#3a4a40", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 600 }}>Proyectado</span>
+                            ) : (
+                              <span style={{ background: "#DDEEDC", color: "#0F5C2E", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 600 }}>Real</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Nota del modelo ── */}
         <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 12, padding: "10px 14px", background: "#F8F9F8", borderRadius: 8, lineHeight: 1.6 }}>
           <strong style={{ color: "#3a4a40" }}>Cómo se calcula:</strong> el modelo asume que la operación continúa al ritmo promedio de los últimos {spanDays} días.
@@ -2844,7 +2939,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
 
       {/* ── Alertas ── */}
       {(ingVencidosArr.length > 0 || gasPorPagarArr.length > 0) && (
-        <div style={{ display: "grid", gridTemplateColumns: ingVencidosArr.length > 0 && gasPorPagarArr.length > 0 ? "1fr 1fr" : "1fr", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 20 }}>
           {ingVencidosArr.length > 0 && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ fontSize: 22 }}>⚠️</div>
@@ -2866,8 +2961,29 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
       )}
 
+      {/* ── PROTAGONISTA: Flujo de caja proyectado · línea de tiempo + tabla mensual ── */}
+      <div style={{
+        background: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFA 100%)",
+        border: "2px solid #0F5C2E",
+        borderRadius: 20,
+        padding: "clamp(16px, 2.5vw, 26px)",
+        marginBottom: 24,
+        boxShadow: "0 4px 24px rgba(15,92,46,0.08)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#0F5C2E", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Vista CEO · Indicador clave</div>
+            <div style={{ fontSize: "clamp(18px, 2.4vw, 22px)", fontWeight: 800, color: "#132019" }}>Flujo de caja y punto de equilibrio</div>
+            <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 4 }}>
+              Fletes facturados al cierre (día 10 / día 25), cobrados 30 días después · Gastos en su fecha real
+            </div>
+          </div>
+        </div>
+        <CashflowTimeline />
+      </div>
+
       {/* ── KPI Cards con tendencia ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
         {/* Ingresos */}
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -2937,7 +3053,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       </div>
 
       {/* ── Ingresos vs Gastos + Fletes ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20 }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 6 }}>Ingresos vs Gastos</div>
           <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
@@ -2963,22 +3079,9 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
       </div>
 
-      {/* ── Flujo de caja proyectado · línea de tiempo ── */}
-      <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 24px", marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>Flujo de caja proyectado · línea de tiempo</div>
-            <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 2 }}>
-              Fletes facturados al cierre (día 10 / día 25) y cobrados 30 días después · Gastos en su fecha real
-            </div>
-          </div>
-        </div>
-        <CashflowTimeline />
-      </div>
-
       {/* ── Top Clientes + Top Operadores ── */}
       {(topClientes.length > 0 || topOperadores.length > 0) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20 }}>
           {topClientes.length > 0 && (
             <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 16 }}>Top clientes por flete</div>
@@ -3103,10 +3206,10 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       </div>
 
       {/* ── Estatus ingresos + gastos ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Ingresos por estatus</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 10 }}>
             <MiniKpi label="Pagadas"    value={ingPagados} sub="facturas" color="#1B5E20" />
             <MiniKpi label="Activas"    value={ingActivos} sub="facturas" color="#2E7D32" />
             <MiniKpi label="Pendientes" value={ingPending}  sub="facturas" color="#E65100" />
@@ -3115,7 +3218,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Gastos — estatus de pago</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
             <MiniKpi label="Pagados"    value={gasPagados}  sub="registros" color="#2E7D32" />
             <MiniKpi label="Por pagar"  value={gasPorPagar} sub="registros" color="#B45309" />
           </div>
@@ -3125,11 +3228,27 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   );
 }
 
+// ─── HOOK: detectar móvil ─────────────────────────────────────────────────
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────
 export default function VDLModulos({ onLogout }) {
   const [mod, setMod] = useState("ingresos");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const isMobile = useIsMobile(768);
+  const [navOpen, setNavOpen] = useState(false);
 
   // ── Data state — null = loading, [] = empty, [...] = loaded
   const [ingresos,   setIngresos]   = useState(null);
@@ -3208,80 +3327,160 @@ export default function VDLModulos({ onLogout }) {
 
   const navIds = ["dashboard", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
 
+  // Sidebar visible en desktop, drawer en móvil
+  const sidebarVisible = !isMobile || navOpen;
+
   return (
-    <main style={{ height: "100vh", overflow: "hidden", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <main style={{ height: "100vh", overflow: "hidden", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative" }}>
+      {/* TOPBAR móvil */}
+      {isMobile && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, height: 56, zIndex: 50,
+          background: C.sidebar, color: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        }}>
+          <button
+            onClick={() => setNavOpen(o => !o)}
+            aria-label="Menú"
+            style={{
+              width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, cursor: "pointer", color: "#fff",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d={navOpen ? "M6 6L18 18M6 18L18 6" : "M3 6h18M3 12h18M3 18h18"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <img src={LOGO_SRC} alt="VDL" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1.5px solid rgba(116,183,46,0.5)" }} />
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Verde Diseño</div>
+          </div>
+          <div style={{ width: 40 }} />
+        </div>
+      )}
+
+      {/* OVERLAY del drawer en móvil */}
+      {isMobile && navOpen && (
+        <div
+          onClick={() => setNavOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 60 }}
+        />
+      )}
+
       {/* SIDEBAR */}
-      <aside style={{ width: 230, height: "100vh", flexShrink: 0, background: C.sidebar, color: "#fff", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "16px 14px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img
-              src={LOGO_SRC}
-              alt="VDL Logo"
-              style={{
-                width: 46, height: 46, borderRadius: "50%",
-                objectFit: "cover", flexShrink: 0,
-                border: "2px solid rgba(116,183,46,0.5)",
-              }}
-            />
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1.1 }}>Verde Diseño</div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Logistic</div>
+      {sidebarVisible && (
+        <aside style={{
+          width: isMobile ? 260 : 230,
+          height: "100vh", flexShrink: 0, background: C.sidebar, color: "#fff",
+          display: "flex", flexDirection: "column",
+          position: isMobile ? "fixed" : "relative",
+          top: 0, left: 0, zIndex: 70,
+          boxShadow: isMobile ? "2px 0 16px rgba(0,0,0,0.25)" : "none",
+        }}>
+          <div style={{ padding: "16px 14px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img
+                src={LOGO_SRC}
+                alt="VDL Logo"
+                style={{
+                  width: 46, height: 46, borderRadius: "50%",
+                  objectFit: "cover", flexShrink: 0,
+                  border: "2px solid rgba(116,183,46,0.5)",
+                }}
+              />
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1.1 }}>Verde Diseño</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Logistic</div>
+              </div>
             </div>
           </div>
-        </div>
-        <nav style={{ padding: "12px 0", flex: 1, overflowY: "auto" }}>
-          {NAV_GROUPS.map(group => (
-            <div key={group.label} style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.16em", color: "rgba(255,255,255,0.25)", padding: "8px 20px 4px" }}>
-                {group.label}
+          <nav style={{ padding: "12px 0", flex: 1, overflowY: "auto" }}>
+            {NAV_GROUPS.map(group => (
+              <div key={group.label} style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.16em", color: "rgba(255,255,255,0.25)", padding: "8px 20px 4px" }}>
+                  {group.label}
+                </div>
+                {group.ids.map(id => (
+                  <NavItem key={id} id={id} active={mod === id} onClick={() => { setMod(id); if (isMobile) setNavOpen(false); }} />
+                ))}
               </div>
-              {group.ids.map(id => (
-                <NavItem key={id} id={id} active={mod === id} onClick={() => setMod(id)} />
-              ))}
-            </div>
-          ))}
-        </nav>
-        <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL · Control Financiero</div>
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              style={{
-                width: "100%", padding: "8px 0",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 7, color: "rgba(255,255,255,0.55)",
-                fontSize: 12, fontWeight: 600, cursor: "pointer",
-                letterSpacing: 0.2, transition: "background 0.2s, color 0.2s",
-              }}
-              onMouseEnter={e => { e.target.style.background = "rgba(198,40,40,0.25)"; e.target.style.color = "#ff8a8a"; }}
-              onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.06)"; e.target.style.color = "rgba(255,255,255,0.55)"; }}
-            >
-              Cerrar sesión
-            </button>
-          )}
-        </div>
-      </aside>
+            ))}
+          </nav>
+          <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL · Control Financiero</div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                style={{
+                  width: "100%", padding: "8px 0",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 7, color: "rgba(255,255,255,0.55)",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  letterSpacing: 0.2, transition: "background 0.2s, color 0.2s",
+                }}
+                onMouseEnter={e => { e.target.style.background = "rgba(198,40,40,0.25)"; e.target.style.color = "#ff8a8a"; }}
+                onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.06)"; e.target.style.color = "rgba(255,255,255,0.55)"; }}
+              >
+                Cerrar sesión
+              </button>
+            )}
+          </div>
+        </aside>
+      )}
 
       {/* MAIN */}
-      <section style={{ flex: 1, minWidth: 0, height: "100vh", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-        {/* KPIs */}
-        <div style={{ padding: "20px 28px 0" }}>
-          {/* Fila 1: Ingresos + Utilidad */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 10 }}>
-            <KpiCard label="Ingresos con IVA" value={fmt(kpi.ingConIVA)}    sub={`${kpi.ingN} facturas · ${kpi.ingPagN} pagadas`}     badge="Con IVA"   badgeType="up" />
-            <KpiCard label="Ingresos sin IVA" value={fmt(kpi.ingSinIVA)}    sub="Todas las facturas"                                    badge="Sin IVA"   badgeType="up" />
-            <KpiCard label="IVA cobrado"       value={fmt(kpi.totalIVA)}     sub={`${kpi.ingPagN} facturas pagadas`}                     badge="Pagadas"   badgeType="up" />
-            <KpiCard label="Utilidad neta"     value={fmt(kpi.util)}
-              sub={`Margen ${kpi.pct}% · solo facturas pagadas`}
-              badge={kpi.ingPagN === 0 ? "Sin pagadas" : kpi.util >= 0 ? "▲ Positiva" : "▼ Negativa"}
-              badgeType={kpi.ingPagN === 0 ? "neu" : kpi.util >= 0 ? "up" : "down"} />
-          </div>
-          {/* Fila 2: Gastos + Fletes */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 20 }}>
-            <KpiCard label="Gastos"         value={fmt(kpi.gasMonto)}    sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""}`} badge="Monto neto" badgeType="down" />
-            <KpiCard label="Fletes sin IVA" value={fmt(kpi.fleteSinIVA)} sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""}`}     badge="Sin IVA"    badgeType="up" />
-            <KpiCard label="Fletes con IVA" value={fmt(kpi.fleteConIVA)} sub="+16% −4% −1.25%"                                    badge="Con IVA"    badgeType="up" />
+      <section style={{ flex: 1, minWidth: 0, height: "100vh", overflowY: "auto", display: "flex", flexDirection: "column", paddingTop: isMobile ? 56 : 0 }}>
+        {/* KPIs — 6 métricas claras: Cobrado / Fletes / Gastos × (con IVA · sin IVA) */}
+        <div style={{ padding: "16px clamp(12px, 3vw, 28px) 0" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 10, marginBottom: 16,
+          }}>
+            <KpiCard
+              label="Cobrado con IVA"
+              value={fmt(kpi.ingPagConIVA)}
+              sub={`${kpi.ingPagN} de ${kpi.ingN} facturas pagadas`}
+              badge="Entró al banco"
+              badgeType="up"
+            />
+            <KpiCard
+              label="Cobrado sin IVA"
+              value={fmt(kpi.ingPagSinIVA)}
+              sub="Neto, antes de impuestos"
+              badge="Entró al banco"
+              badgeType="up"
+            />
+            <KpiCard
+              label="Fletes con IVA"
+              value={fmt(kpi.fleteConIVA)}
+              sub={`${kpi.rutN} ruta${kpi.rutN !== 1 ? "s" : ""} facturada${kpi.rutN !== 1 ? "s" : ""}`}
+              badge="Facturado total"
+              badgeType="neu"
+            />
+            <KpiCard
+              label="Fletes sin IVA"
+              value={fmt(kpi.fleteSinIVA)}
+              sub="Neto, antes de impuestos"
+              badge="Facturado total"
+              badgeType="neu"
+            />
+            <KpiCard
+              label="Gastos con IVA"
+              value={fmt(kpi.gasConIVA)}
+              sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} de salida`}
+              badge="Salió del banco"
+              badgeType="down"
+            />
+            <KpiCard
+              label="Gastos sin IVA"
+              value={fmt(kpi.gasSinIVA)}
+              sub="Neto, antes de impuestos"
+              badge="Salió del banco"
+              badgeType="down"
+            />
           </div>
         </div>
 
@@ -3317,7 +3516,7 @@ export default function VDLModulos({ onLogout }) {
             }},
           ];
           return (
-            <div style={{ padding: "10px 28px", borderTop: "1px solid #E2E8E3", borderBottom: `2px solid ${activo ? "#74B72E" : "#E2E8E3"}`, background: activo ? "#F0FAF0" : "#F7F9F7", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ padding: "10px clamp(12px, 3vw, 28px)", borderTop: "1px solid #E2E8E3", borderBottom: `2px solid ${activo ? "#74B72E" : "#E2E8E3"}`, background: activo ? "#F0FAF0" : "#F7F9F7", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               {/* Ícono + label */}
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4" strokeLinecap="round"/></svg>
@@ -3343,13 +3542,13 @@ export default function VDLModulos({ onLogout }) {
         })()}
 
         {/* MODULE HEADER */}
-        <div style={{ padding: "16px 28px", borderBottom: "1px solid #E2E8E3" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{MOD_META[mod].title}</h2>
+        <div style={{ padding: "16px clamp(12px, 3vw, 28px)", borderBottom: "1px solid #E2E8E3" }}>
+          <h2 style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{MOD_META[mod].title}</h2>
           <p style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{MOD_META[mod].sub}</p>
         </div>
 
         {/* MODULE CONTENT */}
-        <div style={{ flex: 1, padding: "20px 28px" }}>
+        <div style={{ flex: 1, padding: "20px clamp(12px, 3vw, 28px)" }}>
           {mod === "dashboard"  && <ModDashboard  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} desde={desde} hasta={hasta} />}
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} operadores={operadores || []} />}
