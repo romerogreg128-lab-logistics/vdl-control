@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import {
+  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ReferenceLine, ReferenceDot,
+} from "recharts";
 // Font loaded via next/font or <link> in layout — uses system stack as fallback
 const LOGO_SRC = "data:image/png;base64,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";
 import { createClient } from "@supabase/supabase-js";
@@ -1713,7 +1717,7 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
 
 // ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
 function ModIngresos({ data, reload, desde, hasta }) {
-  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", xml_url: "", tipo: "Factura", factura_ref: "" };
+  const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", monto_cobrado: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", xml_url: "", tipo: "Factura", factura_ref: "" };
   const [open, setOpen]       = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [form, setForm]       = useState(EMPTY);
@@ -1731,7 +1735,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(true); };
-  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "", pdf_url: r.pdf_url || "", xml_url: r.xml_url || "", tipo: r.tipo || "Factura", factura_ref: r.factura_ref || "" }); setEditRow(r); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(true); };
+  const openEdit = (r) => { setForm({ factura: r.factura, periodo: r.periodo || "", siniva: r.siniva?.toString() || "", coniva: r.coniva?.toString() || "", monto_cobrado: r.monto_cobrado != null ? r.monto_cobrado.toString() : "", fcarga: r.fcarga || "", fvence: r.fvence || "", estatus: r.estatus || "", notas: r.notas || "", nar: r.nar?.toString() || "", fecha_pago: r.fecha_pago || "", pdf_url: r.pdf_url || "", xml_url: r.xml_url || "", tipo: r.tipo || "Factura", factura_ref: r.factura_ref || "" }); setEditRow(r); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(true); };
   const cancel   = () => { setForm(EMPTY); setEditRow(null); setErr(""); setPdfFile(null); setXmlFile(null); setOpen(false); };
 
   const save = async () => {
@@ -1755,7 +1759,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
         xml_url = sb.storage.from("facturas-pdf").getPublicUrl(xpath).data.publicUrl;
       }
       setUploading(false);
-      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null, pdf_url, xml_url, tipo: form.tipo || "Factura", factura_ref: form.tipo === "NC" ? (form.factura_ref || null) : null };
+      const payload = { factura: form.factura, periodo: form.periodo, siniva: parseFloat(form.siniva), coniva: parseFloat(form.coniva), monto_cobrado: form.monto_cobrado !== "" && form.monto_cobrado != null ? parseFloat(form.monto_cobrado) : null, fcarga: form.fcarga, fvence: form.fvence, estatus: form.estatus, notas: form.notas, nar: form.nar ? parseFloat(form.nar) : null, fecha_pago: form.fecha_pago || null, pdf_url, xml_url, tipo: form.tipo || "Factura", factura_ref: form.tipo === "NC" ? (form.factura_ref || null) : null };
       if (isEdit) {
         const { error } = await sb.from("ingresos").update(payload).eq("id", editRow.id);
         if (error) throw error;
@@ -1938,6 +1942,49 @@ function ModIngresos({ data, reload, desde, hasta }) {
               {form.estatus === "Pagado" ? `✓ Pagado${form.fecha_pago ? " — " + form.fecha_pago : ""}` : "Marcar como pagado"}
             </label>
           </div>
+          {/* Monto cobrado real (para pagos parciales o incompletos) */}
+          {(form.estatus === "Pagado" || form.estatus === "Pendiente" || form.estatus === "Vencido") && (() => {
+            const total = parseFloat(form.coniva || 0);
+            const cobrado = form.monto_cobrado !== "" && form.monto_cobrado != null ? parseFloat(form.monto_cobrado) : null;
+            const efectivo = cobrado ?? total;
+            const diff = total - efectivo;
+            const esParcial = cobrado != null && diff > 0.01;
+            const esCompleto = cobrado == null || Math.abs(diff) < 0.01;
+            return (
+              <div style={{ gridColumn: "span 2", padding: "12px 14px", background: esParcial ? "#FFF7ED" : "#F9FAFB", borderRadius: 10, border: `1.5px solid ${esParcial ? "#FCD34D" : "#E2E8E3"}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: esParcial ? "#92400E" : C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Monto cobrado real
+                  </span>
+                  {esParcial && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "#F59E0B", color: "#FFFFFF" }}>PAGO PARCIAL</span>
+                  )}
+                  {esCompleto && form.estatus === "Pagado" && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "#16A34A", color: "#FFFFFF" }}>COMPLETO</span>
+                  )}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, alignItems: "end" }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Lo que entró al banco</div>
+                    <Input type="number" step="0.01" placeholder={total ? total.toFixed(2) : "0.00"} value={form.monto_cobrado} onChange={e => set("monto_cobrado", e.target.value)} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Total facturado (con IVA)</div>
+                    <div style={{ padding: "8px 12px", background: "#F5F7F4", borderRadius: 8, fontSize: 13, fontWeight: 700, color: C.text }}>{fmt(total)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>{esParcial ? "Falta por cobrar" : "Diferencia"}</div>
+                    <div style={{ padding: "8px 12px", background: esParcial ? "#FEF3C7" : "#F5F7F4", borderRadius: 8, fontSize: 13, fontWeight: 700, color: esParcial ? "#B45309" : C.muted }}>
+                      {esParcial ? fmt(diff) : "—"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+                  Déjalo vacío si la factura se pagó completa. Llénalo sólo si el cliente pagó parcial o un monto distinto al facturado.
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
@@ -2569,65 +2616,66 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const series = seriesAll.filter(s => s.fecha >= winStart && s.fecha <= winEnd);
     if (series.length === 0) return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72" }}>Sin datos en la ventana.</div>;
 
-    // ── 9. Geometría del SVG ──
-    const W = 980, H = 290;
-    const padL = 88, padR = 28, padT = 32, padB = 44;
-    const chartW = W - padL - padR;
-    const chartH = H - padT - padB;
+    // ── 9. Datos preparados para Recharts ──
+    let boundaryIdx = -1;
+    for (let i = 0; i < series.length; i++) if (series[i].fecha <= todayStr) boundaryIdx = i;
+
+    const chartData = series.map((s, i) => ({
+      fecha: s.fecha,
+      cumInReal:  i <= boundaryIdx ? s.cumIn  : null,
+      cumInProj:  i >= boundaryIdx ? s.cumIn  : null,
+      cumOutReal: i <= boundaryIdx ? s.cumOut : null,
+      cumOutProj: i >= boundaryIdx ? s.cumOut : null,
+      saldoReal:  i <= boundaryIdx ? s.saldo  : null,
+      saldoProj:  i >= boundaryIdx ? s.saldo  : null,
+      saldo: s.saldo,
+      diaIn: s.in,
+      diaOut: s.out,
+    }));
 
     const allVals = series.flatMap(s => [s.cumIn, s.cumOut, s.saldo]);
-    const maxV = Math.max(...allVals, 0);
-    const minV = Math.min(...allVals, 0);
-    const rangeV = (maxV - minV) || 1;
+    const yMax = Math.max(...allVals, 0);
+    const yMin = Math.min(...allVals, 0);
+    const yRange = (yMax - yMin) || 1;
+    const zeroPct = ((yMax - 0) / yRange) * 100;
 
-    const parseFecha = (s) => new Date(s + "T12:00:00").getTime();
-    const minT = parseFecha(series[0].fecha);
-    const maxT = parseFecha(series[series.length - 1].fecha);
-    const rangeT = (maxT - minT) || 1;
-    const xPos = (fecha) => padL + ((parseFecha(fecha) - minT) / rangeT) * chartW;
-    const yPos = (v)     => padT + chartH - ((v - minV) / rangeV) * chartH;
-
-    // Split: pasado (hasta hoy inclusive) y futuro (desde hoy)
-    let lastPastIdx = -1;
-    for (let i = 0; i < series.length; i++) if (series[i].fecha <= todayStr) lastPastIdx = i;
-    const pastSlice   = lastPastIdx >= 0 ? series.slice(0, lastPastIdx + 1) : [];
-    const futureSlice = lastPastIdx >= 0 && lastPastIdx < series.length - 1
-      ? series.slice(lastPastIdx) // include boundary so lines connect visually
-      : (lastPastIdx < 0 ? series : []);
-
-    const buildPath = (slice, key) => slice.map((s, i) =>
-      `${i === 0 ? "M" : "L"}${xPos(s.fecha).toFixed(1)} ${yPos(s[key]).toFixed(1)}`
-    ).join(" ");
-
-    // Área del saldo (entre línea de saldo y la línea de cero)
-    const buildAreaPath = (slice, sign) => {
-      if (slice.length < 2) return "";
-      const pts = slice.map(s => {
-        const v = sign > 0 ? Math.max(0, s.saldo) : Math.min(0, s.saldo);
-        return `${xPos(s.fecha).toFixed(1)} ${yPos(v).toFixed(1)}`;
-      });
-      const baseR = `${xPos(slice[slice.length-1].fecha).toFixed(1)} ${yPos(0).toFixed(1)}`;
-      const baseL = `${xPos(slice[0].fecha).toFixed(1)} ${yPos(0).toFixed(1)}`;
-      return `M${pts[0]} ` + pts.slice(1).map(p => `L${p}`).join(" ") + ` L${baseR} L${baseL} Z`;
+    const xTickFormatter = (v) => {
+      if (!v) return "";
+      const [yy, mm, dd] = v.split("-");
+      const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+      return `${parseInt(dd)}-${meses[parseInt(mm)-1]}`;
     };
-
-    const yTicks = Array.from({ length: 5 }, (_, i) => minV + (rangeV * i) / 4);
-
-    // X labels — primer día visible de cada mes
-    const monthsSet = new Set();
-    const xLabels = [];
-    series.forEach(s => {
-      const mKey = s.fecha.slice(0, 7);
-      if (!monthsSet.has(mKey)) {
-        monthsSet.add(mKey);
-        const [yy, mm] = mKey.split("-");
-        const monthName = new Date(parseInt(yy), parseInt(mm) - 1, 1).toLocaleString("es-MX", { month: "short" }).replace(".", "");
-        xLabels.push({ fecha: s.fecha, label: `${monthName} ${yy.slice(2)}` });
-      }
-    });
 
     const todayInRange = todayStr >= series[0].fecha && todayStr <= series[series.length - 1].fecha;
     const peInRange = breakEven && breakEven >= series[0].fecha && breakEven <= series[series.length - 1].fecha;
+
+    const CashflowTooltip = ({ active, payload }) => {
+      if (!active || !payload || !payload.length) return null;
+      const d = payload[0]?.payload;
+      if (!d) return null;
+      const cumIn  = d.cumInReal  ?? d.cumInProj  ?? 0;
+      const cumOut = d.cumOutReal ?? d.cumOutProj ?? 0;
+      const isFuture = d.fecha > todayStr;
+      return (
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 14px rgba(0,0,0,0.1)", fontSize: 12, minWidth: 220 }}>
+          <div style={{ fontWeight: 700, color: "#132019", marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <span>{fmtDateShort(d.fecha)}</span>
+            {isFuture && <span style={{ background: "#F5F7F4", color: "#6B7A72", padding: "1px 7px", borderRadius: 10, fontSize: 10, fontWeight: 600 }}>proyectado</span>}
+          </div>
+          {(d.diaIn > 0 || d.diaOut > 0) && (
+            <div style={{ display: "grid", gap: 2, paddingBottom: 6, borderBottom: "1px solid #F0F2F0", marginBottom: 6 }}>
+              {d.diaIn > 0  && <div><span style={{ color: "#0F5C2E" }}>↑ Cobro:</span> <strong>{fmt(d.diaIn)}</strong></div>}
+              {d.diaOut > 0 && <div><span style={{ color: "#791F1F" }}>↓ Pago:</span> <strong>{fmt(d.diaOut)}</strong></div>}
+            </div>
+          )}
+          <div style={{ display: "grid", gap: 2 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><span style={{ color: "#6B7A72" }}>Ingresos acum.</span><strong style={{ color: "#0F5C2E" }}>{fmt(cumIn)}</strong></div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><span style={{ color: "#6B7A72" }}>Gastos acum.</span><strong style={{ color: "#791F1F" }}>{fmt(cumOut)}</strong></div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, paddingTop: 4, borderTop: "1px solid #F0F2F0" }}><span style={{ color: "#3a4a40", fontWeight: 600 }}>Saldo</span><strong style={{ color: d.saldo >= 0 ? "#2E7D32" : "#C62828" }}>{fmt(d.saldo)}</strong></div>
+          </div>
+        </div>
+      );
+    };
 
     return (
       <div>
@@ -2732,91 +2780,40 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </div>
         </div>
 
-        {/* ── SVG ── */}
-        <div style={{ overflowX: "auto" }}>
-          <svg width={W} height={H + 8} style={{ display: "block" }}>
-            <defs>
-              <linearGradient id="cf-pos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor="#2E7D32" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#2E7D32" stopOpacity="0.02" />
-              </linearGradient>
-              <linearGradient id="cf-neg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor="#C62828" stopOpacity="0.02" />
-                <stop offset="100%" stopColor="#C62828" stopOpacity="0.18" />
-              </linearGradient>
-            </defs>
-
-            {/* Zona "futura" sombreada */}
-            {todayInRange && (
-              <rect x={xPos(todayStr)} y={padT} width={W - padR - xPos(todayStr)} height={chartH} fill="#F8F9F8" opacity={0.7} />
-            )}
-
-            {/* Grid Y + labels */}
-            {yTicks.map((v, i) => (
-              <g key={i}>
-                <line x1={padL} y1={yPos(v)} x2={W - padR} y2={yPos(v)} stroke="#F0F2F0" strokeWidth={1} />
-                <text x={padL - 8} y={yPos(v) + 3} textAnchor="end" fontSize={10} fill="#6B7A72">{fmtM(v)}</text>
-              </g>
-            ))}
-
-            {/* Grid X (mes) */}
-            {xLabels.map((l, i) => (
-              <line key={`gx-${i}`} x1={xPos(l.fecha)} y1={padT} x2={xPos(l.fecha)} y2={padT + chartH} stroke="#F0F2F0" strokeWidth={1} />
-            ))}
-
-            {/* Línea cero */}
-            <line x1={padL} y1={yPos(0)} x2={W - padR} y2={yPos(0)} stroke="#9CA89F" strokeDasharray="3,3" strokeWidth={1} />
-
-            {/* Áreas del saldo */}
-            <path d={buildAreaPath(series, +1)} fill="url(#cf-pos)" />
-            <path d={buildAreaPath(series, -1)} fill="url(#cf-neg)" />
-
-            {/* HOY */}
-            {todayInRange && (
-              <g>
-                <line x1={xPos(todayStr)} y1={padT} x2={xPos(todayStr)} y2={padT + chartH} stroke="#132019" strokeDasharray="2,3" strokeWidth={1.2} opacity={0.7} />
-                <rect x={xPos(todayStr) - 18} y={padT - 18} width={36} height={15} fill="#132019" rx={3} />
-                <text x={xPos(todayStr)} y={padT - 7} textAnchor="middle" fontSize={10} fill="#FFF" fontWeight={700}>HOY</text>
-              </g>
-            )}
-
-            {/* Líneas — pasado (sólido) */}
-            {pastSlice.length > 1 && (
-              <>
-                <path d={buildPath(pastSlice, "cumOut")} fill="none" stroke="#C62828" strokeWidth={2} />
-                <path d={buildPath(pastSlice, "cumIn")}  fill="none" stroke="#2E7D32" strokeWidth={2} />
-                <path d={buildPath(pastSlice, "saldo")}  fill="none" stroke="#1565C0" strokeWidth={2.5} />
-              </>
-            )}
-
-            {/* Líneas — futuro (punteado) */}
-            {futureSlice.length > 1 && (
-              <>
-                <path d={buildPath(futureSlice, "cumOut")} fill="none" stroke="#C62828" strokeWidth={2} strokeDasharray="6,4" opacity={0.85} />
-                <path d={buildPath(futureSlice, "cumIn")}  fill="none" stroke="#2E7D32" strokeWidth={2} strokeDasharray="6,4" opacity={0.85} />
-                <path d={buildPath(futureSlice, "saldo")}  fill="none" stroke="#1565C0" strokeWidth={2.5} strokeDasharray="6,4" opacity={0.95} />
-              </>
-            )}
-
-            {/* Marcador del PE */}
-            {peInRange && (
-              <g>
-                <line x1={xPos(breakEven)} y1={padT} x2={xPos(breakEven)} y2={padT + chartH} stroke="#74B72E" strokeDasharray="2,3" strokeWidth={1} opacity={0.6} />
-                <circle cx={xPos(breakEven)} cy={yPos(0)} r={8} fill="#74B72E" stroke="#fff" strokeWidth={2.5} />
-                <rect x={xPos(breakEven) - 38} y={yPos(0) - 32} width={76} height={18} fill="#0F5C2E" rx={4} />
-                <text x={xPos(breakEven)} y={yPos(0) - 19} textAnchor="middle" fontSize={11} fontWeight={700} fill="#FFF">⚖ PE</text>
-                <text x={xPos(breakEven)} y={yPos(0) + 22} textAnchor="middle" fontSize={10} fontWeight={600} fill="#0F5C2E">{fmtDateShort(breakEven)}</text>
-              </g>
-            )}
-
-            {/* X labels */}
-            {xLabels.map((l, i) => (
-              <text key={`xl-${i}`} x={xPos(l.fecha)} y={padT + chartH + 18} textAnchor="middle" fontSize={10} fill="#6B7A72" fontWeight={500}>{l.label}</text>
-            ))}
-
-            {/* Eje inferior */}
-            <line x1={padL} y1={padT + chartH} x2={W - padR} y2={padT + chartH} stroke="#E2E8E3" strokeWidth={1} />
-          </svg>
+        {/* ── Gráfico Recharts ── */}
+        <div style={{ width: "100%", height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 24, right: 24, left: 8, bottom: 8 }}>
+              <defs>
+                <linearGradient id="saldoGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"                  stopColor="#2E7D32" stopOpacity="0.28" />
+                  <stop offset={`${zeroPct}%`}       stopColor="#2E7D32" stopOpacity="0.05" />
+                  <stop offset={`${zeroPct}%`}       stopColor="#C62828" stopOpacity="0.05" />
+                  <stop offset="100%"                stopColor="#C62828" stopOpacity="0.28" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F0" vertical={false} />
+              <XAxis dataKey="fecha" tickFormatter={xTickFormatter} tick={{ fontSize: 10, fill: "#6B7A72" }} interval="preserveStartEnd" minTickGap={40} />
+              <YAxis tickFormatter={fmtM} tick={{ fontSize: 10, fill: "#6B7A72" }} width={68} domain={[yMin, yMax]} />
+              <Tooltip content={<CashflowTooltip />} cursor={{ stroke: "#9CA89F", strokeWidth: 1, strokeDasharray: "3 3" }} />
+              <ReferenceLine y={0} stroke="#9CA89F" strokeDasharray="4 3" />
+              {todayInRange && (
+                <ReferenceLine x={todayStr} stroke="#132019" strokeDasharray="3 3" strokeWidth={1.2}
+                  label={{ value: "HOY", position: "top", fill: "#132019", fontSize: 11, fontWeight: 700 }} />
+              )}
+              <Area type="monotone" dataKey="saldo" stroke="none" fill="url(#saldoGrad)" connectNulls isAnimationActive={false} />
+              <Line type="monotone" dataKey="cumOutReal" stroke="#C62828" strokeWidth={2}   dot={false} connectNulls={false} name="Gastos acum." isAnimationActive={false} />
+              <Line type="monotone" dataKey="cumOutProj" stroke="#C62828" strokeWidth={2}   strokeDasharray="6 4" dot={false} connectNulls={false} legendType="none" isAnimationActive={false} />
+              <Line type="monotone" dataKey="cumInReal"  stroke="#2E7D32" strokeWidth={2}   dot={false} connectNulls={false} name="Ingresos acum." isAnimationActive={false} />
+              <Line type="monotone" dataKey="cumInProj"  stroke="#2E7D32" strokeWidth={2}   strokeDasharray="6 4" dot={false} connectNulls={false} legendType="none" isAnimationActive={false} />
+              <Line type="monotone" dataKey="saldoReal"  stroke="#1565C0" strokeWidth={2.6} dot={false} connectNulls={false} name="Saldo" isAnimationActive={false} />
+              <Line type="monotone" dataKey="saldoProj"  stroke="#1565C0" strokeWidth={2.6} strokeDasharray="6 4" dot={false} connectNulls={false} legendType="none" isAnimationActive={false} />
+              {peInRange && (
+                <ReferenceDot x={breakEven} y={0} r={8} fill="#74B72E" stroke="#FFFFFF" strokeWidth={2.5}
+                  label={{ value: `⚖ PE ${fmtDateShort(breakEven)}`, position: "top", fill: "#0F5C2E", fontSize: 11, fontWeight: 700 }} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
 
         {/* ── Tabla resumen mensual ── */}
@@ -3297,11 +3294,21 @@ export default function VDLModulos({ onLogout }) {
     const ingSinIVA  = ingFilt.reduce((s, r) => s + ingSign(r) * parseFloat(r.siniva || 0), 0);
 
     // Ingresos — solo Pagadas (para margen e IVA cobrado)
+    // Si hay monto_cobrado (pago parcial), usarlo en vez de coniva
     const ingPagadas   = ingFilt.filter(r => r.estatus === "Pagado");
-    const ingPagConIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * parseFloat(r.coniva || 0), 0);
-    const ingPagSinIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * parseFloat(r.siniva || 0), 0);
+    const efectivoConIVA = (r) => r.monto_cobrado != null && r.monto_cobrado !== ""
+      ? parseFloat(r.monto_cobrado)
+      : parseFloat(r.coniva || 0);
+    const efectivoSinIVA = (r) => {
+      const total = parseFloat(r.coniva || 0);
+      const pagado = efectivoConIVA(r);
+      const factor = total > 0 ? pagado / total : 1;
+      return parseFloat(r.siniva || 0) * factor;
+    };
+    const ingPagConIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * efectivoConIVA(r), 0);
+    const ingPagSinIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * efectivoSinIVA(r), 0);
     const totalIVA     = ingPagadas.reduce((s, r) =>
-      s + ingSign(r) * (parseFloat(r.coniva || 0) - parseFloat(r.siniva || 0)), 0);
+      s + ingSign(r) * (efectivoConIVA(r) - efectivoSinIVA(r)), 0);
 
     // Gastos
     const gasMonto   = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
