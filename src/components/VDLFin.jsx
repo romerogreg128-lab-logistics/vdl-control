@@ -3306,9 +3306,13 @@ export default function VDLModulos({ onLogout }) {
       return parseFloat(r.siniva || 0) * factor;
     };
     const ingPagConIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * efectivoConIVA(r), 0);
-    const ingPagSinIVA = ingPagadas.reduce((s, r) => s + ingSign(r) * efectivoSinIVA(r), 0);
+    const ingPagSinIVABruto = ingPagadas.reduce((s, r) => s + ingSign(r) * efectivoSinIVA(r), 0);
     const totalIVA     = ingPagadas.reduce((s, r) =>
       s + ingSign(r) * (efectivoConIVA(r) - efectivoSinIVA(r)), 0);
+
+    // Retención SAT: 2.5% sobre la base sin IVA cobrada
+    const retencionSAT = ingPagSinIVABruto * 0.025;
+    const ingPagSinIVA = ingPagSinIVABruto - retencionSAT;
 
     // Gastos
     const gasMonto   = gasFilt.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
@@ -3319,12 +3323,12 @@ export default function VDLModulos({ onLogout }) {
     const fleteSinIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
     const fleteConIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete_coniva || 0), 0);
 
-    // Utilidad: solo facturas PAGADAS sin IVA vs gastos sin IVA
+    // Utilidad: solo facturas PAGADAS sin IVA (neto de retención) vs gastos sin IVA
     const util  = ingPagSinIVA - gasSinIVA;
     const pct   = ingPagSinIVA > 0 ? Math.round(util / ingPagSinIVA * 100) : 0;
 
     return {
-      ingConIVA, ingSinIVA, ingPagConIVA, ingPagSinIVA,
+      ingConIVA, ingSinIVA, ingPagConIVA, ingPagSinIVA, ingPagSinIVABruto, retencionSAT,
       gasMonto, gasSinIVA, gasConIVA,
       fleteSinIVA, fleteConIVA, totalIVA, util, pct,
       ingN: ingFilt.length, ingPagN: ingPagadas.length,
@@ -3456,9 +3460,16 @@ export default function VDLModulos({ onLogout }) {
             <KpiCard
               label="Cobrado sin IVA"
               value={fmt(kpi.ingPagSinIVA)}
-              sub="Neto, antes de impuestos"
-              badge="Entró al banco"
+              sub={`${fmt(kpi.ingPagSinIVABruto)} − 2.5% retención SAT`}
+              badge="Neto al bolsillo"
               badgeType="up"
+            />
+            <KpiCard
+              label="Retención SAT (2.5%)"
+              value={fmt(kpi.retencionSAT)}
+              sub="A pagar al SAT"
+              badge="Por enterar"
+              badgeType="down"
             />
             <KpiCard
               label="Fletes con IVA"
