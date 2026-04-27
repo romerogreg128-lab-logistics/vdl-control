@@ -2425,7 +2425,15 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   };
 
   // Flujo de caja proyectado — fletes cobrados a 30d post-cierre, gastos en su fecha
+  // + Modelo de proyección: extiende los próximos 365 días al run-rate de los últimos 60 días
   const CashflowTimeline = () => {
+    const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const fmtDateShort = (s) => {
+      const [y, m, d] = s.split("-");
+      const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+      return `${parseInt(d)}-${meses[parseInt(m)-1]}-${y}`;
+    };
+
     const proyectarCobro = (fechaStr) => {
       if (!fechaStr) return null;
       const [y, m, d] = fechaStr.split("-").map(Number);
@@ -2436,67 +2444,134 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       else              { cDay = 25; }
       const cierre = new Date(cYear, cMonth - 1, cDay);
       cierre.setDate(cierre.getDate() + 30);
-      return `${cierre.getFullYear()}-${String(cierre.getMonth()+1).padStart(2,"0")}-${String(cierre.getDate()).padStart(2,"0")}`;
+      return fmtDate(cierre);
     };
 
-    const buckets = new Map();
-    const add = (fecha, key, val) => {
-      if (!buckets.has(fecha)) buckets.set(fecha, { in: 0, out: 0 });
-      buckets.get(fecha)[key] += val;
+    // ── 1. Buckets reales (gastos en su fecha + cobros proyectados de rutas existentes) ──
+    const realBuckets = new Map();
+    const addBucket = (m, fecha, key, val) => {
+      if (!m.has(fecha)) m.set(fecha, { in: 0, out: 0 });
+      m.get(fecha)[key] += val;
     };
     (rutas || []).forEach(r => {
       const cobro = proyectarCobro(r.fecha);
       if (!cobro) return;
       const monto = parseFloat(r.flete || r.flete_siniva || 0);
-      if (monto > 0) add(cobro, "in", monto);
+      if (monto > 0) addBucket(realBuckets, cobro, "in", monto);
     });
     (gastos || []).forEach(g => {
       if (!g.fecha) return;
       const monto = parseFloat(g.monto || 0);
-      if (monto > 0) add(g.fecha, "out", monto);
+      if (monto > 0) addBucket(realBuckets, g.fecha, "out", monto);
     });
 
-    if (buckets.size === 0) {
+    if (realBuckets.size === 0) {
       return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72", fontSize: 13 }}>Sin datos suficientes para proyectar el flujo de caja.</div>;
     }
 
-    const dates = Array.from(buckets.keys()).sort();
+    // ── 2. Hoy ──
+    const now = new Date();
+    const todayStr = fmtDate(now);
+
+    // ── 3. Run-rate (últimos 60 días de actividad real) ──
+    const lookbackDays = 60;
+    const lookbackDate = new Date(now); lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
+    const lookbackStr = fmtDate(lookbackDate);
+    const inWin = (f) => f && f >= lookbackStr && f <= todayStr;
+
+    const histFletes = (rutas || []).filter(r => inWin(r.fecha));
+    const histGas    = (gastos || []).filter(g => inWin(g.fecha));
+    const histFleteSum = histFletes.reduce((s, r) => s + parseFloat(r.flete || r.flete_siniva || 0), 0);
+    const histGastoSum = histGas.reduce((s, g) => s + parseFloat(g.monto || 0), 0);
+
+    // span efectivo: si los datos cubren menos de 60 días, dividir por lo que haya
+    const allFechas = (rutas || []).map(r => r.fecha).concat((gastos || []).map(g => g.fecha)).filter(Boolean);
+    const oldestStr = allFechas.length > 0 ? allFechas.sort()[0] : todayStr;
+    const oldestForRR = oldestStr > lookbackStr ? oldestStr : lookbackStr;
+    const spanDays = Math.max(1, Math.ceil((new Date(todayStr + "T12:00:00") - new Date(oldestForRR + "T12:00:00")) / 86400000));
+
+    const avgDailyFlete = histFleteSum / spanDays;
+    const avgDailyGasto = histGastoSum / spanDays;
+    const avgMonthlyFlete = avgDailyFlete * 30;
+    const avgMonthlyGasto = avgDailyGasto * 30;
+    const avgMonthlyNeto  = avgMonthlyFlete - avgMonthlyGasto;
+    const sostenible = avgMonthlyNeto > 0;
+
+    // ── 4. Generar eventos sintéticos a futuro (continuación al run-rate) ──
+    const fullBuckets = new Map();
+    for (const [k, v] of realBuckets) fullBuckets.set(k, { in: v.in, out: v.out, isReal: true });
+
+    const horizonDays = 540; // ~18 meses para asegurar capturar PE
+    const projStart = new Date(now); projStart.setDate(projStart.getDate() + 1);
+    for (let i = 0; i < horizonDays; i++) {
+      const d = new Date(projStart); d.setDate(projStart.getDate() + i);
+      const dStr = fmtDate(d);
+      if (avgDailyGasto > 0) addBucket(fullBuckets, dStr, "out", avgDailyGasto);
+      if (avgDailyFlete > 0) {
+        const cobro = proyectarCobro(dStr);
+        if (cobro) addBucket(fullBuckets, cobro, "in", avgDailyFlete);
+      }
+    }
+
+    // ── 5. Serie acumulada completa ──
+    const allDates = Array.from(fullBuckets.keys()).sort();
     let cumIn = 0, cumOut = 0;
-    const series = dates.map(fecha => {
-      const b = buckets.get(fecha);
+    const seriesAll = allDates.map(fecha => {
+      const b = fullBuckets.get(fecha);
       cumIn += b.in; cumOut += b.out;
       return { fecha, in: b.in, out: b.out, cumIn, cumOut, saldo: cumIn - cumOut };
     });
 
+    // ── 6. Break-even ──
     let breakEven = null;
-    for (let i = 0; i < series.length; i++) {
-      if (series[i].saldo >= 0 && (i === 0 || series[i-1].saldo < 0)) { breakEven = series[i].fecha; break; }
+    for (let i = 0; i < seriesAll.length; i++) {
+      if (seriesAll[i].saldo >= 0 && (i === 0 || seriesAll[i-1].saldo < 0)) { breakEven = seriesAll[i].fecha; break; }
     }
+    // Tipo de PE: comprometido si cae dentro del horizonte real, proyectado si requiere extrapolación
+    const lastRealDate = Array.from(realBuckets.keys()).sort().pop();
+    const peTipo = !breakEven ? null : (breakEven <= lastRealDate ? "comprometido" : "proyectado");
+    const daysToPE = breakEven
+      ? Math.ceil((new Date(breakEven + "T12:00:00") - new Date(todayStr + "T12:00:00")) / 86400000)
+      : null;
 
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    // ── 7. Saldo a hoy + próx ingreso + por cobrar real ──
     let saldoHoy = 0;
     let proxIngreso = null;
-    for (let i = 0; i < series.length; i++) {
-      if (series[i].fecha <= todayStr) saldoHoy = series[i].saldo;
-      else if (!proxIngreso && series[i].in > 0) { proxIngreso = { fecha: series[i].fecha, monto: series[i].in }; break; }
+    for (let i = 0; i < seriesAll.length; i++) {
+      if (seriesAll[i].fecha <= todayStr) saldoHoy = seriesAll[i].saldo;
+      else if (!proxIngreso && seriesAll[i].in > 0) { proxIngreso = { fecha: seriesAll[i].fecha, monto: seriesAll[i].in }; break; }
     }
-    const totalCumIn  = series[series.length - 1].cumIn;
-    const totalCumOut = series[series.length - 1].cumOut;
-    const ingresosPendientes = totalCumIn - (() => {
-      let acc = 0;
-      for (const s of series) { if (s.fecha <= todayStr) acc = s.cumIn; else break; }
-      return acc;
-    })();
+    const porCobrar = (rutas || []).reduce((s, r) => {
+      const c = proyectarCobro(r.fecha);
+      if (c && c > todayStr) return s + parseFloat(r.flete || r.flete_siniva || 0);
+      return s;
+    }, 0);
 
-    const W = 920, H = 240;
-    const padL = 80, padR = 24, padT = 28, padB = 36;
+    // ── 8. Recorte de ventana visible: 90 días atrás → max(PE+45d, hoy+90d) ──
+    const histStart = new Date(now); histStart.setDate(histStart.getDate() - 90);
+    const histStartStr = fmtDate(histStart);
+    const winStart = allDates[0] > histStartStr ? allDates[0] : histStartStr;
+
+    let winEnd;
+    if (breakEven) {
+      const e = new Date(breakEven + "T12:00:00"); e.setDate(e.getDate() + 45);
+      winEnd = fmtDate(e);
+    } else {
+      const e = new Date(now); e.setDate(e.getDate() + 180);
+      winEnd = fmtDate(e);
+    }
+    const series = seriesAll.filter(s => s.fecha >= winStart && s.fecha <= winEnd);
+    if (series.length === 0) return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72" }}>Sin datos en la ventana.</div>;
+
+    // ── 9. Geometría del SVG ──
+    const W = 980, H = 290;
+    const padL = 88, padR = 28, padT = 32, padB = 44;
     const chartW = W - padL - padR;
     const chartH = H - padT - padB;
 
-    const allValues = series.flatMap(s => [s.cumIn, s.cumOut, s.saldo]);
-    const maxV = Math.max(...allValues, 0);
-    const minV = Math.min(...allValues, 0);
+    const allVals = series.flatMap(s => [s.cumIn, s.cumOut, s.saldo]);
+    const maxV = Math.max(...allVals, 0);
+    const minV = Math.min(...allVals, 0);
     const rangeV = (maxV - minV) || 1;
 
     const parseFecha = (s) => new Date(s + "T12:00:00").getTime();
@@ -2506,10 +2581,33 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const xPos = (fecha) => padL + ((parseFecha(fecha) - minT) / rangeT) * chartW;
     const yPos = (v)     => padT + chartH - ((v - minV) / rangeV) * chartH;
 
-    const pathFor = (key) => series.map((s, i) => `${i === 0 ? "M" : "L"}${xPos(s.fecha).toFixed(1)} ${yPos(s[key]).toFixed(1)}`).join(" ");
+    // Split: pasado (hasta hoy inclusive) y futuro (desde hoy)
+    let lastPastIdx = -1;
+    for (let i = 0; i < series.length; i++) if (series[i].fecha <= todayStr) lastPastIdx = i;
+    const pastSlice   = lastPastIdx >= 0 ? series.slice(0, lastPastIdx + 1) : [];
+    const futureSlice = lastPastIdx >= 0 && lastPastIdx < series.length - 1
+      ? series.slice(lastPastIdx) // include boundary so lines connect visually
+      : (lastPastIdx < 0 ? series : []);
+
+    const buildPath = (slice, key) => slice.map((s, i) =>
+      `${i === 0 ? "M" : "L"}${xPos(s.fecha).toFixed(1)} ${yPos(s[key]).toFixed(1)}`
+    ).join(" ");
+
+    // Área del saldo (entre línea de saldo y la línea de cero)
+    const buildAreaPath = (slice, sign) => {
+      if (slice.length < 2) return "";
+      const pts = slice.map(s => {
+        const v = sign > 0 ? Math.max(0, s.saldo) : Math.min(0, s.saldo);
+        return `${xPos(s.fecha).toFixed(1)} ${yPos(v).toFixed(1)}`;
+      });
+      const baseR = `${xPos(slice[slice.length-1].fecha).toFixed(1)} ${yPos(0).toFixed(1)}`;
+      const baseL = `${xPos(slice[0].fecha).toFixed(1)} ${yPos(0).toFixed(1)}`;
+      return `M${pts[0]} ` + pts.slice(1).map(p => `L${p}`).join(" ") + ` L${baseR} L${baseL} Z`;
+    };
 
     const yTicks = Array.from({ length: 5 }, (_, i) => minV + (rangeV * i) / 4);
 
+    // X labels — primer día visible de cada mes
     const monthsSet = new Set();
     const xLabels = [];
     series.forEach(s => {
@@ -2523,79 +2621,185 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     });
 
     const todayInRange = todayStr >= series[0].fecha && todayStr <= series[series.length - 1].fecha;
+    const peInRange = breakEven && breakEven >= series[0].fecha && breakEven <= series[series.length - 1].fecha;
 
     return (
       <div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
-          <div style={{ background: saldoHoy >= 0 ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px" }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>Saldo acumulado al día de hoy</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: saldoHoy >= 0 ? "#2E7D32" : "#C62828", marginTop: 2 }}>{fmtM(saldoHoy)}</div>
-          </div>
-          <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px" }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>Próximo cobro proyectado</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#132019", marginTop: 2 }}>{proxIngreso ? fmtM(proxIngreso.monto) : "—"}</div>
-            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{proxIngreso ? proxIngreso.fecha : "sin pendientes"}</div>
-          </div>
-          <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px" }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>Por cobrar (proyectado)</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>{fmtM(ingresosPendientes)}</div>
-            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>fletes con cobro futuro</div>
-          </div>
-          <div style={{ background: breakEven ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px" }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>Punto de equilibrio (saldo ≥ 0)</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: breakEven ? "#0F5C2E" : "#C62828", marginTop: 2 }}>{breakEven || "No alcanzado"}</div>
-            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{breakEven ? "fecha estimada" : "en horizonte de datos"}</div>
+        {/* ── Panel de modelo de proyección ── */}
+        <div style={{
+          background: sostenible ? "linear-gradient(135deg, #F0FAF0 0%, #E8F5E8 100%)" : "linear-gradient(135deg, #FEF2F2 0%, #FEE7E7 100%)",
+          border: `1px solid ${sostenible ? "#AACFAA" : "#FECACA"}`,
+          borderRadius: 16, padding: "16px 20px", marginBottom: 16,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "stretch", flexWrap: "wrap", gap: 16 }}>
+            <div style={{ flex: "1 1 360px", minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 18 }}>{sostenible ? "✅" : "⚠️"}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>
+                  Modelo de proyección — operación estable (run-rate {spanDays} días)
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "#3a4a40", lineHeight: 1.6 }}>
+                Fletes promedio: <strong style={{ color: "#0F5C2E" }}>{fmtM(avgMonthlyFlete)}/mes</strong> · Gastos promedio: <strong style={{ color: "#791F1F" }}>{fmtM(avgMonthlyGasto)}/mes</strong>
+                <br />
+                Resultado neto mensual: <strong style={{ color: sostenible ? "#0F5C2E" : "#C62828", fontSize: 14 }}>{fmtM(avgMonthlyNeto)}</strong>
+                {sostenible
+                  ? <span style={{ color: "#6B7A72" }}> — saldo crece a este ritmo</span>
+                  : <span style={{ color: "#6B7A72" }}> — gastos exceden ingresos, no sostenible</span>}
+              </div>
+            </div>
+            <div style={{ flex: "0 0 auto", textAlign: "right", borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 20, minWidth: 200 }}>
+              <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>
+                {peTipo === "comprometido" ? "Equilibrio comprometido (pipeline real)" : "Equilibrio proyectado (run-rate)"}
+              </div>
+              {breakEven ? (
+                <>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>{fmtDateShort(breakEven)}</div>
+                  <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>
+                    {daysToPE >= 0 ? `en ${daysToPE} días` : `hace ${Math.abs(daysToPE)} días (ya alcanzado)`}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#C62828", lineHeight: 1.1 }}>No alcanzable</div>
+                  <div style={{ fontSize: 11, color: "#791F1F", marginTop: 4 }}>en horizonte de 18 meses</div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>
+        {/* ── KPIs ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+          <div style={{ background: saldoHoy >= 0 ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px", border: `1px solid ${saldoHoy >= 0 ? "#DDEEDC" : "#FECACA"}` }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Saldo acumulado a hoy</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: saldoHoy >= 0 ? "#2E7D32" : "#C62828", marginTop: 2 }}>{fmtM(saldoHoy)}</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>Ingresos cobrados − gastos pagados</div>
+          </div>
+          <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8E3" }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Próximo cobro</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#132019", marginTop: 2 }}>{proxIngreso ? fmtM(proxIngreso.monto) : "—"}</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{proxIngreso ? fmtDateShort(proxIngreso.fecha) : "sin pendientes"}</div>
+          </div>
+          <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8E3" }}>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Por cobrar (pipeline real)</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>{fmtM(porCobrar)}</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>fletes ya hechos sin cobrar</div>
+          </div>
+        </div>
+
+        {/* ── Leyenda ── */}
+        <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
           {[
-            { c: "#2E7D32", l: "Ingresos acumulados (cobrados)" },
-            { c: "#C62828", l: "Gastos acumulados (pagados)" },
-            { c: "#1565C0", l: "Saldo (Ingresos − Gastos)" },
+            { c: "#2E7D32", l: "Ingresos acumulados" },
+            { c: "#C62828", l: "Gastos acumulados" },
+            { c: "#1565C0", l: "Saldo (Ing − Gas)" },
           ].map(it => (
             <div key={it.l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-              <span style={{ width: 14, height: 3, background: it.c, display: "inline-block", borderRadius: 2 }} />
-              <span style={{ color: "#6B7A72" }}>{it.l}</span>
+              <span style={{ width: 16, height: 3, background: it.c, display: "inline-block", borderRadius: 2 }} />
+              <span style={{ color: "#3a4a40" }}>{it.l}</span>
             </div>
           ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#6B7A72", marginLeft: "auto" }}>
+            <span style={{ width: 18, height: 2, background: "#1565C0", display: "inline-block", borderRadius: 2 }} />
+            <span>Real / pipeline</span>
+            <span style={{ display: "inline-block", marginLeft: 8, width: 18, height: 0, borderTop: "2px dashed #1565C0" }} />
+            <span>Proyección run-rate</span>
+          </div>
         </div>
 
+        {/* ── SVG ── */}
         <div style={{ overflowX: "auto" }}>
-          <svg width={W} height={H + 6} style={{ display: "block" }}>
+          <svg width={W} height={H + 8} style={{ display: "block" }}>
+            <defs>
+              <linearGradient id="cf-pos" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor="#2E7D32" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="#2E7D32" stopOpacity="0.02" />
+              </linearGradient>
+              <linearGradient id="cf-neg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor="#C62828" stopOpacity="0.02" />
+                <stop offset="100%" stopColor="#C62828" stopOpacity="0.18" />
+              </linearGradient>
+            </defs>
+
+            {/* Zona "futura" sombreada */}
+            {todayInRange && (
+              <rect x={xPos(todayStr)} y={padT} width={W - padR - xPos(todayStr)} height={chartH} fill="#F8F9F8" opacity={0.7} />
+            )}
+
+            {/* Grid Y + labels */}
             {yTicks.map((v, i) => (
               <g key={i}>
                 <line x1={padL} y1={yPos(v)} x2={W - padR} y2={yPos(v)} stroke="#F0F2F0" strokeWidth={1} />
-                <text x={padL - 6} y={yPos(v) + 3} textAnchor="end" fontSize={10} fill="#6B7A72">{fmtM(v)}</text>
+                <text x={padL - 8} y={yPos(v) + 3} textAnchor="end" fontSize={10} fill="#6B7A72">{fmtM(v)}</text>
               </g>
             ))}
+
+            {/* Grid X (mes) */}
+            {xLabels.map((l, i) => (
+              <line key={`gx-${i}`} x1={xPos(l.fecha)} y1={padT} x2={xPos(l.fecha)} y2={padT + chartH} stroke="#F0F2F0" strokeWidth={1} />
+            ))}
+
+            {/* Línea cero */}
             <line x1={padL} y1={yPos(0)} x2={W - padR} y2={yPos(0)} stroke="#9CA89F" strokeDasharray="3,3" strokeWidth={1} />
 
+            {/* Áreas del saldo */}
+            <path d={buildAreaPath(series, +1)} fill="url(#cf-pos)" />
+            <path d={buildAreaPath(series, -1)} fill="url(#cf-neg)" />
+
+            {/* HOY */}
             {todayInRange && (
               <g>
-                <line x1={xPos(todayStr)} y1={padT} x2={xPos(todayStr)} y2={padT + chartH} stroke="#132019" strokeDasharray="2,3" strokeWidth={1} opacity={0.55} />
-                <text x={xPos(todayStr)} y={padT - 8} textAnchor="middle" fontSize={10} fill="#132019" fontWeight={700}>HOY</text>
+                <line x1={xPos(todayStr)} y1={padT} x2={xPos(todayStr)} y2={padT + chartH} stroke="#132019" strokeDasharray="2,3" strokeWidth={1.2} opacity={0.7} />
+                <rect x={xPos(todayStr) - 18} y={padT - 18} width={36} height={15} fill="#132019" rx={3} />
+                <text x={xPos(todayStr)} y={padT - 7} textAnchor="middle" fontSize={10} fill="#FFF" fontWeight={700}>HOY</text>
               </g>
             )}
 
-            <path d={pathFor("cumOut")} fill="none" stroke="#C62828" strokeWidth={2} />
-            <path d={pathFor("cumIn")}  fill="none" stroke="#2E7D32" strokeWidth={2} />
-            <path d={pathFor("saldo")}  fill="none" stroke="#1565C0" strokeWidth={2.5} />
+            {/* Líneas — pasado (sólido) */}
+            {pastSlice.length > 1 && (
+              <>
+                <path d={buildPath(pastSlice, "cumOut")} fill="none" stroke="#C62828" strokeWidth={2} />
+                <path d={buildPath(pastSlice, "cumIn")}  fill="none" stroke="#2E7D32" strokeWidth={2} />
+                <path d={buildPath(pastSlice, "saldo")}  fill="none" stroke="#1565C0" strokeWidth={2.5} />
+              </>
+            )}
 
-            {breakEven && (
+            {/* Líneas — futuro (punteado) */}
+            {futureSlice.length > 1 && (
+              <>
+                <path d={buildPath(futureSlice, "cumOut")} fill="none" stroke="#C62828" strokeWidth={2} strokeDasharray="6,4" opacity={0.85} />
+                <path d={buildPath(futureSlice, "cumIn")}  fill="none" stroke="#2E7D32" strokeWidth={2} strokeDasharray="6,4" opacity={0.85} />
+                <path d={buildPath(futureSlice, "saldo")}  fill="none" stroke="#1565C0" strokeWidth={2.5} strokeDasharray="6,4" opacity={0.95} />
+              </>
+            )}
+
+            {/* Marcador del PE */}
+            {peInRange && (
               <g>
-                <circle cx={xPos(breakEven)} cy={yPos(0)} r={6} fill="#74B72E" stroke="#fff" strokeWidth={2} />
-                <text x={xPos(breakEven)} y={yPos(0) - 12} textAnchor="middle" fontSize={10} fontWeight={700} fill="#0F5C2E">⚖ Equilibrio</text>
-                <text x={xPos(breakEven)} y={yPos(0) + 22} textAnchor="middle" fontSize={9} fill="#0F5C2E">{breakEven}</text>
+                <line x1={xPos(breakEven)} y1={padT} x2={xPos(breakEven)} y2={padT + chartH} stroke="#74B72E" strokeDasharray="2,3" strokeWidth={1} opacity={0.6} />
+                <circle cx={xPos(breakEven)} cy={yPos(0)} r={8} fill="#74B72E" stroke="#fff" strokeWidth={2.5} />
+                <rect x={xPos(breakEven) - 38} y={yPos(0) - 32} width={76} height={18} fill="#0F5C2E" rx={4} />
+                <text x={xPos(breakEven)} y={yPos(0) - 19} textAnchor="middle" fontSize={11} fontWeight={700} fill="#FFF">⚖ PE</text>
+                <text x={xPos(breakEven)} y={yPos(0) + 22} textAnchor="middle" fontSize={10} fontWeight={600} fill="#0F5C2E">{fmtDateShort(breakEven)}</text>
               </g>
             )}
 
+            {/* X labels */}
             {xLabels.map((l, i) => (
-              <text key={i} x={xPos(l.fecha)} y={padT + chartH + 16} textAnchor="middle" fontSize={10} fill="#6B7A72">{l.label}</text>
+              <text key={`xl-${i}`} x={xPos(l.fecha)} y={padT + chartH + 18} textAnchor="middle" fontSize={10} fill="#6B7A72" fontWeight={500}>{l.label}</text>
             ))}
 
+            {/* Eje inferior */}
             <line x1={padL} y1={padT + chartH} x2={W - padR} y2={padT + chartH} stroke="#E2E8E3" strokeWidth={1} />
           </svg>
+        </div>
+
+        {/* ── Nota del modelo ── */}
+        <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 12, padding: "10px 14px", background: "#F8F9F8", borderRadius: 8, lineHeight: 1.6 }}>
+          <strong style={{ color: "#3a4a40" }}>Cómo se calcula:</strong> el modelo asume que la operación continúa al ritmo promedio de los últimos {spanDays} días.
+          Cada flete sintético se cobra 30 días después del cierre del período (10 o 25). Los gastos diarios sintéticos se asignan en el día que ocurren.
+          Saldo inicial $0 al primer evento de la serie.
         </div>
       </div>
     );
