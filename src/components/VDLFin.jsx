@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ReferenceLine, ReferenceDot,
+  ResponsiveContainer, ComposedChart, BarChart, Bar, Line, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ReferenceLine, ReferenceDot, Cell,
 } from "recharts";
 // Font loaded via next/font or <link> in layout — uses system stack as fallback
 const LOGO_SRC = "data:image/png;base64,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";
@@ -580,6 +580,7 @@ function BulkCalendar({ onAddFechas }) {
 // SVG icons for nav
 const NAV_ICONS = {
   dashboard:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/></svg>,
+  consultas:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3h12M2 8h12M2 13h7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><circle cx="12" cy="13" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M14 15l1.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   ingresos:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M5 7h4M5 9.5h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M11 6l1.5 1.5L11 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   gastos:     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M8 5v2.5l2 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   clientes:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13c0-2.2 2.686-4 6-4s6 1.8 6 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.4"/></svg>,
@@ -589,7 +590,7 @@ const NAV_ICONS = {
 };
 
 const NAV_GROUPS = [
-  { label: "GENERAL",        ids: ["dashboard"] },
+  { label: "GENERAL",        ids: ["dashboard", "consultas"] },
   { label: "CAPTURA",        ids: ["ingresos", "gastos"] },
   { label: "OPERACIONES",    ids: ["clientes", "operadores", "rutas"] },
   { label: "CONFIGURACIÓN",  ids: ["unidades"] },
@@ -597,6 +598,7 @@ const NAV_GROUPS = [
 
 const NAV_LABELS = {
   dashboard:  "Dashboard",
+  consultas:  "Consultas",
   ingresos:   "Ingresos",
   gastos:     "Gastos",
   clientes:   "Clientes",
@@ -632,6 +634,7 @@ function NavItem({ id, active, onClick }) {
 // ─── FILTER BAR ───────────────────────────────────────────────────────────
 const MOD_META = {
   dashboard:  { title: "Dashboard",  sub: "Resumen completo de métricas del período" },
+  consultas:  { title: "Consultas",  sub: "Construye análisis personalizados sobre tus datos en tiempo real" },
   ingresos:   { title: "Flujo de trabajo",   sub: "Registro de facturas · solo las pagadas cuentan como ingreso" },
   gastos:     { title: "Gastos",     sub: "Control de egresos operativos" },
   clientes:   { title: "Clientes",   sub: "Tarifas por tipo de unidad y datos de contacto" },
@@ -2278,6 +2281,498 @@ function MiniKpi({ label, value, sub, color }) {
   );
 }
 
+// ─── MÓDULO CONSULTAS ─────────────────────────────────────────────────────
+// Constructor visual de consultas estilo "Minitab" — agrupa, agrega y grafica
+const TABLE_SCHEMAS = {
+  rutas: { label: "Rutas", fields: [
+    { key: "fecha",        label: "Fecha",         type: "date" },
+    { key: "cliente_id",   label: "Cliente",       type: "text" },
+    { key: "operador",     label: "Operador",      type: "text" },
+    { key: "unidad_id",    label: "Unidad",        type: "text" },
+    { key: "flete",        label: "Flete",         type: "number", money: true },
+    { key: "flete_siniva", label: "Flete sin IVA", type: "number", money: true },
+    { key: "flete_coniva", label: "Flete con IVA", type: "number", money: true },
+  ]},
+  gastos: { label: "Gastos", fields: [
+    { key: "fecha",        label: "Fecha",        type: "date" },
+    { key: "tipo_gasto",   label: "Tipo gasto",   type: "text" },
+    { key: "estatus_pago", label: "Estatus pago", type: "text" },
+    { key: "monto",        label: "Monto",        type: "number", money: true },
+    { key: "siniva",       label: "Sin IVA",      type: "number", money: true },
+    { key: "coniva",       label: "Con IVA",      type: "number", money: true },
+    { key: "operador",     label: "Operador",     type: "text" },
+    { key: "unidad",       label: "Unidad",       type: "text" },
+  ]},
+  ingresos: { label: "Ingresos / Facturas", fields: [
+    { key: "fcarga",        label: "Fecha de carga", type: "date" },
+    { key: "fecha_pago",    label: "Fecha de pago",  type: "date" },
+    { key: "fvence",        label: "Fecha vence",    type: "date" },
+    { key: "estatus",       label: "Estatus",        type: "text" },
+    { key: "tipo",          label: "Tipo",           type: "text" },
+    { key: "siniva",        label: "Sin IVA",        type: "number", money: true },
+    { key: "coniva",        label: "Con IVA",        type: "number", money: true },
+    { key: "monto_cobrado", label: "Monto cobrado",  type: "number", money: true },
+    { key: "factura",       label: "Factura",        type: "text" },
+    { key: "periodo",       label: "Período",        type: "text" },
+  ]},
+  operadores: { label: "Operadores", fields: [
+    { key: "nombre",   label: "Nombre",   type: "text" },
+    { key: "estatus",  label: "Estatus",  type: "text" },
+    { key: "unidad",   label: "Unidad",   type: "text" },
+    { key: "telefono", label: "Teléfono", type: "text" },
+  ]},
+  unidades: { label: "Unidades", fields: [
+    { key: "economico",   label: "Económico", type: "text" },
+    { key: "tipo_unidad", label: "Tipo",      type: "text" },
+    { key: "propiedad",   label: "Propiedad", type: "text" },
+    { key: "marca",       label: "Marca",     type: "text" },
+    { key: "modelo",      label: "Modelo",    type: "text" },
+  ]},
+  clientes: { label: "Clientes", fields: [
+    { key: "nombre", label: "Nombre", type: "text" },
+    { key: "rfc",    label: "RFC",    type: "text" },
+  ]},
+};
+
+const AGG_FUNCS = {
+  count:    { label: "Conteo",          needsField: false },
+  sum:      { label: "Suma",            needsField: true,  numeric: true },
+  avg:      { label: "Promedio",        needsField: true,  numeric: true },
+  min:      { label: "Mínimo",          needsField: true,  numeric: true },
+  max:      { label: "Máximo",          needsField: true,  numeric: true },
+  median:   { label: "Mediana",         needsField: true,  numeric: true },
+  std:      { label: "Desv. estándar",  needsField: true,  numeric: true },
+  distinct: { label: "Únicos (cuenta)", needsField: true,  numeric: false },
+};
+
+const DATE_GRANS = {
+  dia:       "Día",
+  semana:    "Semana ISO",
+  mes:       "Mes",
+  trimestre: "Trimestre",
+  año:       "Año",
+  diaSemana: "Día de la semana",
+};
+
+function _agg(vals, fn) {
+  if (fn === "count") return vals.length;
+  if (fn === "distinct") return new Set(vals.map(v => v == null ? "" : String(v))).size;
+  const nums = vals.filter(v => v !== null && v !== undefined && v !== "" && !isNaN(parseFloat(v))).map(v => parseFloat(v));
+  if (!nums.length) return 0;
+  switch (fn) {
+    case "sum":    return nums.reduce((a, b) => a + b, 0);
+    case "avg":    return nums.reduce((a, b) => a + b, 0) / nums.length;
+    case "min":    return Math.min(...nums);
+    case "max":    return Math.max(...nums);
+    case "median": {
+      const s = [...nums].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    }
+    case "std": {
+      if (nums.length < 2) return 0;
+      const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+      const variance = nums.reduce((a, b) => a + (b - mean) ** 2, 0) / (nums.length - 1);
+      return Math.sqrt(variance);
+    }
+    default: return 0;
+  }
+}
+
+function _dateGroup(dateStr, gran) {
+  if (!dateStr) return "(sin fecha)";
+  const [yy, mm, dd] = String(dateStr).split("-").map(Number);
+  if (!yy || !mm || !dd) return "(sin fecha)";
+  switch (gran) {
+    case "año":       return String(yy);
+    case "trimestre": return `${yy}-T${Math.ceil(mm / 3)}`;
+    case "mes":       return `${yy}-${String(mm).padStart(2, "0")}`;
+    case "semana": {
+      const d = new Date(yy, mm - 1, dd);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+      const y0 = new Date(d.getFullYear(), 0, 1);
+      const w = Math.ceil((((d - y0) / 86400000) + 1) / 7);
+      return `${d.getFullYear()}-W${String(w).padStart(2, "0")}`;
+    }
+    case "diaSemana": {
+      const d = new Date(yy, mm - 1, dd);
+      return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][d.getDay()];
+    }
+    case "dia":
+    default: return dateStr;
+  }
+}
+
+function _applyFilter(row, f, schema) {
+  const field = schema.fields.find(x => x.key === f.field);
+  if (!field) return true;
+  const v = row[f.field];
+  if (f.op === "between") {
+    if (field.type === "date") {
+      if (f.from && (v == null || v < f.from)) return false;
+      if (f.to   && (v == null || v > f.to))   return false;
+      return true;
+    }
+    const n = parseFloat(v);
+    if (isNaN(n)) return false;
+    return n >= parseFloat(f.from || -Infinity) && n <= parseFloat(f.to || Infinity);
+  }
+  const sv = String(v ?? "").toLowerCase();
+  const sf = String(f.value ?? "").toLowerCase();
+  if (f.op === "eq")       return sv === sf;
+  if (f.op === "neq")      return sv !== sf;
+  if (f.op === "contains") return sv.includes(sf);
+  const n = parseFloat(v), nf = parseFloat(f.value);
+  if (f.op === "gt")  return n >  nf;
+  if (f.op === "gte") return n >= nf;
+  if (f.op === "lt")  return n <  nf;
+  if (f.op === "lte") return n <= nf;
+  return true;
+}
+
+const QUERY_PRESETS = [
+  { name: "Gastos por mes y tipo", source: "gastos", groupBy: [{ field: "fecha", gran: "mes" }, { field: "tipo_gasto" }], metrics: [{ agg: "sum", field: "monto" }, { agg: "count" }] },
+  { name: "Top operadores por flete", source: "rutas", groupBy: [{ field: "operador" }], metrics: [{ agg: "sum", field: "flete" }, { agg: "count" }, { agg: "avg", field: "flete" }] },
+  { name: "Fletes por mes", source: "rutas", groupBy: [{ field: "fecha", gran: "mes" }], metrics: [{ agg: "sum", field: "flete" }, { agg: "count" }] },
+  { name: "Cobros por mes", source: "ingresos", groupBy: [{ field: "fecha_pago", gran: "mes" }], metrics: [{ agg: "sum", field: "monto_cobrado" }, { agg: "count" }] },
+  { name: "Estadísticas de fletes", source: "rutas", groupBy: [], metrics: [{ agg: "count" }, { agg: "sum", field: "flete" }, { agg: "avg", field: "flete" }, { agg: "median", field: "flete" }, { agg: "min", field: "flete" }, { agg: "max", field: "flete" }, { agg: "std", field: "flete" }] },
+];
+
+function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes }) {
+  const [source, setSource]   = useState("rutas");
+  const [filters, setFilters] = useState([]);
+  const [groupBy, setGroupBy] = useState([]);
+  const [metrics, setMetrics] = useState([{ agg: "count", field: "" }]);
+  const [sortIdx, setSortIdx] = useState(null);
+  const [sortDir, setSortDir] = useState("desc");
+  const [limit,   setLimit]   = useState(100);
+  const [chartType, setChartType] = useState("bar");
+
+  const dataSources = { rutas: rutas || [], gastos: gastos || [], ingresos: ingresos || [], operadores: operadores || [], unidades: unidades || [], clientes: clientes || [] };
+  const schema = TABLE_SCHEMAS[source];
+  const sourceData = dataSources[source];
+
+  useEffect(() => {
+    setFilters([]); setGroupBy([]); setMetrics([{ agg: "count", field: "" }]); setSortIdx(null);
+  }, [source]);
+
+  const applyPreset = (p) => {
+    setSource(p.source); setFilters([]);
+    setTimeout(() => { setGroupBy(p.groupBy); setMetrics(p.metrics); setSortIdx(null); }, 0);
+  };
+
+  const result = useMemo(() => {
+    if (!schema) return { rows: [], cols: [], total: 0, groupCount: 0 };
+    const filtered = sourceData.filter(r => filters.every(f => _applyFilter(r, f, schema)));
+    const activeMetrics = metrics.filter(m => m.agg && (AGG_FUNCS[m.agg].needsField ? m.field : true));
+    const groupCols = groupBy.map(g => {
+      const fd = schema.fields.find(x => x.key === g.field);
+      const gLabel = fd?.type === "date" ? ` (${DATE_GRANS[g.gran || "mes"]})` : "";
+      return { key: `g_${g.field}_${g.gran || ""}`, label: (fd?.label || g.field) + gLabel, isGroup: true };
+    });
+    const metricCols = activeMetrics.map((m, i) => {
+      const fd = schema.fields.find(x => x.key === m.field);
+      const lbl = m.agg === "count" ? "Conteo" : `${AGG_FUNCS[m.agg].label} de ${fd?.label || m.field}`;
+      return { key: `m_${i}`, label: lbl, isMetric: true, money: !!fd?.money && ["sum", "avg", "min", "max", "median"].includes(m.agg) };
+    });
+    if (activeMetrics.length === 0) return { rows: [], cols: groupCols, total: filtered.length, groupCount: groupCols.length };
+
+    let rows;
+    if (groupBy.length === 0) {
+      const r = {};
+      activeMetrics.forEach((m, i) => {
+        const vals = m.agg === "count" || m.agg === "distinct"
+          ? filtered.map(x => x[m.field])
+          : filtered.map(x => x[m.field]);
+        r[`m_${i}`] = m.agg === "count" ? filtered.length : _agg(vals, m.agg);
+      });
+      rows = [r];
+    } else {
+      const groups = new Map();
+      filtered.forEach(row => {
+        const keys = groupBy.map(g => {
+          const fd = schema.fields.find(x => x.key === g.field);
+          if (fd?.type === "date") return _dateGroup(row[g.field], g.gran || "mes");
+          return row[g.field] != null && row[g.field] !== "" ? String(row[g.field]) : "(vacío)";
+        });
+        const ck = keys.join("¦");
+        if (!groups.has(ck)) groups.set(ck, { keys, items: [] });
+        groups.get(ck).items.push(row);
+      });
+      rows = Array.from(groups.values()).map(grp => {
+        const r = {};
+        groupCols.forEach((gc, i) => r[gc.key] = grp.keys[i]);
+        activeMetrics.forEach((m, i) => {
+          const vals = grp.items.map(x => x[m.field]);
+          r[`m_${i}`] = m.agg === "count" ? grp.items.length : _agg(vals, m.agg);
+        });
+        return r;
+      });
+    }
+    if (sortIdx !== null && metricCols[sortIdx]) {
+      const k = metricCols[sortIdx].key;
+      rows.sort((a, b) => sortDir === "desc" ? b[k] - a[k] : a[k] - b[k]);
+    } else if (groupCols.length > 0) {
+      rows.sort((a, b) => String(a[groupCols[0].key]).localeCompare(String(b[groupCols[0].key])));
+    }
+    return { rows: rows.slice(0, limit), cols: [...groupCols, ...metricCols], total: filtered.length, groupCount: groupCols.length };
+  }, [source, sourceData, filters, groupBy, metrics, schema, sortIdx, sortDir, limit]);
+
+  const exportCSV = () => {
+    const headers = result.cols.map(c => c.label);
+    const lines = [headers.join(","), ...result.rows.map(r => result.cols.map(c => {
+      const v = r[c.key];
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(","))];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `consulta_${source}_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const chartData = result.groupCount === 1 && result.rows.length > 0 && result.rows.length <= 40
+    ? result.rows.map(r => {
+        const o = { name: String(r[result.cols[0].key]) };
+        result.cols.filter(c => c.isMetric).forEach(c => { o[c.label] = r[c.key]; });
+        return o;
+      }) : null;
+  const COLORS = ["#2E7D32", "#C62828", "#1565C0", "#F59E0B", "#74B72E", "#7C3AED"];
+
+  const sectionStyle = { background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 12, padding: "16px 18px", marginBottom: 12 };
+  const sectionTitle = { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" };
+  const addBtn = { padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: "#DDEEDC", color: "#0F5C2E", border: "none", cursor: "pointer", fontFamily: "inherit" };
+  const xBtn = { padding: "4px 9px", border: "none", background: "#FEE2E2", color: "#B91C1C", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700 };
+
+  return (
+    <div>
+      {/* Presets */}
+      <div style={sectionStyle}>
+        <div style={{ ...sectionTitle, marginBottom: 8 }}>⚡ Consultas rápidas</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {QUERY_PRESETS.map(p => (
+            <button key={p.name} onClick={() => applyPreset(p)} style={{ padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#F5F7F4", color: C.text, border: "1px solid #E2E8E3", cursor: "pointer", fontFamily: "inherit" }}>{p.name}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Source */}
+      <div style={sectionStyle}>
+        <div style={{ ...sectionTitle, marginBottom: 8 }}>1. Tabla origen</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {Object.entries(TABLE_SCHEMAS).map(([k, s]) => (
+            <button key={k} onClick={() => setSource(k)} style={{
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              background: source === k ? "#0F5C2E" : "#F5F7F4",
+              color: source === k ? "#FFF" : C.muted,
+              border: source === k ? "none" : "1px solid #E2E8E3", cursor: "pointer", fontFamily: "inherit",
+            }}>{s.label}</button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>{sourceData.length.toLocaleString("es-MX")} registro{sourceData.length !== 1 ? "s" : ""} disponible{sourceData.length !== 1 ? "s" : ""}</div>
+      </div>
+
+      {/* Filters */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <div style={sectionTitle}>2. Filtros</div>
+          <button onClick={() => setFilters(f => [...f, { field: schema.fields[0].key, op: schema.fields[0].type === "date" ? "between" : "contains", value: "" }])} style={addBtn}>+ Filtro</button>
+        </div>
+        {filters.length === 0 ? (
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Sin filtros — usando todos los registros</div>
+        ) : filters.map((f, idx) => {
+          const fd = schema.fields.find(x => x.key === f.field);
+          const isDate = fd?.type === "date";
+          const isNum = fd?.type === "number";
+          const ops = isNum
+            ? [["eq", "="], ["neq", "≠"], ["gt", ">"], ["gte", "≥"], ["lt", "<"], ["lte", "≤"], ["between", "entre"]]
+            : isDate
+            ? [["between", "entre fechas"]]
+            : [["contains", "contiene"], ["eq", "igual a"], ["neq", "distinto de"]];
+          return (
+            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={f.field} onChange={e => { const nf = e.target.value; const nd = schema.fields.find(x => x.key === nf); setFilters(fs => fs.map((x, i) => i === idx ? { field: nf, op: nd?.type === "date" ? "between" : nd?.type === "number" ? "eq" : "contains", value: "", from: "", to: "" } : x)); }} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+                {schema.fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+              </select>
+              <select value={f.op} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, op: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 120 }}>
+                {ops.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+              {f.op === "between" ? (
+                <>
+                  <input type={isDate ? "date" : "number"} placeholder="desde" value={f.from || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, from: e.target.value } : x))} style={{ ...inputStyle, width: 140 }} />
+                  <input type={isDate ? "date" : "number"} placeholder="hasta" value={f.to || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, to: e.target.value } : x))} style={{ ...inputStyle, width: 140 }} />
+                </>
+              ) : (
+                <input type={isNum ? "number" : "text"} placeholder="valor" value={f.value || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, value: e.target.value } : x))} style={{ ...inputStyle, width: 180 }} />
+              )}
+              <button onClick={() => setFilters(fs => fs.filter((_, i) => i !== idx))} style={xBtn}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Group by */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <div style={sectionTitle}>3. Agrupar por</div>
+          {groupBy.length < 2 && (
+            <button onClick={() => setGroupBy(g => [...g, { field: schema.fields[0].key, gran: "mes" }])} style={addBtn}>+ Dimensión</button>
+          )}
+        </div>
+        {groupBy.length === 0 ? (
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Sin agrupar — métricas calculadas sobre el total</div>
+        ) : groupBy.map((g, idx) => {
+          const fd = schema.fields.find(x => x.key === g.field);
+          return (
+            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={g.field} onChange={e => setGroupBy(gs => gs.map((x, i) => i === idx ? { ...x, field: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+                {schema.fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+              </select>
+              {fd?.type === "date" && (
+                <select value={g.gran || "mes"} onChange={e => setGroupBy(gs => gs.map((x, i) => i === idx ? { ...x, gran: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 160 }}>
+                  {Object.entries(DATE_GRANS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              )}
+              <button onClick={() => setGroupBy(gs => gs.filter((_, i) => i !== idx))} style={xBtn}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Metrics */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <div style={sectionTitle}>4. Métricas a calcular</div>
+          <button onClick={() => setMetrics(m => [...m, { agg: "sum", field: "" }])} style={addBtn}>+ Métrica</button>
+        </div>
+        {metrics.map((m, idx) => {
+          const aggDef = AGG_FUNCS[m.agg];
+          const fields = aggDef?.numeric ? schema.fields.filter(f => f.type === "number") : schema.fields;
+          return (
+            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={m.agg} onChange={e => setMetrics(ms => ms.map((x, i) => i === idx ? { ...x, agg: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 160 }}>
+                {Object.entries(AGG_FUNCS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+              {aggDef?.needsField && (
+                <>
+                  <span style={{ fontSize: 12, color: C.muted }}>de</span>
+                  <select value={m.field} onChange={e => setMetrics(ms => ms.map((x, i) => i === idx ? { ...x, field: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+                    <option value="">— Campo —</option>
+                    {fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+                  </select>
+                </>
+              )}
+              {metrics.length > 1 && <button onClick={() => setMetrics(ms => ms.filter((_, i) => i !== idx))} style={xBtn}>✕</button>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Results */}
+      <div style={{ background: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFA 100%)", border: "2px solid #0F5C2E", borderRadius: 16, padding: "clamp(14px, 2.5vw, 22px)", marginBottom: 14, boxShadow: "0 4px 18px rgba(15,92,46,0.08)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#0F5C2E", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Resultados en tiempo real</div>
+            <div style={{ fontSize: "clamp(16px, 2vw, 18px)", fontWeight: 800, color: "#132019" }}>📊 {result.rows.length} fila{result.rows.length !== 1 ? "s" : ""} · {result.total.toLocaleString("es-MX")} registro{result.total !== 1 ? "s" : ""} antes de agrupar</div>
+          </div>
+          {result.rows.length > 0 && (
+            <div style={{ display: "flex", gap: 6 }}>
+              {chartData && (
+                <div style={{ display: "flex", border: "1px solid #E2E8E3", borderRadius: 8, overflow: "hidden" }}>
+                  <button onClick={() => setChartType("bar")}  style={{ padding: "7px 12px", border: "none", background: chartType === "bar" ? "#0F5C2E" : "#FFF", color: chartType === "bar" ? "#FFF" : C.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Barras</button>
+                  <button onClick={() => setChartType("line")} style={{ padding: "7px 12px", border: "none", background: chartType === "line" ? "#0F5C2E" : "#FFF", color: chartType === "line" ? "#FFF" : C.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Líneas</button>
+                </div>
+              )}
+              <button onClick={exportCSV} style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "#0F5C2E", color: "#FFF", border: "none", cursor: "pointer", fontFamily: "inherit" }}>⬇ Exportar CSV</button>
+            </div>
+          )}
+        </div>
+
+        {result.rows.length === 0 ? (
+          <div style={{ padding: 30, textAlign: "center", color: C.muted, fontSize: 13 }}>
+            Configura origen, filtros, agrupación y métricas para ver resultados
+          </div>
+        ) : (
+          <>
+            <div style={{ overflowX: "auto", border: "1px solid #E2E8E3", borderRadius: 10, background: "#FFF" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 360 }}>
+                <thead>
+                  <tr style={{ background: "#F5F7F4" }}>
+                    {result.cols.map((c, i) => {
+                      const midx = i - result.groupCount;
+                      const isSorted = c.isMetric && sortIdx === midx;
+                      return (
+                        <th key={c.key} onClick={c.isMetric ? () => { if (sortIdx === midx) setSortDir(d => d === "desc" ? "asc" : "desc"); else { setSortIdx(midx); setSortDir("desc"); } } : undefined}
+                          style={{ padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "#3a4a40", textAlign: c.isMetric ? "right" : "left", borderBottom: "1px solid #E2E8E3", cursor: c.isMetric ? "pointer" : "default", whiteSpace: "nowrap", userSelect: "none" }}>
+                          {c.label} {isSorted && (sortDir === "desc" ? "↓" : "↑")}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.rows.map((r, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 ? "#FAFBFA" : "#FFF" }}>
+                      {result.cols.map(c => {
+                        const v = r[c.key];
+                        const display = c.isMetric
+                          ? (c.money ? fmt(v) : (typeof v === "number" ? v.toLocaleString("es-MX", { maximumFractionDigits: 2 }) : v))
+                          : v;
+                        return (
+                          <td key={c.key} style={{ padding: "9px 14px", textAlign: c.isMetric ? "right" : "left", borderBottom: "1px solid #F0F2F0", fontWeight: c.isMetric ? 600 : 400, color: c.isMetric ? "#132019" : "#3a4a40", whiteSpace: "nowrap" }}>{display}</td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {chartData && (
+              <div style={{ marginTop: 16, height: 320, background: "#FFF", border: "1px solid #E2E8E3", borderRadius: 10, padding: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartType === "bar" ? (
+                    <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F0" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6B7A72" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "#6B7A72" }} width={70} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {result.cols.filter(c => c.isMetric).map((c, i) => (
+                        <Bar key={c.key} dataKey={c.label} fill={COLORS[i % COLORS.length]} isAnimationActive={false} />
+                      ))}
+                    </BarChart>
+                  ) : (
+                    <ComposedChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F0" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6B7A72" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "#6B7A72" }} width={70} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {result.cols.filter(c => c.isMetric).map((c, i) => (
+                        <Line key={c.key} type="monotone" dataKey={c.label} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                      ))}
+                    </ComposedChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {result.rows.length === limit && (
+              <div style={{ marginTop: 10, fontSize: 11, color: C.muted, textAlign: "center" }}>
+                Mostrando primeras {limit} filas. <button onClick={() => setLimit(l => l + 200)} style={{ background: "none", border: "none", color: "#0F5C2E", fontWeight: 700, cursor: "pointer", fontSize: 11 }}>Mostrar más</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── MÓDULO DASHBOARD ─────────────────────────────────────────────────────
 function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes, desde, hasta }) {
   const [cashflowLookback, setCashflowLookback] = useState(30);
@@ -3336,7 +3831,7 @@ export default function VDLModulos({ onLogout }) {
     };
   }, [ingresos, gastos, rutas, desde, hasta]);
 
-  const navIds = ["dashboard", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
+  const navIds = ["dashboard", "consultas", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
 
   // Sidebar visible en desktop, drawer en móvil
   const sidebarVisible = !isMobile || navOpen;
@@ -3561,6 +4056,7 @@ export default function VDLModulos({ onLogout }) {
         {/* MODULE CONTENT */}
         <div style={{ flex: 1, padding: "20px clamp(12px, 3vw, 28px)" }}>
           {mod === "dashboard"  && <ModDashboard  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} desde={desde} hasta={hasta} />}
+          {mod === "consultas"  && <ModConsultas  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} operadores={operadores || []} />}
           {mod === "clientes"   && <ModClientes   data={clientes}   reload={reloadClientes} />}
