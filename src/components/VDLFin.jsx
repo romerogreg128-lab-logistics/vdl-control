@@ -2233,6 +2233,7 @@ function MiniKpi({ label, value, sub, color }) {
 
 // ─── MÓDULO DASHBOARD ─────────────────────────────────────────────────────
 function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes, desde, hasta }) {
+  const [cashflowLookback, setCashflowLookback] = useState(30);
   const ing  = useMemo(() => (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta)), [ingresos, desde, hasta]);
   const gas  = useMemo(() => (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta)), [gastos,   desde, hasta]);
   const rut  = useMemo(() => (rutas    || []).filter(r => inRange(r.fecha,  desde, hasta)), [rutas,    desde, hasta]);
@@ -2473,8 +2474,8 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const now = new Date();
     const todayStr = fmtDate(now);
 
-    // ── 3. Run-rate (últimos 60 días de actividad real) ──
-    const lookbackDays = 60;
+    // ── 3. Run-rate (ventana configurable de actividad real) ──
+    const lookbackDays = cashflowLookback;
     const lookbackDate = new Date(now); lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
     const lookbackStr = fmtDate(lookbackDate);
     const inWin = (f) => f && f >= lookbackStr && f <= todayStr;
@@ -2522,25 +2523,30 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return { fecha, in: b.in, out: b.out, cumIn, cumOut, saldo: cumIn - cumOut };
     });
 
-    // ── 6. Break-even ──
-    let breakEven = null;
+    // ── 6. Saldo a hoy + próx ingreso (necesarios para detectar PE forward) ──
+    let saldoHoy = 0;
+    let proxIngreso = null;
+    let todayIdx = -1;
     for (let i = 0; i < seriesAll.length; i++) {
-      if (seriesAll[i].saldo >= 0 && (i === 0 || seriesAll[i-1].saldo < 0)) { breakEven = seriesAll[i].fecha; break; }
+      if (seriesAll[i].fecha <= todayStr) { saldoHoy = seriesAll[i].saldo; todayIdx = i; }
+      else if (!proxIngreso && seriesAll[i].in > 0) { proxIngreso = { fecha: seriesAll[i].fecha, monto: seriesAll[i].in }; break; }
     }
-    // Tipo de PE: comprometido si cae dentro del horizonte real, proyectado si requiere extrapolación
+    const enEquilibrio = saldoHoy >= 0;
+
+    // ── 7. Break-even FORWARD-LOOKING: próximo cruce desde HOY hacia adelante ──
+    // (no la primera vez histórica; lo que importa es cuándo volverá a estar en positivo
+    //  bajo la realidad actual de costos)
+    let breakEven = null;
+    if (!enEquilibrio && todayIdx >= 0) {
+      for (let i = todayIdx + 1; i < seriesAll.length; i++) {
+        if (seriesAll[i].saldo >= 0 && seriesAll[i-1].saldo < 0) { breakEven = seriesAll[i].fecha; break; }
+      }
+    }
     const lastRealDate = Array.from(realBuckets.keys()).sort().pop();
     const peTipo = !breakEven ? null : (breakEven <= lastRealDate ? "comprometido" : "proyectado");
     const daysToPE = breakEven
       ? Math.ceil((new Date(breakEven + "T12:00:00") - new Date(todayStr + "T12:00:00")) / 86400000)
       : null;
-
-    // ── 7. Saldo a hoy + próx ingreso + por cobrar real ──
-    let saldoHoy = 0;
-    let proxIngreso = null;
-    for (let i = 0; i < seriesAll.length; i++) {
-      if (seriesAll[i].fecha <= todayStr) saldoHoy = seriesAll[i].saldo;
-      else if (!proxIngreso && seriesAll[i].in > 0) { proxIngreso = { fecha: seriesAll[i].fecha, monto: seriesAll[i].in }; break; }
-    }
     const porCobrar = (rutas || []).reduce((s, r) => {
       const c = proyectarCobro(r.fecha);
       if (c && c > todayStr) return s + parseFloat(r.flete || r.flete_siniva || 0);
@@ -2627,42 +2633,60 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       <div>
         {/* ── Panel de modelo de proyección ── */}
         <div style={{
-          background: sostenible ? "linear-gradient(135deg, #F0FAF0 0%, #E8F5E8 100%)" : "linear-gradient(135deg, #FEF2F2 0%, #FEE7E7 100%)",
-          border: `1px solid ${sostenible ? "#AACFAA" : "#FECACA"}`,
+          background: enEquilibrio ? "linear-gradient(135deg, #F0FAF0 0%, #E8F5E8 100%)"
+            : sostenible ? "linear-gradient(135deg, #FFF8E6 0%, #FEF2D6 100%)"
+            : "linear-gradient(135deg, #FEF2F2 0%, #FEE7E7 100%)",
+          border: `1px solid ${enEquilibrio ? "#AACFAA" : sostenible ? "#FCD68A" : "#FECACA"}`,
           borderRadius: 16, padding: "16px 20px", marginBottom: 16,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "stretch", flexWrap: "wrap", gap: 16 }}>
             <div style={{ flex: "1 1 360px", minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 18 }}>{sostenible ? "✅" : "⚠️"}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>
-                  Modelo de proyección — operación estable (run-rate {spanDays} días)
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 18 }}>{enEquilibrio ? "✅" : sostenible ? "📈" : "⚠️"}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>Modelo de proyección — run-rate de los últimos {spanDays} días</span>
+                <div style={{ display: "flex", gap: 3, marginLeft: 4 }}>
+                  {[15, 30, 60, 90].map(d => (
+                    <button key={d} onClick={() => setCashflowLookback(d)} style={{
+                      padding: "2px 9px", fontSize: 11, fontWeight: 700,
+                      background: cashflowLookback === d ? "#0F5C2E" : "#FFFFFF",
+                      color: cashflowLookback === d ? "#FFFFFF" : "#6B7A72",
+                      border: "1px solid #DDEEDC", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+                    }}>{d}d</button>
+                  ))}
+                </div>
               </div>
               <div style={{ fontSize: 12, color: "#3a4a40", lineHeight: 1.6 }}>
                 Fletes promedio: <strong style={{ color: "#0F5C2E" }}>{fmtM(avgMonthlyFlete)}/mes</strong> · Gastos promedio: <strong style={{ color: "#791F1F" }}>{fmtM(avgMonthlyGasto)}/mes</strong>
                 <br />
-                Resultado neto mensual: <strong style={{ color: sostenible ? "#0F5C2E" : "#C62828", fontSize: 14 }}>{fmtM(avgMonthlyNeto)}</strong>
-                {sostenible
-                  ? <span style={{ color: "#6B7A72" }}> — saldo crece a este ritmo</span>
-                  : <span style={{ color: "#6B7A72" }}> — gastos exceden ingresos, no sostenible</span>}
+                {sostenible ? (
+                  <>Resultado neto mensual: <strong style={{ color: "#0F5C2E", fontSize: 14 }}>+{fmtM(avgMonthlyNeto)}</strong> <span style={{ color: "#6B7A72" }}>— saldo crece a este ritmo</span></>
+                ) : (
+                  <>Quemando <strong style={{ color: "#C62828", fontSize: 14 }}>{fmtM(Math.abs(avgMonthlyNeto))}/mes</strong> <span style={{ color: "#6B7A72" }}>— gastos &gt; ingresos, hay que ajustar tarifas o reducir costos</span></>
+                )}
               </div>
             </div>
-            <div style={{ flex: "0 0 auto", textAlign: "right", borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 20, minWidth: 200 }}>
-              <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>
-                {peTipo === "comprometido" ? "Equilibrio comprometido (pipeline real)" : "Equilibrio proyectado (run-rate)"}
-              </div>
-              {breakEven ? (
+            <div style={{ flex: "0 0 auto", textAlign: "right", borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 20, minWidth: 220 }}>
+              {enEquilibrio ? (
                 <>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>{fmtDateShort(breakEven)}</div>
-                  <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>
-                    {daysToPE >= 0 ? `en ${daysToPE} días` : `hace ${Math.abs(daysToPE)} días (ya alcanzado)`}
+                  <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>Estado actual</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>✅ En equilibrio</div>
+                  <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>Saldo positivo de {fmtM(saldoHoy)}</div>
+                </>
+              ) : breakEven ? (
+                <>
+                  <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>
+                    Próximo equilibrio {peTipo === "comprometido" ? "(pipeline real)" : "(proyección run-rate)"}
                   </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>{fmtDateShort(breakEven)}</div>
+                  <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>en {daysToPE} día{daysToPE === 1 ? "" : "s"}</div>
                 </>
               ) : (
                 <>
+                  <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>Próximo equilibrio</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#C62828", lineHeight: 1.1 }}>No alcanzable</div>
-                  <div style={{ fontSize: 11, color: "#791F1F", marginTop: 4 }}>en horizonte de 18 meses</div>
+                  <div style={{ fontSize: 11, color: "#791F1F", marginTop: 4 }}>
+                    {sostenible ? "más allá de 18 meses con run-rate actual" : "operación insostenible al ritmo actual"}
+                  </div>
                 </>
               )}
             </div>
