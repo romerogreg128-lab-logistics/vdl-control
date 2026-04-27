@@ -3244,7 +3244,7 @@ function useIsMobile(breakpoint = 768) {
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────
 export default function VDLModulos({ onLogout }) {
-  const [mod, setMod] = useState("ingresos");
+  const [mod, setMod] = useState("dashboard");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const isMobile = useIsMobile(768);
@@ -3468,16 +3468,9 @@ export default function VDLModulos({ onLogout }) {
               badgeType="neu"
             />
             <KpiCard
-              label="Gastos con IVA"
-              value={fmt(kpi.gasConIVA)}
+              label="Gastos"
+              value={fmt(kpi.gasMonto)}
               sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} de salida`}
-              badge="Salió del banco"
-              badgeType="down"
-            />
-            <KpiCard
-              label="Gastos sin IVA"
-              value={fmt(kpi.gasSinIVA)}
-              sub="Neto, antes de impuestos"
               badge="Salió del banco"
               badgeType="down"
             />
