@@ -2877,6 +2877,33 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     }, {})
   ).sort((a, b) => b[1].rutas - a[1].rutas).slice(0, 5);
 
+  const totalsSummaryData = [
+    { label: "Gastos", value: totalGas, color: "#C62828" },
+    { label: "Cobrado sin IVA", value: totalSinIvaPag, color: "#2E7D32" },
+    { label: "Fletes sin IVA", value: totalFlete, color: "#1565C0" },
+  ];
+
+  const SummaryTotalsChart = ({ data }) => {
+    const max = Math.max(...data.map(d => d.value), 1);
+    const H = 120; const bw = 44; const gap = 24;
+    return (
+      <svg width={data.length * (bw + gap) + 20} height={H + 56} style={{ display: "block", overflow: "visible" }}>
+        {data.map((d, i) => {
+          const h = Math.max(4, (d.value / max) * H);
+          const x = i * (bw + gap) + 10;
+          return (
+            <g key={d.label}>
+              <rect x={x} y={H - h} width={bw} height={h} fill={d.color} rx={10} />
+              <text x={x + bw / 2} y={H - h - 8} textAnchor="middle" fontSize={10} fill="#132019" fontWeight={700}>{fmt(d.value)}</text>
+              <text x={x + bw / 2} y={H + 20} textAnchor="middle" fontSize={11} fill="#6B7A72" fontWeight={500}>{d.label}</text>
+            </g>
+          );
+        })}
+        <line x1={0} y1={H} x2={data.length * (bw + gap) + 10} y2={H} stroke="#E2E8E3" strokeWidth={1} />
+      </svg>
+    );
+  };
+
   const fmtM = (n) => {
     if (n >= 1000000) return "$" + (n / 1000000).toFixed(1) + "M";
     if (n >= 1000)    return "$" + (n / 1000).toFixed(0) + "k";
@@ -3267,6 +3294,19 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
             <div style={{ fontSize: 11, color: "#6B7A72" }}>Por cobrar (pipeline real)</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>{fmtM(porCobrar)}</div>
             <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>fletes ya hechos sin cobrar</div>
+          </div>
+        </div>
+
+        <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 16, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>Comparativo clave</div>
+              <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 4 }}>Gastos · Cobrado sin IVA · Fletes sin IVA</div>
+            </div>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>{periodoLabel}</div>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <SummaryTotalsChart data={totalsSummaryData} />
           </div>
         </div>
 
