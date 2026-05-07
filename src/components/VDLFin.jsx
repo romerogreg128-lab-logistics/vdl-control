@@ -1775,6 +1775,9 @@ function ModIngresos({ data, reload, desde, hasta }) {
         tipo: form.tipo || "Factura",
         factura_ref: form.tipo === "NC" ? (form.factura_ref || null) : null,
       };
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === null || payload[key] === undefined) delete payload[key];
+      });
       if (isEdit) {
         const { error } = await sb.from("ingresos").update(payload).eq("id", editRow.id);
         if (error) throw error;
