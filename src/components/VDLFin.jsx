@@ -580,11 +580,12 @@ const NAV_ICONS = {
   operadores: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2.2 2.239-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M11.5 7.5a2 2 0 1 0 0-4M14 13c0-1.657-1.119-3-2.5-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   rutas:      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h3M6 12h3M10 12h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><rect x="1.5" y="7" width="13" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M4.5 7V5.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V7" stroke="currentColor" strokeWidth="1.4"/></svg>,
   unidades:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M4 6V4.5A1.5 1.5 0 0 1 5.5 3h5A1.5 1.5 0 0 1 12 4.5V6" stroke="currentColor" strokeWidth="1.4"/><circle cx="4.5" cy="13" r="1.5" fill="currentColor"/><circle cx="11.5" cy="13" r="1.5" fill="currentColor"/></svg>,
+  prestamos:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M1 7h14" stroke="currentColor" strokeWidth="1.4"/><circle cx="5" cy="10.5" r="1" fill="currentColor"/><path d="M8 10h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
 };
 
 const NAV_GROUPS = [
   { label: "GENERAL",        ids: ["dashboard", "consultas"] },
-  { label: "CAPTURA",        ids: ["ingresos", "gastos"] },
+  { label: "CAPTURA",        ids: ["ingresos", "gastos", "prestamos"] },
   { label: "OPERACIONES",    ids: ["clientes", "operadores", "rutas"] },
   { label: "CONFIGURACIÓN",  ids: ["unidades"] },
 ];
@@ -594,6 +595,7 @@ const NAV_LABELS = {
   consultas:  "Consultas",
   ingresos:   "Ingresos",
   gastos:     "Gastos",
+  prestamos:  "Préstamos",
   clientes:   "Clientes",
   operadores: "Operadores",
   rutas:      "Rutas",
@@ -630,6 +632,7 @@ const MOD_META = {
   consultas:  { title: "Consultas",  sub: "Construye análisis personalizados sobre tus datos en tiempo real" },
   ingresos:   { title: "Flujo de trabajo",   sub: "Registro de facturas · solo las pagadas cuentan como ingreso" },
   gastos:     { title: "Gastos",     sub: "Control de egresos operativos" },
+  prestamos:  { title: "Préstamos",  sub: "Registro de créditos y deudas · impactan el flujo de caja automáticamente" },
   clientes:   { title: "Clientes",   sub: "Tarifas por tipo de unidad y datos de contacto" },
   operadores: { title: "Operadores", sub: "Registro de conductores y asignación" },
   rutas:      { title: "Rutas",      sub: "Registro de viajes con flete automático" },
@@ -1711,6 +1714,145 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   );
 }
 
+// ─── MÓDULO PRÉSTAMOS ─────────────────────────────────────────────────────
+function ModPrestamos({ data, reload }) {
+  const EMPTY = { concepto: "", monto_recibido: "", fecha_recepcion: "", monto_pago: "", fecha_pago: "", estatus: "Activo", notas: "" };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+
+  function openNew() { setForm(EMPTY); setEditRow(null); setOpen(true); setErr(""); }
+  function openEdit(r) {
+    setForm({ concepto: r.concepto || "", monto_recibido: r.monto_recibido ?? "", fecha_recepcion: r.fecha_recepcion || "", monto_pago: r.monto_pago ?? "", fecha_pago: r.fecha_pago || "", estatus: r.estatus || "Activo", notas: r.notas || "" });
+    setEditRow(r); setOpen(true); setErr("");
+  }
+
+  async function save() {
+    if (!form.monto_recibido || !form.fecha_recepcion) return setErr("Monto recibido y fecha de recepción son requeridos.");
+    setLoading(true);
+    const payload = {
+      concepto: form.concepto || null,
+      monto_recibido: parseFloat(form.monto_recibido),
+      fecha_recepcion: form.fecha_recepcion,
+      monto_pago: form.monto_pago ? parseFloat(form.monto_pago) : null,
+      fecha_pago: form.fecha_pago || null,
+      estatus: form.estatus || "Activo",
+      notas: form.notas || null,
+    };
+    const { error } = editRow
+      ? await sb.from("prestamos").update(payload).eq("id", editRow.id)
+      : await sb.from("prestamos").insert(payload);
+    setLoading(false);
+    if (error) return setErr(error.message);
+    reload(); setOpen(false);
+  }
+
+  async function del(r) {
+    if (!confirm(`¿Eliminar préstamo "${r.concepto || r.id}"?`)) return;
+    await sb.from("prestamos").delete().eq("id", r.id);
+    reload();
+  }
+
+  const rows = data || [];
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <span style={{ fontSize: 13, color: C.muted }}>{rows.length} registro{rows.length !== 1 ? "s" : ""}</span>
+        <button onClick={openNew} style={{ background: C.greenStrong, color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          + Nuevo préstamo
+        </button>
+      </div>
+
+      {open && (
+        <div style={{ background: "#F0FAF0", border: "1px solid #DDEEDC", borderRadius: 14, padding: 20, marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: C.text }}>
+            {editRow ? "Editar préstamo" : "Nuevo préstamo"}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 12 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
+              Concepto
+              <input style={inputStyle} value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} placeholder="Ej. Préstamo BBVA" />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
+              Monto recibido *
+              <input type="number" style={inputStyle} value={form.monto_recibido} onChange={e => setForm(f => ({ ...f, monto_recibido: e.target.value }))} placeholder="200000" />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
+              Fecha recepción *
+              <input type="date" style={inputStyle} value={form.fecha_recepcion} onChange={e => setForm(f => ({ ...f, fecha_recepcion: e.target.value }))} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
+              Monto a pagar
+              <input type="number" style={inputStyle} value={form.monto_pago} onChange={e => setForm(f => ({ ...f, monto_pago: e.target.value }))} placeholder="230000" />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
+              Fecha de pago
+              <input type="date" style={inputStyle} value={form.fecha_pago} onChange={e => setForm(f => ({ ...f, fecha_pago: e.target.value }))} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
+              Estatus
+              <select style={selectStyle} value={form.estatus} onChange={e => setForm(f => ({ ...f, estatus: e.target.value }))}>
+                <option value="Activo">Activo</option>
+                <option value="Pagado">Pagado</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </label>
+          </div>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted, marginBottom: 12 }}>
+            Notas
+            <input style={inputStyle} value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Detalles adicionales..." />
+          </label>
+          {err && <div style={{ color: "#C62828", fontSize: 12, marginBottom: 10 }}>{err}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={save} disabled={loading} style={{ background: C.greenStrong, color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              {loading ? "Guardando…" : "Guardar"}
+            </button>
+            <button onClick={() => setOpen(false)} style={{ background: "#fff", border: "1px solid #E2E8E3", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", color: C.muted }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "#EFF3EF" }}>
+              {["Concepto", "Recibido", "Fecha recepción", "A pagar", "Fecha pago", "Estatus", "Notas", ""].map(h => (
+                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr><td colSpan={8} style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13 }}>Sin registros</td></tr>
+            ) : rows.map(r => (
+              <tr key={r.id} style={{ borderBottom: "1px solid #F0F2F0" }}>
+                <td style={{ padding: "9px 12px", fontWeight: 600 }}>{r.concepto || "—"}</td>
+                <td style={{ padding: "9px 12px", color: "#2E7D32", fontWeight: 700 }}>{r.monto_recibido != null ? fmt(r.monto_recibido) : "—"}</td>
+                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>{r.fecha_recepcion || "—"}</td>
+                <td style={{ padding: "9px 12px", color: "#C62828", fontWeight: 700 }}>{r.monto_pago != null ? fmt(r.monto_pago) : "—"}</td>
+                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>{r.fecha_pago || "—"}</td>
+                <td style={{ padding: "9px 12px" }}><Chip label={r.estatus} /></td>
+                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</td>
+                <td style={{ padding: "9px 12px" }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => openEdit(r)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "1px solid #E2E8E3", background: "#fff", cursor: "pointer", color: C.text }}>Editar</button>
+                    <button onClick={() => del(r)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "1px solid #FECACA", background: "#FEF2F2", cursor: "pointer", color: "#C62828" }}>Eliminar</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
 function ModIngresos({ data, reload, desde, hasta }) {
   const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", monto_cobrado: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", xml_url: "", tipo: "Factura", factura_ref: "" };
@@ -2477,6 +2619,18 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
     setTimeout(() => { setGroupBy(p.groupBy); setMetrics(p.metrics); setSortIdx(null); }, 0);
   };
 
+  const moveItem = (arr, idx, dir) => {
+    const next = idx + dir;
+    if (next < 0 || next >= arr.length) return arr;
+    const copy = [...arr];
+    [copy[idx], copy[next]] = [copy[next], copy[idx]];
+    return copy;
+  };
+
+  const moveFilter = (idx, dir) => setFilters(fs => moveItem(fs, idx, dir));
+  const moveGroup = (idx, dir) => setGroupBy(gs => moveItem(gs, idx, dir));
+  const moveMetric = (idx, dir) => setMetrics(ms => moveItem(ms, idx, dir));
+
   const result = useMemo(() => {
     if (!schema) return { rows: [], cols: [], total: 0, groupCount: 0 };
     const filtered = sourceData.filter(r => filters.every(f => _applyFilter(r, f, schema)));
@@ -2593,7 +2747,10 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
       {/* Filters */}
       <div style={sectionStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-          <div style={sectionTitle}>2. Filtros</div>
+          <div>
+            <div style={sectionTitle}>2. Filtros</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Ordena los filtros con los controles ↑ ↓ para probar consultas más rápido.</div>
+          </div>
           <button onClick={() => setFilters(f => [...f, { field: schema.fields[0].key, op: schema.fields[0].type === "date" ? "between" : "contains", value: "" }])} style={addBtn}>+ Filtro</button>
         </div>
         {filters.length === 0 ? (
@@ -2608,11 +2765,15 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
             ? [["between", "entre fechas"]]
             : [["contains", "contiene"], ["eq", "igual a"], ["neq", "distinto de"]];
           return (
-            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={f.field} onChange={e => { const nf = e.target.value; const nd = schema.fields.find(x => x.key === nf); setFilters(fs => fs.map((x, i) => i === idx ? { field: nf, op: nd?.type === "date" ? "between" : nd?.type === "number" ? "eq" : "contains", value: "", from: "", to: "" } : x)); }} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap", padding: 12, borderRadius: 14, background: "#F8FAF7", border: "1px solid #E2E8E3" }}>
+              <div style={{ display: "grid", gap: 4, alignItems: "center" }}>
+                <button onClick={() => moveFilter(idx, -1)} disabled={idx === 0} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => moveFilter(idx, 1)} disabled={idx === filters.length - 1} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === filters.length - 1 ? 0.4 : 1 }}>↓</button>
+              </div>
+              <select value={f.field} onChange={e => { const nf = e.target.value; const nd = schema.fields.find(x => x.key === nf); setFilters(fs => fs.map((x, i) => i === idx ? { field: nf, op: nd?.type === "date" ? "between" : nd?.type === "number" ? "eq" : "contains", value: "", from: "", to: "" } : x)); }} style={{ ...selectStyle, width: "auto", minWidth: 150 }}>
                 {schema.fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
               </select>
-              <select value={f.op} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, op: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 120 }}>
+              <select value={f.op} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, op: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
                 {ops.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </select>
               {f.op === "between" ? (
@@ -2623,7 +2784,7 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
               ) : (
                 <input type={isNum ? "number" : "text"} placeholder="valor" value={f.value || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, value: e.target.value } : x))} style={{ ...inputStyle, width: 180 }} />
               )}
-              <button onClick={() => setFilters(fs => fs.filter((_, i) => i !== idx))} style={xBtn}>✕</button>
+              <button onClick={() => setFilters(fs => fs.filter((_, i) => i !== idx))} style={{ ...xBtn, background: "#FDE8E8", borderColor: "#F5C2C2", color: "#B91C1C" }}>✕</button>
             </div>
           );
         })}
@@ -2632,7 +2793,10 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
       {/* Group by */}
       <div style={sectionStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-          <div style={sectionTitle}>3. Agrupar por</div>
+          <div>
+            <div style={sectionTitle}>3. Agrupar por</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Reordena dimensiones para cambiar la jerarquía de agrupación.</div>
+          </div>
           {groupBy.length < 2 && (
             <button onClick={() => setGroupBy(g => [...g, { field: schema.fields[0].key, gran: "mes" }])} style={addBtn}>+ Dimensión</button>
           )}
@@ -2642,8 +2806,12 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
         ) : groupBy.map((g, idx) => {
           const fd = schema.fields.find(x => x.key === g.field);
           return (
-            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={g.field} onChange={e => setGroupBy(gs => gs.map((x, i) => i === idx ? { ...x, field: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap", padding: 12, borderRadius: 14, background: "#F8FAF7", border: "1px solid #E2E8E3" }}>
+              <div style={{ display: "grid", gap: 4, alignItems: "center" }}>
+                <button onClick={() => moveGroup(idx, -1)} disabled={idx === 0} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => moveGroup(idx, 1)} disabled={idx === groupBy.length - 1} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === groupBy.length - 1 ? 0.4 : 1 }}>↓</button>
+              </div>
+              <select value={g.field} onChange={e => setGroupBy(gs => gs.map((x, i) => i === idx ? { ...x, field: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 150 }}>
                 {schema.fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
               </select>
               {fd?.type === "date" && (
@@ -2651,7 +2819,7 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
                   {Object.entries(DATE_GRANS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
               )}
-              <button onClick={() => setGroupBy(gs => gs.filter((_, i) => i !== idx))} style={xBtn}>✕</button>
+              <button onClick={() => setGroupBy(gs => gs.filter((_, i) => i !== idx))} style={{ ...xBtn, background: "#FDE8E8", borderColor: "#F5C2C2", color: "#B91C1C" }}>✕</button>
             </div>
           );
         })}
@@ -2660,14 +2828,21 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
       {/* Metrics */}
       <div style={sectionStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-          <div style={sectionTitle}>4. Métricas a calcular</div>
+          <div>
+            <div style={sectionTitle}>4. Métricas a calcular</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Arrastra la prioridad de métricas con los botones para ver qué cambia.</div>
+          </div>
           <button onClick={() => setMetrics(m => [...m, { agg: "sum", field: "" }])} style={addBtn}>+ Métrica</button>
         </div>
         {metrics.map((m, idx) => {
           const aggDef = AGG_FUNCS[m.agg];
           const fields = aggDef?.numeric ? schema.fields.filter(f => f.type === "number") : schema.fields;
           return (
-            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap", padding: 12, borderRadius: 14, background: "#F8FAF7", border: "1px solid #E2E8E3" }}>
+              <div style={{ display: "grid", gap: 4, alignItems: "center" }}>
+                <button onClick={() => moveMetric(idx, -1)} disabled={idx === 0} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => moveMetric(idx, 1)} disabled={idx === metrics.length - 1} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === metrics.length - 1 ? 0.4 : 1 }}>↓</button>
+              </div>
               <select value={m.agg} onChange={e => setMetrics(ms => ms.map((x, i) => i === idx ? { ...x, agg: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 160 }}>
                 {Object.entries(AGG_FUNCS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
@@ -2680,7 +2855,7 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
                   </select>
                 </>
               )}
-              {metrics.length > 1 && <button onClick={() => setMetrics(ms => ms.filter((_, i) => i !== idx))} style={xBtn}>✕</button>}
+              {metrics.length > 1 && <button onClick={() => setMetrics(ms => ms.filter((_, i) => i !== idx))} style={{ ...xBtn, background: "#FDE8E8", borderColor: "#F5C2C2", color: "#B91C1C" }}>✕</button>}
             </div>
           );
         })}
@@ -2789,7 +2964,7 @@ function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes 
 }
 
 // ─── MÓDULO DASHBOARD ─────────────────────────────────────────────────────
-function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes, desde, hasta }) {
+function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes, prestamos, desde, hasta }) {
   const [cashflowLookback, setCashflowLookback] = useState(30);
   const ing  = useMemo(() => (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta)), [ingresos, desde, hasta]);
   const gas  = useMemo(() => (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta)), [gastos,   desde, hasta]);
@@ -3058,6 +3233,14 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const now = new Date();
     const todayStr = fmtDate(now);
 
+    // ── 2.1 Préstamos registrados ──
+    (prestamos || []).filter(p => p.estatus !== "Cancelado").forEach(p => {
+      if (p.fecha_recepcion && parseFloat(p.monto_recibido || 0) > 0)
+        addBucket(realBuckets, p.fecha_recepcion, "in", parseFloat(p.monto_recibido));
+      if (p.fecha_pago && parseFloat(p.monto_pago || 0) > 0)
+        addBucket(realBuckets, p.fecha_pago, "out", parseFloat(p.monto_pago));
+    });
+
     // ── 3. Run-rate (ventana configurable de actividad real) ──
     const lookbackDays = cashflowLookback;
     const lookbackDate = new Date(now); lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
@@ -3295,6 +3478,14 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
             <div style={{ fontSize: 22, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>{fmtM(porCobrar)}</div>
             <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>fletes ya hechos sin cobrar</div>
           </div>
+          {(prestamos || []).filter(p => p.estatus === "Activo").map(p => (
+            <div key={p.id} style={{ background: "#FFFFFF", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8E3" }}>
+              <div style={{ fontSize: 11, color: "#6B7A72" }}>Préstamo — {p.concepto || "Sin concepto"}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>+{fmtM(p.monto_recibido)}</div>
+              <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>Recibido {p.fecha_recepcion ? fmtDateShort(p.fecha_recepcion) : "—"}</div>
+              {p.fecha_pago && <div style={{ fontSize: 10, color: "#B91C1C", marginTop: 4 }}>Pago {fmtM(p.monto_pago)} el {fmtDateShort(p.fecha_pago)}</div>}
+            </div>
+          ))}
         </div>
 
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 16, padding: 16, marginBottom: 16 }}>
@@ -3349,7 +3540,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
               <ReferenceLine y={0} stroke="#9CA89F" strokeDasharray="4 3" />
               {todayInRange && (
                 <ReferenceLine x={todayStr} stroke="#132019" strokeDasharray="3 3" strokeWidth={1.2}
-                  label={{ value: "HOY", position: "top", fill: "#132019", fontSize: 11, fontWeight: 700 }} />
+                  label={{ value: "hoy", position: "top", fill: "#132019", fontSize: 11, fontWeight: 700 }} />
               )}
               <Area type="monotone" dataKey="saldo" stroke="none" fill="url(#saldoGrad)" connectNulls isAnimationActive={false} />
               <Line type="monotone" dataKey="cumOutReal" stroke="#C62828" strokeWidth={2}   dot={false} connectNulls={false} name="Gastos acum." isAnimationActive={false} />
@@ -3804,6 +3995,7 @@ export default function VDLModulos({ onLogout }) {
   const [rutas,      setRutas]      = useState(null);
   const [unidades,   setUnidades]   = useState(null);
   const [clientes,   setClientes]   = useState(null);
+  const [prestamos,  setPrestamos]  = useState(null);
 
   // ── Fetch all tables ──────────────────────────────────────────────────
   const fetchTable = useCallback(async (table, setter) => {
@@ -3818,6 +4010,7 @@ export default function VDLModulos({ onLogout }) {
   const reloadGastos     = useCallback(() => fetchTable("gastos",     setGastos),     [fetchTable]);
   const reloadIngresos   = useCallback(() => fetchTable("ingresos",   setIngresos),   [fetchTable]);
   const reloadClientes   = useCallback(() => fetchTable("clientes",   setClientes),   [fetchTable]);
+  const reloadPrestamos  = useCallback(() => fetchTable("prestamos",  setPrestamos),  [fetchTable]);
 
   // Initial load — fetch everything on mount
   useEffect(() => {
@@ -3828,6 +4021,7 @@ export default function VDLModulos({ onLogout }) {
     reloadGastos();
     reloadIngresos();
     reloadClientes();
+    reloadPrestamos();
   }, []);
 
   // ── KPIs ─────────────────────────────────────────────────────────────
@@ -4110,7 +4304,7 @@ export default function VDLModulos({ onLogout }) {
 
         {/* MODULE CONTENT */}
         <div style={{ flex: 1, padding: "20px clamp(12px, 3vw, 28px)" }}>
-          {mod === "dashboard"  && <ModDashboard  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} desde={desde} hasta={hasta} />}
+          {mod === "dashboard"  && <ModDashboard  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} prestamos={prestamos || []} desde={desde} hasta={hasta} />}
           {mod === "consultas"  && <ModConsultas  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} operadores={operadores || []} />}
@@ -4118,6 +4312,7 @@ export default function VDLModulos({ onLogout }) {
           {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} unidades={unidades || []} />}
           {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
           {mod === "unidades"   && <ModUnidades   data={unidades}   reload={reloadUnidades} />}
+          {mod === "prestamos"  && <ModPrestamos  data={prestamos}  reload={reloadPrestamos} />}
         </div>
       </section>
     </main>
