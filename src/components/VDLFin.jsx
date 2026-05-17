@@ -3194,6 +3194,9 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return `${parseInt(d)}-${meses[parseInt(m)-1]}-${y}`;
     };
 
+    const now = new Date();
+    const todayStr = fmtDate(now);
+
     const proyectarCobro = (fechaStr) => {
       if (!fechaStr) return null;
       const [y, m, d] = fechaStr.split("-").map(Number);
@@ -3207,18 +3210,30 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return fmtDate(cierre);
     };
 
-    // ── 1. Buckets reales (gastos en su fecha + cobros proyectados de rutas existentes) ──
+    // ── 1. Buckets reales ──────────────────────────────────────────────────
     const realBuckets = new Map();
     const addBucket = (m, fecha, key, val) => {
       if (!m.has(fecha)) m.set(fecha, { in: 0, out: 0 });
       m.get(fecha)[key] += val;
     };
+
+    // Ingresos cobrados → entrada real en fecha_pago (fuente de verdad para saldo)
+    const ingSign = (r) => r.tipo === "NC" ? -1 : 1;
+    (ingresos || []).filter(r => r.estatus === "Pagado" && r.fecha_pago).forEach(r => {
+      const monto = ingSign(r) * parseFloat(r.monto_cobrado || r.coniva || 0);
+      if (monto > 0)       addBucket(realBuckets, r.fecha_pago, "in",  monto);
+      else if (monto < 0)  addBucket(realBuckets, r.fecha_pago, "out", -monto);
+    });
+
+    // Rutas sin cobrar → proyectar solo a fechas futuras (pipeline)
     (rutas || []).forEach(r => {
       const cobro = proyectarCobro(r.fecha);
-      if (!cobro) return;
+      if (!cobro || cobro <= todayStr) return;
       const monto = parseFloat(r.flete || r.flete_siniva || 0);
       if (monto > 0) addBucket(realBuckets, cobro, "in", monto);
     });
+
+    // Gastos → salida en su fecha real
     (gastos || []).forEach(g => {
       if (!g.fecha) return;
       const monto = parseFloat(g.monto || 0);
@@ -3228,10 +3243,6 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     if (realBuckets.size === 0) {
       return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72", fontSize: 13 }}>Sin datos suficientes para proyectar el flujo de caja.</div>;
     }
-
-    // ── 2. Hoy ──
-    const now = new Date();
-    const todayStr = fmtDate(now);
 
     // ── 2.1 Préstamos registrados ──
     (prestamos || []).filter(p => p.estatus !== "Cancelado").forEach(p => {
