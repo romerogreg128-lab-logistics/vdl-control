@@ -5,11 +5,11 @@ import {
   ResponsiveContainer, ComposedChart, BarChart, Bar, Line, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ReferenceLine, ReferenceDot, Cell,
 } from "recharts";
-// Font loaded via next/font or <link> in layout â€” uses system stack as fallback
+// Font loaded via next/font or <link> in layout — uses system stack as fallback
 const LOGO_SRC = "data:image/png;base64,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";
 import { supabase as sb } from "../lib/supabase/client";
 
-// â”€â”€â”€ PALETA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PALETA ───────────────────────────────────────────────────────────────
 const C = {
   bg:          "#F5F7F4",
   sidebar:     "#0B1F17",
@@ -29,7 +29,7 @@ const CHIP_MAP = {
   Combustible:    { bg: "#1565C0", color: "#fff" },
   Gasolina:       { bg: "#1565C0", color: "#fff" },
   Caseta:         { bg: "#37474F", color: "#fff" },
-  "NÃ³mina":       { bg: "#E65100", color: "#fff" },
+  "Nómina":       { bg: "#E65100", color: "#fff" },
   Impuesto:       { bg: "#B71C1C", color: "#fff" },
   Estacionamiento:{ bg: "#546E7A", color: "#fff" },
   Mantenimiento:  { bg: "#4527A0", color: "#fff" },
@@ -38,7 +38,7 @@ const CHIP_MAP = {
   // estatus pago gastos
   Pagado:         { bg: "#1B5E20", color: "#fff" },
   "Por pagar":    { bg: "#E65100", color: "#fff" },
-  "En revisiÃ³n":  { bg: "#0D47A1", color: "#fff" },
+  "En revisión":  { bg: "#0D47A1", color: "#fff" },
   // estatus ingresos
   Activo:         { bg: "#2E7D32", color: "#fff" },
   Pendiente:      { bg: "#F57F17", color: "#fff" },
@@ -52,13 +52,13 @@ const CHIP_MAP = {
   Tercera:        { bg: "#4527A0", color: "#fff" },
   Propia:         { bg: "#1B5E20", color: "#fff" },
   Moto:           { bg: "#37474F", color: "#fff" },
-  "SedÃ¡n":        { bg: "#37474F", color: "#fff" },
+  "Sedán":        { bg: "#37474F", color: "#fff" },
   "Small Van":    { bg: "#0D47A1", color: "#fff" },
   Van:            { bg: "#1565C0", color: "#fff" },
   "Large Van":    { bg: "#283593", color: "#fff" },
 };
 
-// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HELPERS ──────────────────────────────────────────────────────────────
 const fmt = (n) =>
   "$" + parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -72,7 +72,7 @@ const inRange = (fecha, desde, hasta) => {
 let _rutaCounter = 1000;
 const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
 
-// Sincronizar contador con el mÃ¡ximo ID existente en Supabase
+// Sincronizar contador con el máximo ID existente en Supabase
 async function syncRutaCounter() {
   const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(50);
   if (!data || data.length === 0) return;
@@ -82,7 +82,7 @@ async function syncRutaCounter() {
   if (nums.length > 0) _rutaCounter = Math.max(...nums);
 }
 
-// â”€â”€â”€ SHARED STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SHARED STYLES ────────────────────────────────────────────────────────
 const inputStyle = {
   padding: "8px 12px", borderRadius: 10, border: "1px solid #E2E8E3",
   fontSize: 13, color: "#132019", background: "#FFFFFF",
@@ -96,10 +96,10 @@ const selectStyle = {
   paddingRight: 34, cursor: "pointer",
 };
 
-// â”€â”€â”€ BASE COMPONENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BASE COMPONENTS ──────────────────────────────────────────────────────
 
 function Chip({ label }) {
-  if (!label) return <span style={{ color: C.muted, fontSize: 12 }}>â€”</span>;
+  if (!label) return <span style={{ color: C.muted, fontSize: 12 }}>—</span>;
   const s = CHIP_MAP[label] || { bg: "#E2E8E3", color: "#4A5C52" };
   return (
     <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: s.bg, color: s.color }}>
@@ -109,7 +109,7 @@ function Chip({ label }) {
 }
 
 function IdBadge({ id }) {
-  if (!id) return <span style={{ color: C.muted }}>â€”</span>;
+  if (!id) return <span style={{ color: C.muted }}>—</span>;
   return <span style={{ fontFamily: "monospace", fontSize: 11, background: "#ECF1EC", color: C.muted, padding: "2px 7px", borderRadius: 5, border: "1px solid #E2E8E3" }}>{id}</span>;
 }
 
@@ -156,7 +156,7 @@ function PagoModal({ open, onConfirm, onCancel }) {
       onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", width: 320, boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}>
         <p style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 6 }}>Registrar pago</p>
-        <p style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>Selecciona la fecha en que se realizÃ³ el pago.</p>
+        <p style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>Selecciona la fecha en que se realizó el pago.</p>
         <input
           type="date"
           value={fecha}
@@ -187,7 +187,7 @@ function RowActions({ onEdit, onDelete }) {
           width: 30, height: 30, borderRadius: 8, border: "1px solid #E2E8E3",
           background: "#FFFFFF", cursor: "pointer", fontSize: 16, color: C.muted,
           display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700,
-        }}>â‹¯</button>
+        }}>⋯</button>
         {open && (
           <div style={{
             position: "absolute", right: 0, top: 34, zIndex: 100,
@@ -200,7 +200,7 @@ function RowActions({ onEdit, onDelete }) {
             }}
             onMouseEnter={e => e.currentTarget.style.background = "#F5F7F4"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-              âœŽ Editar
+              ✎ Editar
             </button>
             <button onClick={() => { setOpen(false); onDelete(); }} style={{
               display: "block", width: "100%", padding: "9px 14px", textAlign: "left",
@@ -209,7 +209,7 @@ function RowActions({ onEdit, onDelete }) {
             }}
             onMouseEnter={e => e.currentTarget.style.background = "#FEF2F2"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-              âœ• Eliminar
+              ✕ Eliminar
             </button>
           </div>
         )}
@@ -223,7 +223,7 @@ function FormPanel({ visible, title, isEdit, children }) {
   return (
     <div style={{ background: isEdit ? "#FFF8EC" : "#EFF3EF", border: `1px solid ${isEdit ? "#F5D89A" : "#E2E8E3"}`, borderRadius: 20, padding: 20, marginBottom: 16 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: isEdit ? "#92610A" : C.muted, marginBottom: 14, paddingBottom: 10, borderBottom: `1px solid ${isEdit ? "#F5D89A" : "#E2E8E3"}`, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        {isEdit ? "âœŽ " : ""}{title}
+        {isEdit ? "✎ " : ""}{title}
       </div>
       {children}
     </div>
@@ -265,17 +265,17 @@ function GreenBanner({ children }) {
   );
 }
 
-// â”€â”€â”€ ERROR BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ERROR BANNER ─────────────────────────────────────────────────────────
 function ErrBanner({ msg }) {
   if (!msg) return null;
   return (
     <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", fontSize: 12, marginBottom: 12 }}>
-      âš  {msg}
+      ⚠ {msg}
     </div>
   );
 }
 
-// â”€â”€â”€ LOADING SPINNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LOADING SPINNER ──────────────────────────────────────────────────────
 function Loading() {
   return (
     <tr><td colSpan={99} style={{ textAlign: "center", padding: "32px", color: C.muted, fontSize: 13 }}>
@@ -284,7 +284,7 @@ function Loading() {
   );
 }
 
-// â”€â”€â”€ KPI CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── KPI CARD ─────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, badge, badgeType }) {
   const colors = { up: { bg: "#DDEEDC", color: "#0F5C2E" }, down: { bg: "#FCEBEB", color: "#791F1F" }, neu: { bg: "#ECF1EC", color: C.muted } };
   const bc = colors[badgeType] || colors.neu;
@@ -298,7 +298,7 @@ function KpiCard({ label, value, sub, badge, badgeType }) {
   );
 }
 
-// â”€â”€â”€ DATE RANGE PICKER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DATE RANGE PICKER ────────────────────────────────────────────────────
 function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
   const hoy = new Date();
   const toStr = d => {
@@ -323,12 +323,12 @@ function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
   }, [open]);
 
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const DIAS  = ["lu","ma","mi","ju","vi","sÃ¡","do"];
+  const DIAS  = ["lu","ma","mi","ju","vi","sá","do"];
 
   const prevMonth = () => { if (viewM === 0) { setViewM(11); setViewY(y => y-1); } else setViewM(m => m-1); };
   const nextMonth = () => { if (viewM === 11) { setViewM(0); setViewY(y => y+1); } else setViewM(m => m+1); };
 
-  // Celdas del calendario (incluyendo dÃ­as del mes anterior/siguiente para completar semanas)
+  // Celdas del calendario (incluyendo días del mes anterior/siguiente para completar semanas)
   const cells = useMemo(() => {
     const first = new Date(viewY, viewM, 1);
     const dow = (first.getDay() + 6) % 7; // lunes=0
@@ -369,7 +369,7 @@ function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
   const isEnd   = d => toStr(d) === (phase === 2 && hover ? (hover < desde ? desde : hover) : hasta);
 
   const displayDesde = desde ? parseStr(desde)?.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }) : "Inicio";
-  const displayHasta = hasta ? parseStr(hasta)?.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }) : (phase === 2 ? "Finâ€¦" : "Fin");
+  const displayHasta = hasta ? parseStr(hasta)?.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }) : (phase === 2 ? "Fin…" : "Fin");
   const activo = !!(desde || hasta);
 
   return (
@@ -385,14 +385,14 @@ function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
         <span style={{ color: desde ? C.text : C.muted }}>{displayDesde}</span>
-        <span style={{ color: C.muted, fontSize: 11 }}>â†’</span>
+        <span style={{ color: C.muted, fontSize: 11 }}>→</span>
         <span style={{ color: hasta ? C.text : C.muted }}>{displayHasta}</span>
         {activo && (
           <span
             onClick={e => { e.stopPropagation(); setDesde(""); setHasta(""); setPhase(1); setOpen(false); }}
             style={{ marginLeft: 4, color: "#B91C1C", fontSize: 14, lineHeight: 1, cursor: "pointer" }}
             title="Limpiar"
-          >âœ•</span>
+          >✕</span>
         )}
       </button>
 
@@ -404,14 +404,14 @@ function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
         }}>
           {/* Encabezado mes */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <button onClick={prevMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: "2px 6px" }}>â€¹</button>
+            <button onClick={prevMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: "2px 6px" }}>‹</button>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.text, textTransform: "capitalize" }}>
               {MESES[viewM]} {viewY}
             </span>
-            <button onClick={nextMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: "2px 6px" }}>â€º</button>
+            <button onClick={nextMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16, color: C.muted, padding: "2px 6px" }}>›</button>
           </div>
 
-          {/* DÃ­as semana */}
+          {/* Días semana */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
             {DIAS.map(d => (
               <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: C.muted, padding: "2px 0", textTransform: "uppercase" }}>{d}</div>
@@ -456,7 +456,7 @@ function DateRangePicker({ desde, hasta, setDesde, setHasta }) {
   );
 }
 
-// â”€â”€â”€ BULK CALENDAR (inline, sin dropdown) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BULK CALENDAR (inline, sin dropdown) ─────────────────────────────────
 function BulkCalendar({ onAddFechas }) {
   const hoy = new Date();
   const toStr = d => {
@@ -470,7 +470,7 @@ function BulkCalendar({ onAddFechas }) {
   const [hover, setHover] = useState(null);
 
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const DIAS  = ["LU","MA","MI","JU","VI","SÃ","DO"];
+  const DIAS  = ["LU","MA","MI","JU","VI","SÁ","DO"];
 
   const prevMonth = () => { if (viewM === 0) { setViewM(11); setViewY(y => y-1); } else setViewM(m => m-1); };
   const nextMonth = () => { if (viewM === 11) { setViewM(0); setViewY(y => y+1); } else setViewM(m => m+1); };
@@ -498,7 +498,7 @@ function BulkCalendar({ onAddFechas }) {
     if (phase === 1) {
       setDesde(s); setPhase(2);
     } else {
-      // Confirmar rango (o dÃ­a solo si s === desde)
+      // Confirmar rango (o día solo si s === desde)
       const start = s < desde ? s : desde;
       const end   = s < desde ? desde : s;
       const nuevas = [];
@@ -525,13 +525,13 @@ function BulkCalendar({ onAddFechas }) {
     <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #C8E6C9", padding: "14px 16px", userSelect: "none" }}>
       {/* Encabezado mes */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <button onClick={prevMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: "2px 8px", borderRadius: 8 }}>â€¹</button>
+        <button onClick={prevMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: "2px 8px", borderRadius: 8 }}>‹</button>
         <span style={{ fontSize: 14, fontWeight: 700, color: C.text, textTransform: "capitalize" }}>
           {MESES[viewM]} {viewY}
         </span>
-        <button onClick={nextMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: "2px 8px", borderRadius: 8 }}>â€º</button>
+        <button onClick={nextMonth} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: "2px 8px", borderRadius: 8 }}>›</button>
       </div>
-      {/* DÃ­as semana */}
+      {/* Días semana */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
         {DIAS.map(d => <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: C.muted, padding: "2px 0" }}>{d}</div>)}
       </div>
@@ -563,8 +563,8 @@ function BulkCalendar({ onAddFechas }) {
       {/* Hint */}
       <div style={{ marginTop: 10, fontSize: 11, color: C.muted, textAlign: "center" }}>
         {phase === 1
-          ? "Click en un dÃ­a para iniciar selecciÃ³n"
-          : `Desde ${desde} â€” click en otro dÃ­a para el rango, o en el mismo para un solo dÃ­a`}
+          ? "Click en un día para iniciar selección"
+          : `Desde ${desde} — click en otro día para el rango, o en el mismo para un solo día`}
       </div>
     </div>
   );
@@ -587,7 +587,7 @@ const NAV_GROUPS = [
   { label: "GENERAL",        ids: ["dashboard", "consultas"] },
   { label: "CAPTURA",        ids: ["ingresos", "gastos", "prestamos"] },
   { label: "OPERACIONES",    ids: ["clientes", "operadores", "rutas"] },
-  { label: "CONFIGURACIÃ“N",  ids: ["unidades"] },
+  { label: "CONFIGURACIÓN",  ids: ["unidades"] },
 ];
 
 const NAV_LABELS = {
@@ -595,7 +595,7 @@ const NAV_LABELS = {
   consultas:  "Consultas",
   ingresos:   "Ingresos",
   gastos:     "Gastos",
-  prestamos:  "PrÃ©stamos",
+  prestamos:  "Préstamos",
   clientes:   "Clientes",
   operadores: "Operadores",
   rutas:      "Rutas",
@@ -626,21 +626,21 @@ function NavItem({ id, active, onClick }) {
 }
 
 
-// â”€â”€â”€ FILTER BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── FILTER BAR ───────────────────────────────────────────────────────────
 const MOD_META = {
-  dashboard:  { title: "Dashboard",  sub: "Resumen completo de mÃ©tricas del perÃ­odo" },
-  consultas:  { title: "Consultas",  sub: "Construye anÃ¡lisis personalizados sobre tus datos en tiempo real" },
-  ingresos:   { title: "Flujo de trabajo",   sub: "Registro de facturas Â· solo las pagadas cuentan como ingreso" },
+  dashboard:  { title: "Dashboard",  sub: "Resumen completo de métricas del período" },
+  consultas:  { title: "Consultas",  sub: "Construye análisis personalizados sobre tus datos en tiempo real" },
+  ingresos:   { title: "Flujo de trabajo",   sub: "Registro de facturas · solo las pagadas cuentan como ingreso" },
   gastos:     { title: "Gastos",     sub: "Control de egresos operativos" },
-  prestamos:  { title: "PrÃ©stamos",  sub: "Registro de crÃ©ditos y deudas Â· impactan el flujo de caja automÃ¡ticamente" },
+  prestamos:  { title: "Préstamos",  sub: "Registro de créditos y deudas · impactan el flujo de caja automáticamente" },
   clientes:   { title: "Clientes",   sub: "Tarifas por tipo de unidad y datos de contacto" },
-  operadores: { title: "Operadores", sub: "Registro de conductores y asignaciÃ³n" },
-  rutas:      { title: "Rutas",      sub: "Registro de viajes con flete automÃ¡tico" },
-  unidades:   { title: "Unidades",   sub: "Registro de vehÃ­culos de la flotilla" },
+  operadores: { title: "Operadores", sub: "Registro de conductores y asignación" },
+  rutas:      { title: "Rutas",      sub: "Registro de viajes con flete automático" },
+  unidades:   { title: "Unidades",   sub: "Registro de vehículos de la flotilla" },
 };
 
 
-// â”€â”€â”€ FILTER BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── FILTER BAR ───────────────────────────────────────────────────────────
 function FilterBar({ filters, setFilters, options }) {
   // options: array of { key, label, type: "select"|"text", choices: [] }
   return (
@@ -682,7 +682,7 @@ function FilterBar({ filters, setFilters, options }) {
   );
 }
 
-// â”€â”€â”€ MÃ“DULO UNIDADES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO UNIDADES ──────────────────────────────────────────────────────
 // Columnas reales en Supabase:
 // id (uuid), economico, placas, tipo_unidad, marca, modelo, anio, km_actual, rendimiento_km_l, estatus, created_at
 function ModUnidades({ data, reload }) {
@@ -726,7 +726,7 @@ function ModUnidades({ data, reload }) {
   const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
 
   const save = async () => {
-    if (!form.economico) { setErr("El econÃ³mico es obligatorio"); return; }
+    if (!form.economico) { setErr("El económico es obligatorio"); return; }
     setLoading(true); setErr("");
     try {
       const payload = {
@@ -757,7 +757,7 @@ function ModUnidades({ data, reload }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm(`Â¿Eliminar unidad ${r.economico}?`)) return;
+    if (!window.confirm(`¿Eliminar unidad ${r.economico}?`)) return;
     try {
       const { error } = await sb.from("unidades").delete().eq("id", r.id);
       if (error) throw error;
@@ -768,14 +768,14 @@ function ModUnidades({ data, reload }) {
   return (
     <div>
       <FilterBar filters={filters} setFilters={setFilters} options={[
-        { key: "tipo_unidad", label: "Tipo",      type: "select", choices: ["Moto","SedÃ¡n","Small Van","Van","Large Van","Otro"] },
+        { key: "tipo_unidad", label: "Tipo",      type: "select", choices: ["Moto","Sedán","Small Van","Van","Large Van","Otro"] },
         { key: "prop",        label: "Propiedad", type: "select", choices: ["Propia","Tercera"] },
         { key: "estatus",     label: "Estatus",   type: "select", choices: ["Activo","En taller","Baja"] },
       ]} />
             <FormPanel visible={open} title={isEdit ? "Editar unidad" : "Nueva unidad"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="EconÃ³mico">
+          <Field label="Económico">
             <Input placeholder="VDL-01" value={form.economico} onChange={e => set("economico", e.target.value)} />
           </Field>
           <Field label="Placas">
@@ -783,7 +783,7 @@ function ModUnidades({ data, reload }) {
           </Field>
           <Field label="Tipo de unidad">
             <Select value={form.tipo_unidad} onChange={v => set("tipo_unidad", v)}
-              options={["Moto", "SedÃ¡n", "Small Van", "Van", "Large Van", "Otro"]}
+              options={["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"]}
               placeholder="Seleccionar tipo..." />
           </Field>
           <Field label="Estatus">
@@ -797,7 +797,7 @@ function ModUnidades({ data, reload }) {
           <Field label="Modelo">
             <Input placeholder="Hiace" value={form.modelo} onChange={e => set("modelo", e.target.value)} />
           </Field>
-          <Field label="AÃ±o">
+          <Field label="Año">
             <Input type="number" placeholder="2023" value={form.anio} onChange={e => set("anio", e.target.value)} />
           </Field>
           <Field label="KM actual">
@@ -816,8 +816,8 @@ function ModUnidades({ data, reload }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <Th>EconÃ³mico</Th><Th>Placas</Th><Th>Tipo</Th><Th>Marca / Modelo</Th>
-              <Th>AÃ±o</Th><Th>KM actual</Th><Th>Rend. km/l</Th><Th>Estatus</Th><Th>Acciones</Th>
+              <Th>Económico</Th><Th>Placas</Th><Th>Tipo</Th><Th>Marca / Modelo</Th>
+              <Th>Año</Th><Th>KM actual</Th><Th>Rend. km/l</Th><Th>Estatus</Th><Th>Acciones</Th>
             </tr>
           </thead>
           <tbody>
@@ -828,12 +828,12 @@ function ModUnidades({ data, reload }) {
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td><IdBadge id={r.economico} /></Td>
-                 <Td>{r.placas || "â€”"}</Td>
+                 <Td>{r.placas || "—"}</Td>
                  <Td><Chip label={r.tipo_unidad} /></Td>
-                 <Td>{[r.marca, r.modelo].filter(Boolean).join(" ") || "â€”"}</Td>
-                 <Td>{r.anio || "â€”"}</Td>
-                 <Td>{r.km_actual ? r.km_actual.toLocaleString("es-MX") : "â€”"}</Td>
-                 <Td>{r.rendimiento_km_l ? `${r.rendimiento_km_l} km/l` : "â€”"}</Td>
+                 <Td>{[r.marca, r.modelo].filter(Boolean).join(" ") || "—"}</Td>
+                 <Td>{r.anio || "—"}</Td>
+                 <Td>{r.km_actual ? r.km_actual.toLocaleString("es-MX") : "—"}</Td>
+                 <Td>{r.rendimiento_km_l ? `${r.rendimiento_km_l} km/l` : "—"}</Td>
                  <Td><Chip label={r.estatus} /></Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
@@ -845,7 +845,7 @@ function ModUnidades({ data, reload }) {
   );
 }
 
-// â”€â”€â”€ MÃ“DULO OPERADORES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO OPERADORES ────────────────────────────────────────────────────
 function ModOperadores({ data, reload, unidades }) {
   const EMPTY = { nombre: "", telefono: "", estatus: "", unidad_id: "", cuenta_banco: "", tipo_op: "" };
   const [open, setOpen]       = useState(false);
@@ -902,7 +902,7 @@ function ModOperadores({ data, reload, unidades }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm(`Â¿Eliminar operador ${r.nombre}?`)) return;
+    if (!window.confirm(`¿Eliminar operador ${r.nombre}?`)) return;
     try {
       const { error } = await sb.from("operadores").delete().eq("id", r.id);
       if (error) throw error;
@@ -943,7 +943,7 @@ function ModOperadores({ data, reload, unidades }) {
           <Field label="Nombre completo" span2>
             <Input placeholder="Nombre del operador" value={form.nombre} onChange={e => set("nombre", e.target.value)} />
           </Field>
-          <Field label="TelÃ©fono">
+          <Field label="Teléfono">
             <Input placeholder="55 1234 5678" value={form.telefono} onChange={e => set("telefono", e.target.value)} />
           </Field>
           <Field label="Estatus">
@@ -956,8 +956,8 @@ function ModOperadores({ data, reload, unidades }) {
               options={["Propia", "Tercera"]}
               placeholder="Seleccionar tipo..." />
           </Field>
-          <Field label="NÃºmero de cuenta bancaria" span2>
-            <Input placeholder="CLABE o nÃºmero de cuenta" value={form.cuenta_banco} onChange={e => set("cuenta_banco", e.target.value)} />
+          <Field label="Número de cuenta bancaria" span2>
+            <Input placeholder="CLABE o número de cuenta" value={form.cuenta_banco} onChange={e => set("cuenta_banco", e.target.value)} />
           </Field>
           <Field label="Unidad asignada" span2>
             {unidadOpts.length === 0
@@ -970,7 +970,7 @@ function ModOperadores({ data, reload, unidades }) {
               <IdBadge id={unidadSel.economico} />
               {unidadSel.placas      && <span style={{ fontSize: 11 }}>{unidadSel.placas}</span>}
               {unidadSel.tipo_unidad && <Chip label={unidadSel.tipo_unidad} />}
-              <Chip label={unidadSel.prop || "â€”"} />
+              <Chip label={unidadSel.prop || "—"} />
               {unidadSel.marca       && <span style={{ fontSize: 11, color: C.greenStrong }}>{unidadSel.marca} {unidadSel.modelo}</span>}
             </GreenBanner>
           )}
@@ -983,7 +983,7 @@ function ModOperadores({ data, reload, unidades }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr><Th>Nombre</Th><Th>TelÃ©fono</Th><Th>Tipo</Th><Th>Unidad</Th><Th>Cuenta bancaria</Th><Th>Estatus</Th><Th>Acciones</Th></tr>
+            <tr><Th>Nombre</Th><Th>Teléfono</Th><Th>Tipo</Th><Th>Unidad</Th><Th>Cuenta bancaria</Th><Th>Estatus</Th><Th>Acciones</Th></tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
@@ -993,7 +993,7 @@ function ModOperadores({ data, reload, unidades }) {
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td bold>{r.nombre}</Td>
-                 <Td>{r.telefono || "â€”"}</Td>
+                 <Td>{r.telefono || "—"}</Td>
                  <Td><Chip label={r.tipo_op} /></Td>
                  <Td><IdBadge id={r.unidad_id} /></Td>
                  <Td><CopyField value={r.cuenta_banco} label="cuenta" /></Td>
@@ -1008,7 +1008,7 @@ function ModOperadores({ data, reload, unidades }) {
   );
 }
 
-// â”€â”€â”€ MÃ“DULO RUTAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO RUTAS ─────────────────────────────────────────────────────────
 function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }) {
   const EMPTY = { fecha: "", cliente_id: "", operador: "", unidad_id: "", flete: "", flete_siniva: "", flete_coniva: "", iva_pct: "16", ret_pct: "4", isr_pct: "1.25" };
 
@@ -1039,7 +1039,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const unidadOpts   = (unidades   || []).map(u => u.economico).filter(Boolean);
   const clienteOpts  = (clientes   || []).map(c => c.nombre).filter(Boolean);
 
-  // Buscar tarifa: cliente â†’ tipo_unidad de la unidad seleccionada
+  // Buscar tarifa: cliente → tipo_unidad de la unidad seleccionada
   const getTarifa = (cliente_id, unidad_id) => {
     const cliente = (clientes  || []).find(c => c.nombre    === cliente_id);
     const unidad  = (unidades  || []).find(u => u.economico === unidad_id);
@@ -1134,7 +1134,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   };
 
   const remove = async (r) => {
-    if (!window.confirm(`Â¿Eliminar ruta ${r.id}?`)) return;
+    if (!window.confirm(`¿Eliminar ruta ${r.id}?`)) return;
     try {
       const { error } = await sb.from("rutas").delete().eq("id", r.id);
       if (error) throw error;
@@ -1166,7 +1166,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
 
   const fillConIva = async () => {
     if (sinConIva.length === 0) return;
-    if (!window.confirm(`Â¿Calcular Flete c/IVA para ${sinConIva.length} rutas usando +16% IVA âˆ’4% Ret âˆ’1.25% ISR?`)) return;
+    if (!window.confirm(`¿Calcular Flete c/IVA para ${sinConIva.length} rutas usando +16% IVA −4% Ret −1.25% ISR?`)) return;
     setFilling(true);
     try {
       const FACTOR = 1 + 0.16 - 0.04 - 0.0125; // 1.1075
@@ -1183,7 +1183,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   return (
     <div>
       <div ref={topRef} />
-      <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta â€” ID generado automÃ¡ticamente"} isEdit={isEdit}>
+      <FormPanel visible={open} title={isEdit ? "Editar ruta" : "Nueva ruta — ID generado automáticamente"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Fecha">
@@ -1212,7 +1212,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                   : <Select value={form.unidad_id} onChange={selUnidad} options={unidadOpts} placeholder="Seleccionar unidad..." />;
               }
               if (opTieneUnidad) {
-                // Operador tiene unidad asignada: mostrar badge + botÃ³n para cambiar
+                // Operador tiene unidad asignada: mostrar badge + botón para cambiar
                 return (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{
@@ -1220,7 +1220,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                       background: C.greenSoft, border: `1px solid #B7D9B7`,
                       fontSize: 13, fontWeight: 600, color: C.greenStrong,
                     }}>
-                      {form.unidad_id} â€” asignada al operador
+                      {form.unidad_id} — asignada al operador
                     </div>
                     <button
                       onClick={() => setForm(f => ({ ...f, unidad_id: "" }))}
@@ -1271,8 +1271,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                 <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                   {[
                     { key: "iva_pct", label: "IVA %", sign: "+" },
-                    { key: "ret_pct", label: "Ret. IVA %", sign: "âˆ’" },
-                    { key: "isr_pct", label: "ISR %", sign: "âˆ’" },
+                    { key: "ret_pct", label: "Ret. IVA %", sign: "−" },
+                    { key: "isr_pct", label: "ISR %", sign: "−" },
                   ].map(({ key, label, sign }) => (
                     <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{ color: sign === "+" ? "#2E7D32" : "#B45309", fontWeight: 700, fontSize: 10 }}>{sign}</span>
@@ -1296,8 +1296,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", color: C.muted }}>
                       <span>{fmt(base)}</span>
                       <span style={{ color: "#2E7D32" }}>+IVA {fmt(iva)}</span>
-                      <span style={{ color: "#B45309" }}>âˆ’Ret {fmt(ret)}</span>
-                      <span style={{ color: "#B45309" }}>âˆ’ISR {fmt(isr)}</span>
+                      <span style={{ color: "#B45309" }}>−Ret {fmt(ret)}</span>
+                      <span style={{ color: "#B45309" }}>−ISR {fmt(isr)}</span>
                       <span style={{ fontWeight: 700, color: C.text }}>= {fmt(base + iva - ret - isr)}</span>
                     </div>
                   );
@@ -1309,8 +1309,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
       </FormPanel>
 
-      {/* â”€â”€ Formulario masivo â”€â”€ */}
-      <FormPanel visible={bulkOpen} title="Rutas en varios dÃ­as â€” mismo operador y unidad" isEdit={false}>
+      {/* ── Formulario masivo ── */}
+      <FormPanel visible={bulkOpen} title="Rutas en varios días — mismo operador y unidad" isEdit={false}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Cliente">
@@ -1336,7 +1336,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                 return (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ flex: 1, padding: "8px 12px", borderRadius: 10, background: C.greenSoft, border: "1px solid #B7D9B7", fontSize: 13, fontWeight: 600, color: C.greenStrong }}>
-                      {form.unidad_id} â€” asignada al operador
+                      {form.unidad_id} — asignada al operador
                     </div>
                     <button onClick={() => setForm(f => ({ ...f, unidad_id: "" }))} style={{ fontSize: 11, color: C.muted, background: "transparent", border: "1px solid #E2E8E3", borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>
                       Cambiar
@@ -1367,10 +1367,10 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
           </Field>
         </div>
 
-        {/* Selector de fechas â€” calendario inline */}
+        {/* Selector de fechas — calendario inline */}
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: C.greenStrong, marginBottom: 8 }}>
-            Fechas a replicar{bulkFechas.length > 0 ? ` Â· ${bulkFechas.length} seleccionada${bulkFechas.length !== 1 ? "s" : ""}` : ""}
+            Fechas a replicar{bulkFechas.length > 0 ? ` · ${bulkFechas.length} seleccionada${bulkFechas.length !== 1 ? "s" : ""}` : ""}
           </div>
           <BulkCalendar onAddFechas={onBulkCalendarAdd} />
           {/* Chips */}
@@ -1381,7 +1381,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
                   {f}
                   <button onClick={() => removeBulkFecha(f)}
                     style={{ marginLeft: 2, width: 16, height: 16, borderRadius: "50%", border: "none", background: "#FFCDD2", color: "#C62828", cursor: "pointer", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                    Ã—
+                    ×
                   </button>
                 </div>
               ))}
@@ -1408,7 +1408,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
           <AddBtn onClick={openNew} label="+ Nueva ruta" />
           <button onClick={openBulk} style={{ padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #4CAF50", background: C.greenSoft, color: C.greenStrong }}>
-            Agregar en varios dÃ­as
+            Agregar en varios días
           </button>
           {sinConIva.length > 0 && (
             <button onClick={fillConIva} disabled={filling} style={{
@@ -1416,7 +1416,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
               cursor: filling ? "not-allowed" : "pointer", border: "1.5px solid #F59E0B",
               background: filling ? "#FEF3C7" : "#FFFBEB", color: "#92400E", opacity: filling ? 0.7 : 1,
             }}>
-              {filling ? "Calculando..." : `âš¡ Calcular Flete c/IVA (${sinConIva.length} rutas)`}
+              {filling ? "Calculando..." : `⚡ Calcular Flete c/IVA (${sinConIva.length} rutas)`}
             </button>
           )}
         </div>
@@ -1425,22 +1425,22 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr><Th>ID Ruta</Th><th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>Fecha {fechaSort === "asc" ? "â†‘" : "â†“"}</th><Th>Cliente</Th><Th>Operador</Th><Th>Unidad</Th><Th>Flete s/IVA</Th><Th>Flete c/IVA</Th><Th>Acciones</Th></tr>
+            <tr><Th>ID Ruta</Th><th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>Fecha {fechaSort === "asc" ? "↑" : "↓"}</th><Th>Cliente</Th><Th>Operador</Th><Th>Unidad</Th><Th>Flete s/IVA</Th><Th>Flete c/IVA</Th><Th>Acciones</Th></tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={8} msg="Sin rutas en este perÃ­odo" /> :
+             rows.length === 0 ? <EmptyRow cols={8} msg="Sin rutas en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td><IdBadge id={r.id} /></Td>
-                 <Td>{r.fecha || "â€”"}</Td>
-                 <Td bold>{r.cliente_id || "â€”"}</Td>
-                 <Td>{r.operador || "â€”"}</Td>
+                 <Td>{r.fecha || "—"}</Td>
+                 <Td bold>{r.cliente_id || "—"}</Td>
+                 <Td>{r.operador || "—"}</Td>
                  <Td><IdBadge id={r.unidad_id} /></Td>
-                 <Td>{(r.flete_siniva || r.flete) ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_siniva ?? r.flete)}</span> : <span style={{ color: C.muted }}>â€”</span>}</Td>
-                 <Td>{r.flete_coniva ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_coniva)}</span> : <span style={{ color: C.muted }}>â€”</span>}</Td>
+                 <Td>{(r.flete_siniva || r.flete) ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_siniva ?? r.flete)}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
+                 <Td>{r.flete_coniva ? <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.flete_coniva)}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
              ))
@@ -1449,7 +1449,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         </table>
       </div>
 
-      {/* â”€â”€ Resumen por tipo de unidad / perÃ­odo â”€â”€ */}
+      {/* ── Resumen por tipo de unidad / período ── */}
       {rows.length > 0 && (() => {
         const totalFlete = rows.reduce((s, r) => s + parseFloat(r.flete || 0), 0);
         const byTipo = rows.reduce((acc, r) => {
@@ -1463,7 +1463,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         return (
           <div style={{ marginTop: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${C.border}` }}>
-              Resumen por tipo de unidad Â· {desde || "inicio"} â†’ {hasta || "hoy"}
+              Resumen por tipo de unidad · {desde || "inicio"} → {hasta || "hoy"}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 12 }}>
               <MiniKpi label="Total fletes" value={fmt(totalFlete)} sub={`${rows.length} rutas`} color={C.green} />
@@ -1478,7 +1478,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   );
 }
 
-// â”€â”€â”€ MÃ“DULO GASTOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO GASTOS ────────────────────────────────────────────────────────
 function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   const EMPTY = {
     monto: "", siniva: "", coniva: "", tipo_gasto: "", estatus_pago: "",
@@ -1577,7 +1577,7 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm("Â¿Eliminar este gasto?")) return;
+    if (!window.confirm("¿Eliminar este gasto?")) return;
     try {
       const { error } = await sb.from("gastos").delete().eq("id", r.id);
       if (error) throw error;
@@ -1610,8 +1610,8 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   return (
     <div>
       <FilterBar filters={filters} setFilters={setFilters} options={[
-        { key: "tipo_gasto",   label: "Tipo",     type: "select", choices: ["NÃ³mina","Combustible","Impuesto","Gasolina","Estacionamiento","Caseta","Mantenimiento","Llantas","Otro"] },
-        { key: "estatus_pago", label: "Estatus",  type: "select", choices: ["Pagado","Por pagar","En revisiÃ³n"] },
+        { key: "tipo_gasto",   label: "Tipo",     type: "select", choices: ["Nómina","Combustible","Impuesto","Gasolina","Estacionamiento","Caseta","Mantenimiento","Llantas","Otro"] },
+        { key: "estatus_pago", label: "Estatus",  type: "select", choices: ["Pagado","Por pagar","En revisión"] },
         { key: "operador",     label: "Operador", type: "text" },
       ]} />
       {rows.length > 0 && (
@@ -1631,16 +1631,16 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
             <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
           </Field>
           <Field label="Concepto">
-            <Input placeholder="Ej. Carga de diÃ©sel" value={form.concepto} onChange={e => set("concepto", e.target.value)} />
+            <Input placeholder="Ej. Carga de diésel" value={form.concepto} onChange={e => set("concepto", e.target.value)} />
           </Field>
           <Field label="Tipo de gasto">
             <Select value={form.tipo_gasto} onChange={v => set("tipo_gasto", v)}
-              options={["NÃ³mina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Mantenimiento", "Llantas", "Otro"]}
+              options={["Nómina", "Combustible", "Impuesto", "Gasolina", "Estacionamiento", "Caseta", "Mantenimiento", "Llantas", "Otro"]}
               placeholder="Seleccionar tipo..." />
           </Field>
           <Field label="Estatus de pago" span2>
             <Select value={form.estatus_pago} onChange={v => set("estatus_pago", v)}
-              options={["Pagado", "Por pagar", "En revisiÃ³n"]}
+              options={["Pagado", "Por pagar", "En revisión"]}
               placeholder="Seleccionar estatus..." />
           </Field>
 
@@ -1651,7 +1651,7 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
                   options={operadorOpts} placeholder="Seleccionar operador..." />}
           </Field>
 
-          <Field label="Viaje / Ruta â€” filtrado por fecha" span2>
+          <Field label="Viaje / Ruta — filtrado por fecha" span2>
             {!form.fecha
               ? <EmptyHint msg="Selecciona una fecha primero para ver los viajes disponibles." />
               : rutasDelDia.length === 0
@@ -1665,9 +1665,9 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
             <GreenBanner>
               <span style={{ fontWeight: 600 }}>Viaje:</span>
               <IdBadge id={rutaSel.id} />
-              <span>Cliente: <strong>{rutaSel.cliente_id || "â€”"}</strong></span>
-              <span>Â·</span>
-              <span>Unidad: <strong>{rutaSel.unidad_id || "â€”"}</strong></span>
+              <span>Cliente: <strong>{rutaSel.cliente_id || "—"}</strong></span>
+              <span>·</span>
+              <span>Unidad: <strong>{rutaSel.unidad_id || "—"}</strong></span>
             </GreenBanner>
           )}
 
@@ -1684,24 +1684,24 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>Fecha {fechaSort === "asc" ? "â†‘" : "â†“"}</th>
+              <th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>Fecha {fechaSort === "asc" ? "↑" : "↓"}</th>
               <Th>Concepto</Th><Th>Monto</Th>
               <Th>Tipo</Th><Th>Estatus</Th><Th>Operador</Th><Th>Viaje</Th><Th>Acciones</Th>
             </tr>
           </thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={8} msg="Sin gastos en este perÃ­odo" /> :
+             rows.length === 0 ? <EmptyRow cols={8} msg="Sin gastos en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
-                 <Td>{r.fecha || "â€”"}</Td>
-                 <Td>{r.concepto || "â€”"}</Td>
+                 <Td>{r.fecha || "—"}</Td>
+                 <Td>{r.concepto || "—"}</Td>
                  <Td bold>{fmt(r.monto)}</Td>
                  <Td><Chip label={r.tipo_gasto} /></Td>
                  <Td><Chip label={r.estatus_pago || "Por pagar"} /></Td>
-                 <Td>{r.operador || "â€”"}</Td>
+                 <Td>{r.operador || "—"}</Td>
                  <Td><IdBadge id={r.viaje_id} /></Td>
                  <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
                </tr>
@@ -1714,7 +1714,7 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
   );
 }
 
-// â”€â”€â”€ MÃ“DULO PRÃ‰STAMOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO PRÉSTAMOS ─────────────────────────────────────────────────────
 function ModPrestamos({ data, reload }) {
   const EMPTY = { concepto: "", monto_recibido: "", fecha_recepcion: "", monto_pago: "", fecha_pago: "", estatus: "Activo", notas: "" };
   const [open, setOpen]       = useState(false);
@@ -1730,7 +1730,7 @@ function ModPrestamos({ data, reload }) {
   }
 
   async function save() {
-    if (!form.monto_recibido || !form.fecha_recepcion) return setErr("Monto recibido y fecha de recepciÃ³n son requeridos.");
+    if (!form.monto_recibido || !form.fecha_recepcion) return setErr("Monto recibido y fecha de recepción son requeridos.");
     setLoading(true);
     const payload = {
       concepto: form.concepto || null,
@@ -1750,7 +1750,7 @@ function ModPrestamos({ data, reload }) {
   }
 
   async function del(r) {
-    if (!confirm(`Â¿Eliminar prÃ©stamo "${r.concepto || r.id}"?`)) return;
+    if (!confirm(`¿Eliminar préstamo "${r.concepto || r.id}"?`)) return;
     await sb.from("prestamos").delete().eq("id", r.id);
     reload();
   }
@@ -1762,26 +1762,26 @@ function ModPrestamos({ data, reload }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <span style={{ fontSize: 13, color: C.muted }}>{rows.length} registro{rows.length !== 1 ? "s" : ""}</span>
         <button onClick={openNew} style={{ background: C.greenStrong, color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-          + Nuevo prÃ©stamo
+          + Nuevo préstamo
         </button>
       </div>
 
       {open && (
         <div style={{ background: "#F0FAF0", border: "1px solid #DDEEDC", borderRadius: 14, padding: 20, marginBottom: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: C.text }}>
-            {editRow ? "Editar prÃ©stamo" : "Nuevo prÃ©stamo"}
+            {editRow ? "Editar préstamo" : "Nuevo préstamo"}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 12 }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
               Concepto
-              <input style={inputStyle} value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} placeholder="Ej. PrÃ©stamo BBVA" />
+              <input style={inputStyle} value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} placeholder="Ej. Préstamo BBVA" />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
               Monto recibido *
               <input type="number" style={inputStyle} value={form.monto_recibido} onChange={e => setForm(f => ({ ...f, monto_recibido: e.target.value }))} placeholder="200000" />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
-              Fecha recepciÃ³n *
+              Fecha recepción *
               <input type="date" style={inputStyle} value={form.fecha_recepcion} onChange={e => setForm(f => ({ ...f, fecha_recepcion: e.target.value }))} />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: C.muted }}>
@@ -1808,7 +1808,7 @@ function ModPrestamos({ data, reload }) {
           {err && <div style={{ color: "#C62828", fontSize: 12, marginBottom: 10 }}>{err}</div>}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={save} disabled={loading} style={{ background: C.greenStrong, color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-              {loading ? "Guardandoâ€¦" : "Guardar"}
+              {loading ? "Guardando…" : "Guardar"}
             </button>
             <button onClick={() => setOpen(false)} style={{ background: "#fff", border: "1px solid #E2E8E3", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", color: C.muted }}>
               Cancelar
@@ -1821,7 +1821,7 @@ function ModPrestamos({ data, reload }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "#EFF3EF" }}>
-              {["Concepto", "Recibido", "Fecha recepciÃ³n", "A pagar", "Fecha pago", "Estatus", "Notas", ""].map(h => (
+              {["Concepto", "Recibido", "Fecha recepción", "A pagar", "Fecha pago", "Estatus", "Notas", ""].map(h => (
                 <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
@@ -1831,13 +1831,13 @@ function ModPrestamos({ data, reload }) {
               <tr><td colSpan={8} style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13 }}>Sin registros</td></tr>
             ) : rows.map(r => (
               <tr key={r.id} style={{ borderBottom: "1px solid #F0F2F0" }}>
-                <td style={{ padding: "9px 12px", fontWeight: 600 }}>{r.concepto || "â€”"}</td>
-                <td style={{ padding: "9px 12px", color: "#2E7D32", fontWeight: 700 }}>{r.monto_recibido != null ? fmt(r.monto_recibido) : "â€”"}</td>
-                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>{r.fecha_recepcion || "â€”"}</td>
-                <td style={{ padding: "9px 12px", color: "#C62828", fontWeight: 700 }}>{r.monto_pago != null ? fmt(r.monto_pago) : "â€”"}</td>
-                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>{r.fecha_pago || "â€”"}</td>
+                <td style={{ padding: "9px 12px", fontWeight: 600 }}>{r.concepto || "—"}</td>
+                <td style={{ padding: "9px 12px", color: "#2E7D32", fontWeight: 700 }}>{r.monto_recibido != null ? fmt(r.monto_recibido) : "—"}</td>
+                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>{r.fecha_recepcion || "—"}</td>
+                <td style={{ padding: "9px 12px", color: "#C62828", fontWeight: 700 }}>{r.monto_pago != null ? fmt(r.monto_pago) : "—"}</td>
+                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>{r.fecha_pago || "—"}</td>
                 <td style={{ padding: "9px 12px" }}><Chip label={r.estatus} /></td>
-                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "â€”"}</td>
+                <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.notas || "—"}</td>
                 <td style={{ padding: "9px 12px" }}>
                   <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={() => openEdit(r)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "1px solid #E2E8E3", background: "#fff", cursor: "pointer", color: C.text }}>Editar</button>
@@ -1853,7 +1853,7 @@ function ModPrestamos({ data, reload }) {
   );
 }
 
-// â”€â”€â”€ MÃ“DULO INGRESOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO INGRESOS ──────────────────────────────────────────────────────
 function ModIngresos({ data, reload, desde, hasta }) {
   const EMPTY = { factura: "", periodo: "", siniva: "", coniva: "", monto_cobrado: "", fcarga: "", fvence: "", estatus: "", notas: "", nar: "", fecha_pago: "", pdf_url: "", xml_url: "", tipo: "Factura", factura_ref: "" };
   const [open, setOpen]       = useState(false);
@@ -1938,7 +1938,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm(`Â¿Eliminar factura ${r.factura}?`)) return;
+    if (!window.confirm(`¿Eliminar factura ${r.factura}?`)) return;
     try {
       const { error } = await sb.from("ingresos").delete().eq("id", r.id);
       if (error) throw error;
@@ -1983,15 +1983,15 @@ function ModIngresos({ data, reload, desde, hasta }) {
               background: form.tipo === t ? (t === "Factura" ? "#2E7D32" : "#B45309") : "#F5F7F4",
               color: form.tipo === t ? "#fff" : C.muted,
               transition: "all 0.15s",
-            }}>{t === "NC" ? "NC â€” Nota de CrÃ©dito" : "Factura"}</button>
+            }}>{t === "NC" ? "NC — Nota de Crédito" : "Factura"}</button>
           ))}
           {form.tipo === "NC" && (
             <span style={{ fontSize: 11, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "3px 10px", fontWeight: 600 }}>
-              Esta NC restarÃ¡ del total de ingresos
+              Esta NC restará del total de ingresos
             </span>
           )}
         </div>
-        {/* Ligado a factura â€” solo para NC */}
+        {/* Ligado a factura — solo para NC */}
         {form.tipo === "NC" && (
           <div style={{ marginBottom: 14, padding: "12px 14px", background: "#FFF7ED", border: "1.5px solid #FCD34D", borderRadius: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
@@ -2007,27 +2007,27 @@ function ModIngresos({ data, reload, desde, hasta }) {
                 fontFamily: "inherit", outline: "none", cursor: "pointer",
               }}
             >
-              <option value="">â€” Sin ligar (opcional) â€”</option>
+              <option value="">— Sin ligar (opcional) —</option>
               {(data || [])
                 .filter(r => r.tipo !== "NC" && r.id !== editRow?.id)
                 .sort((a, b) => (b.fcarga || "").localeCompare(a.fcarga || ""))
                 .map(r => (
                   <option key={r.id} value={r.factura}>
-                    {r.factura}{r.periodo ? ` Â· ${r.periodo}` : ""}{r.coniva ? ` Â· ${fmt(r.coniva)}` : ""}
+                    {r.factura}{r.periodo ? ` · ${r.periodo}` : ""}{r.coniva ? ` · ${fmt(r.coniva)}` : ""}
                   </option>
                 ))
               }
             </select>
             {form.factura_ref && (
               <div style={{ marginTop: 6, fontSize: 11, color: "#92400E" }}>
-                Esta NC se aplicarÃ¡ sobre: <strong>{form.factura_ref}</strong>
+                Esta NC se aplicará sobre: <strong>{form.factura_ref}</strong>
               </div>
             )}
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label={form.tipo === "NC" ? "Folio NC" : "Factura"}><Input placeholder={form.tipo === "NC" ? "NC-2025-001" : "FAC-2025-001"} value={form.factura} onChange={e => set("factura", e.target.value)} /></Field>
-          <Field label="PerÃ­odo"><Input placeholder="Feb 2025" value={form.periodo} onChange={e => set("periodo", e.target.value)} /></Field>
+          <Field label="Período"><Input placeholder="Feb 2025" value={form.periodo} onChange={e => set("periodo", e.target.value)} /></Field>
           <Field label="Monto sin IVA"><Input type="number" placeholder="0.00" value={form.siniva} onChange={e => set("siniva", e.target.value)} /></Field>
           <Field label="Monto con IVA"><Input type="number" placeholder="0.00" value={form.coniva} onChange={e => set("coniva", e.target.value)} /></Field>
           <Field label="Fecha de carga"><Input type="date" value={form.fcarga} onChange={e => set("fcarga", e.target.value)} /></Field>
@@ -2054,7 +2054,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
                 {pdfFile ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8 }}>
                     <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfFile.name}</span>
-                    <button onClick={() => setPdfFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>âœ•</button>
+                    <button onClick={() => setPdfFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
                   </div>
                 ) : form.pdf_url ? (
                   <a href={form.pdf_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, textDecoration: "none", padding: "5px 10px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>Ver PDF</a>
@@ -2071,13 +2071,13 @@ function ModIngresos({ data, reload, desde, hasta }) {
                 {xmlFile ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8 }}>
                     <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{xmlFile.name}</span>
-                    <button onClick={() => setXmlFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>âœ•</button>
+                    <button onClick={() => setXmlFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B91C1C", fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
                   </div>
                 ) : form.xml_url ? (
                   <a href={form.xml_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, textDecoration: "none", padding: "5px 10px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>Ver XML</a>
                 ) : null}
               </div>
-              {uploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo archivosâ€¦</span>}
+              {uploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo archivos…</span>}
             </div>
           </Field>
           {/* Pagado checkbox */}
@@ -2099,7 +2099,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
               style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#16A34A" }}
             />
             <label htmlFor="chk-pagado" style={{ fontSize: 13, fontWeight: 600, cursor: "pointer", color: form.estatus === "Pagado" ? "#15803D" : C.muted, userSelect: "none" }}>
-              {form.estatus === "Pagado" ? `âœ“ Pagado${form.fecha_pago ? " â€” " + form.fecha_pago : ""}` : "Marcar como pagado"}
+              {form.estatus === "Pagado" ? `✓ Pagado${form.fecha_pago ? " — " + form.fecha_pago : ""}` : "Marcar como pagado"}
             </label>
           </div>
           {/* Monto cobrado real (para pagos parciales o incompletos) */}
@@ -2125,7 +2125,7 @@ function ModIngresos({ data, reload, desde, hasta }) {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, alignItems: "end" }}>
                   <div>
-                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Lo que entrÃ³ al banco</div>
+                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Lo que entró al banco</div>
                     <Input type="number" step="0.01" placeholder={total ? total.toFixed(2) : "0.00"} value={form.monto_cobrado} onChange={e => set("monto_cobrado", e.target.value)} />
                   </div>
                   <div>
@@ -2135,12 +2135,12 @@ function ModIngresos({ data, reload, desde, hasta }) {
                   <div>
                     <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>{esParcial ? "Falta por cobrar" : "Diferencia"}</div>
                     <div style={{ padding: "8px 12px", background: esParcial ? "#FEF3C7" : "#F5F7F4", borderRadius: 8, fontSize: 13, fontWeight: 700, color: esParcial ? "#B45309" : C.muted }}>
-                      {esParcial ? fmt(diff) : "â€”"}
+                      {esParcial ? fmt(diff) : "—"}
                     </div>
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
-                  DÃ©jalo vacÃ­o si la factura se pagÃ³ completa. LlÃ©nalo sÃ³lo si el cliente pagÃ³ parcial o un monto distinto al facturado.
+                  Déjalo vacío si la factura se pagó completa. Llénalo sólo si el cliente pagó parcial o un monto distinto al facturado.
                 </div>
               </div>
             );
@@ -2155,10 +2155,10 @@ function ModIngresos({ data, reload, desde, hasta }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><Th>Pagado</Th><Th>Tipo</Th><Th>Factura / NC</Th><Th>PerÃ­odo</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>F. Carga {fechaSort === "asc" ? "â†‘" : "â†“"}</th><Th>F. Pago</Th><Th>Estatus</Th><Th>PDF</Th><Th>Acciones</Th></tr></thead>
+          <thead><tr><Th>Pagado</Th><Th>Tipo</Th><Th>Factura / NC</Th><Th>Período</Th><Th>NAR</Th><Th>Sin IVA</Th><Th>Con IVA</Th><th onClick={() => setFechaSort(s => s === "asc" ? "desc" : "asc")} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #E2E8E3", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>F. Carga {fechaSort === "asc" ? "↑" : "↓"}</th><Th>F. Pago</Th><Th>Estatus</Th><Th>PDF</Th><Th>Acciones</Th></tr></thead>
           <tbody>
             {data === null ? <Loading /> :
-             rows.length === 0 ? <EmptyRow cols={12} msg="Sin facturas en este perÃ­odo" /> :
+             rows.length === 0 ? <EmptyRow cols={12} msg="Sin facturas en este período" /> :
              rows.map(r => (
                <tr key={r.id} style={{ background: r.estatus === "Pagado" ? "#F0FDF4" : "#FFFFFF" }}
                  onMouseEnter={e => e.currentTarget.style.background = r.estatus === "Pagado" ? "#DCFCE7" : "#FAFCFA"}
@@ -2186,16 +2186,16 @@ function ModIngresos({ data, reload, desde, hasta }) {
                    {r.factura}
                    {r.tipo === "NC" && r.factura_ref && (
                      <div style={{ fontSize: 10, fontWeight: 500, color: "#92400E", marginTop: 2 }}>
-                       â†³ ref: {r.factura_ref}
+                       ↳ ref: {r.factura_ref}
                      </div>
                    )}
                  </td>
-                 <Td>{r.periodo || "â€”"}</Td>
-                 <Td>{r.nar || "â€”"}</Td>
+                 <Td>{r.periodo || "—"}</Td>
+                 <Td>{r.nar || "—"}</Td>
                  <Td>{fmt(r.siniva)}</Td>
                  <Td>{fmt(r.coniva)}</Td>
-                 <Td>{r.fcarga || "â€”"}</Td>
-                 <Td>{r.fecha_pago ? <span style={{ color: "#16A34A", fontWeight: 600 }}>{r.fecha_pago}</span> : <span style={{ color: C.muted }}>â€”</span>}</Td>
+                 <Td>{r.fcarga || "—"}</Td>
+                 <Td>{r.fecha_pago ? <span style={{ color: "#16A34A", fontWeight: 600 }}>{r.fecha_pago}</span> : <span style={{ color: C.muted }}>—</span>}</Td>
                  <Td><Chip label={r.estatus || "Pendiente"} /></Td>
                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #E2E8E3", textAlign: "center" }}>
                    <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
@@ -2218,14 +2218,14 @@ function ModIngresos({ data, reload, desde, hasta }) {
   );
 }
 
-// â”€â”€â”€ MÃ“DULO CLIENTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Cada cliente tiene datos bÃ¡sicos + tarifas por tipo de unidad
-const TIPOS_UNIDAD = ["Moto", "SedÃ¡n", "Small Van", "Van", "Large Van", "Otro"];
+// ─── MÓDULO CLIENTES ──────────────────────────────────────────────────────
+// Cada cliente tiene datos básicos + tarifas por tipo de unidad
+const TIPOS_UNIDAD = ["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro"];
 
 function ModClientes({ data, reload }) {
   const EMPTY = {
     nombre: "", rfc: "", telefono: "", direccion: "",
-    // tarifas por tipo de unidad â€” clave = tipo, valor = monto string
+    // tarifas por tipo de unidad — clave = tipo, valor = monto string
     tarifas: {},
   };
   const [open, setOpen]       = useState(false);
@@ -2279,7 +2279,7 @@ function ModClientes({ data, reload }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm(`Â¿Eliminar cliente ${r.nombre}?`)) return;
+    if (!window.confirm(`¿Eliminar cliente ${r.nombre}?`)) return;
     try {
       const { error } = await sb.from("clientes").delete().eq("id", r.id);
       if (error) throw error;
@@ -2300,16 +2300,16 @@ function ModClientes({ data, reload }) {
       <FormPanel visible={open} title={isEdit ? "Editar cliente" : "Nuevo cliente"} isEdit={isEdit}>
         <ErrBanner msg={err} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Nombre / RazÃ³n social" span2>
+          <Field label="Nombre / Razón social" span2>
             <Input placeholder="Ej. Patitos S.A. de C.V." value={form.nombre} onChange={e => set("nombre", e.target.value)} />
           </Field>
           <Field label="RFC">
             <Input placeholder="PAT123456ABC" value={form.rfc} onChange={e => set("rfc", e.target.value)} />
           </Field>
-          <Field label="TelÃ©fono">
+          <Field label="Teléfono">
             <Input placeholder="55 1234 5678" value={form.telefono} onChange={e => set("telefono", e.target.value)} />
           </Field>
-          <Field label="DirecciÃ³n" span2>
+          <Field label="Dirección" span2>
             <Input placeholder="Calle, Colonia, Ciudad" value={form.direccion} onChange={e => set("direccion", e.target.value)} />
           </Field>
 
@@ -2343,15 +2343,15 @@ function ModClientes({ data, reload }) {
       <FilterBar filters={cliFilters} setFilters={setCliFilters} options={[
         { key: "nombre",   label: "Nombre",   type: "text" },
         { key: "rfc",      label: "RFC",      type: "text" },
-        { key: "telefono", label: "TelÃ©fono", type: "text" },
+        { key: "telefono", label: "Teléfono", type: "text" },
       ]} />
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <Th>Nombre</Th><Th>RFC</Th><Th>TelÃ©fono</Th>
-              <Th>Moto</Th><Th>SedÃ¡n</Th><Th>Small Van</Th><Th>Van</Th><Th>Large Van</Th><Th>Otro</Th>
+              <Th>Nombre</Th><Th>RFC</Th><Th>Teléfono</Th>
+              <Th>Moto</Th><Th>Sedán</Th><Th>Small Van</Th><Th>Van</Th><Th>Large Van</Th><Th>Otro</Th>
               <Th>Acciones</Th>
             </tr>
           </thead>
@@ -2363,14 +2363,14 @@ function ModClientes({ data, reload }) {
                  onMouseEnter={e => e.currentTarget.style.background = "#FAFCFA"}
                  onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}>
                  <Td bold>{r.nombre}</Td>
-                 <Td>{r.rfc || "â€”"}</Td>
-                 <Td>{r.telefono || "â€”"}</Td>
+                 <Td>{r.rfc || "—"}</Td>
+                 <Td>{r.telefono || "—"}</Td>
                  {TIPOS_UNIDAD.map(tipo => (
                    <Td key={tipo}>
                      {r.tarifas?.[tipo] ? (
                        <span style={{ fontWeight: 600, color: C.green }}>{fmt(r.tarifas[tipo])}</span>
                      ) : (
-                       <span style={{ color: C.border }}>â€”</span>
+                       <span style={{ color: C.border }}>—</span>
                      )}
                    </Td>
                  ))}
@@ -2385,10 +2385,10 @@ function ModClientes({ data, reload }) {
   );
 }
 
-// â”€â”€â”€ COPY FIELD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── COPY FIELD ───────────────────────────────────────────────────────────
 function CopyField({ value, label }) {
   const [copied, setCopied] = useState(false);
-  if (!value) return <span style={{ color: C.muted }}>â€”</span>;
+  if (!value) return <span style={{ color: C.muted }}>—</span>;
   const copy = () => {
     navigator.clipboard.writeText(value).then(() => {
       setCopied(true);
@@ -2405,208 +2405,565 @@ function CopyField({ value, label }) {
         color: copied ? C.greenStrong : C.muted,
         transition: "all 0.2s", flexShrink: 0,
       }}>
-        {copied ? "âœ“ Copiado" : "Copiar"}
+        {copied ? "✓ Copiado" : "Copiar"}
       </button>
     </div>
   );
 }
-function ModConsultas({ ingresos, gastos, rutas }) {
-  const [tab,   setTab]   = useState("mensual");
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
 
-  const inRng = (f) => (!f) || ((!desde || f >= desde) && (!hasta || f <= hasta));
-
-  // â”€â”€ Datos por tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const mensualData = useMemo(() => {
-    const map = new Map();
-    const touch = (m) => { if (!map.has(m)) map.set(m, { mes: m, cobrado: 0, gastos: 0 }); };
-    (ingresos || []).filter(r => r.estatus === "Pagado" && r.fecha_pago && inRng(r.fecha_pago)).forEach(r => {
-      const m = r.fecha_pago.slice(0, 7); touch(m);
-      map.get(m).cobrado += (r.tipo === "NC" ? -1 : 1) * parseFloat(r.monto_cobrado || r.coniva || 0);
-    });
-    (gastos || []).filter(g => g.fecha && inRng(g.fecha)).forEach(g => {
-      const m = g.fecha.slice(0, 7); touch(m);
-      map.get(m).gastos += parseFloat(g.monto || 0);
-    });
-    return Array.from(map.values()).sort((a, b) => a.mes.localeCompare(b.mes))
-      .map(r => ({ ...r, margen: r.cobrado - r.gastos, pct: r.cobrado > 0 ? (r.cobrado - r.gastos) / r.cobrado * 100 : 0 }));
-  }, [ingresos, gastos, desde, hasta]);
-
-  const operadorData = useMemo(() => {
-    const map = new Map();
-    (rutas || []).filter(r => r.fecha && inRng(r.fecha)).forEach(r => {
-      const op = r.operador || "Sin asignar";
-      if (!map.has(op)) map.set(op, { operador: op, viajes: 0, flete: 0 });
-      map.get(op).viajes++; map.get(op).flete += parseFloat(r.flete_siniva || r.flete || 0);
-    });
-    return Array.from(map.values()).sort((a, b) => b.flete - a.flete)
-      .map(r => ({ ...r, promedio: r.viajes > 0 ? r.flete / r.viajes : 0 }));
-  }, [rutas, desde, hasta]);
-
-  const gastoData = useMemo(() => {
-    const map = new Map(); let total = 0;
-    (gastos || []).filter(g => g.fecha && inRng(g.fecha)).forEach(g => {
-      const t = g.tipo_gasto || "Sin tipo"; const m = parseFloat(g.monto || 0);
-      if (!map.has(t)) map.set(t, { tipo: t, monto: 0, count: 0 });
-      map.get(t).monto += m; map.get(t).count++; total += m;
-    });
-    return Array.from(map.values()).sort((a, b) => b.monto - a.monto)
-      .map(r => ({ ...r, pct: total > 0 ? r.monto / total * 100 : 0 }));
-  }, [gastos, desde, hasta]);
-
-  const clienteData = useMemo(() => {
-    const map = new Map();
-    (rutas || []).filter(r => r.fecha && inRng(r.fecha)).forEach(r => {
-      const cl = r.cliente_id || "Sin cliente";
-      if (!map.has(cl)) map.set(cl, { cliente: cl, viajes: 0, flete: 0 });
-      map.get(cl).viajes++; map.get(cl).flete += parseFloat(r.flete_siniva || r.flete || 0);
-    });
-    return Array.from(map.values()).sort((a, b) => b.flete - a.flete).slice(0, 20);
-  }, [rutas, desde, hasta]);
-
-  const pendientesData = useMemo(() => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    return (ingresos || [])
-      .filter(r => r.estatus !== "Pagado" && r.estatus !== "Cancelado")
-      .map(r => ({ factura: r.factura || "â€”", monto: parseFloat(r.coniva || 0), vence: r.fvence || "â€”", estatus: r.estatus || "â€”", dias: r.fvence ? Math.ceil((new Date(hoy) - new Date(r.fvence)) / 86400000) : null }))
-      .sort((a, b) => (b.dias ?? -9999) - (a.dias ?? -9999));
-  }, [ingresos]);
-
-  // â”€â”€ Helpers de render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const fmtV = (n) => "$" + parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  const fmtP = (n) => parseFloat(n || 0).toFixed(1) + "%";
-  const COLORS = ["#2E7D32", "#C62828", "#1565C0", "#F59E0B", "#74B72E"];
-
-  function exportCSV(cols, rows) {
-    const lines = [cols.map(c => c.label).join(","), ...rows.map(r => cols.map(c => { const v = r[c.key] ?? ""; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(","))];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `${tab}_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(a.href);
-  }
-
-  function renderTable(cols, rows) {
-    return (
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "#EFF3EF" }}>
-              {cols.map(c => <th key={c.key} style={{ padding: "9px 14px", textAlign: c.r ? "right" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{c.label}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0
-              ? <tr><td colSpan={cols.length} style={{ padding: 24, textAlign: "center", color: C.muted }}>Sin datos en el perÃ­odo seleccionado</td></tr>
-              : rows.map((r, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #F0F2F0", background: i % 2 ? "#FAFBFA" : "#FFF" }}>
-                  {cols.map(c => {
-                    const v = r[c.key];
-                    const color = c.key === "margen" ? (v >= 0 ? "#2E7D32" : "#C62828") : c.key === "dias" && v > 0 ? "#C62828" : "#132019";
-                    return <td key={c.key} style={{ padding: "9px 14px", textAlign: c.r ? "right" : "left", fontWeight: c.money ? 600 : 400, color, whiteSpace: "nowrap" }}>{c.money ? fmtV(v) : c.pct ? fmtP(v) : (v ?? "â€”")}</td>;
-                  })}
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  function renderChart(data, barKeys, labelKey) {
-    if (!data || data.length === 0) return null;
-    const chartData = data.slice(0, 24).map(r => ({ name: String(r[labelKey] || "").slice(0, 12), ...Object.fromEntries(barKeys.map(k => [k, r[k]])) }));
-    return (
-      <div style={{ height: 200, marginBottom: 16 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F0" vertical={false} />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6B7A72" }} />
-            <YAxis tick={{ fontSize: 10, fill: "#6B7A72" }} width={66} tickFormatter={v => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)} />
-            <Tooltip formatter={v => fmtV(v)} />
-            {barKeys.map((k, i) => <Bar key={k} dataKey={k} fill={COLORS[i]} isAnimationActive={false} radius={[3, 3, 0, 0]} />)}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  const csvBtn = (cols, rows) => (
-    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-      <button onClick={() => exportCSV(cols, rows)} style={{ padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, background: "#0F5C2E", color: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit" }}>â¬‡ CSV</button>
+// ─── SECTION TITLE ────────────────────────────────────────────────────────
+function SectionTitle({ children }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase",
+      letterSpacing: "0.08em", marginBottom: 12, marginTop: 20,
+      paddingBottom: 6, borderBottom: `1px solid ${C.border}`,
+    }}>
+      {children}
     </div>
   );
+}
 
-  const TABS = [{ id: "mensual", label: "Flujo mensual" }, { id: "operadores", label: "Operadores" }, { id: "gastos", label: "Gastos" }, { id: "clientes", label: "Clientes" }, { id: "pendientes", label: "Por cobrar" }];
+// ─── MINI KPI ─────────────────────────────────────────────────────────────
+function MiniKpi({ label, value, sub, color }) {
+  return (
+    <div style={{
+      background: C.card, border: "1px solid #E2E8E3", borderRadius: 16,
+      padding: "14px 16px",
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: color || C.text, lineHeight: 1, marginBottom: 2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: C.muted }}>{sub}</div>}
+    </div>
+  );
+}
+
+// ─── MÓDULO CONSULTAS ─────────────────────────────────────────────────────
+// Constructor visual de consultas estilo "Minitab" — agrupa, agrega y grafica
+const TABLE_SCHEMAS = {
+  rutas: { label: "Rutas", fields: [
+    { key: "fecha",        label: "Fecha",         type: "date" },
+    { key: "cliente_id",   label: "Cliente",       type: "text" },
+    { key: "operador",     label: "Operador",      type: "text" },
+    { key: "unidad_id",    label: "Unidad",        type: "text" },
+    { key: "flete",        label: "Flete",         type: "number", money: true },
+    { key: "flete_siniva", label: "Flete sin IVA", type: "number", money: true },
+    { key: "flete_coniva", label: "Flete con IVA", type: "number", money: true },
+  ]},
+  gastos: { label: "Gastos", fields: [
+    { key: "fecha",        label: "Fecha",        type: "date" },
+    { key: "tipo_gasto",   label: "Tipo gasto",   type: "text" },
+    { key: "estatus_pago", label: "Estatus pago", type: "text" },
+    { key: "monto",        label: "Monto",        type: "number", money: true },
+    { key: "siniva",       label: "Sin IVA",      type: "number", money: true },
+    { key: "coniva",       label: "Con IVA",      type: "number", money: true },
+    { key: "operador",     label: "Operador",     type: "text" },
+    { key: "unidad",       label: "Unidad",       type: "text" },
+  ]},
+  ingresos: { label: "Ingresos / Facturas", fields: [
+    { key: "fcarga",        label: "Fecha de carga", type: "date" },
+    { key: "fecha_pago",    label: "Fecha de pago",  type: "date" },
+    { key: "fvence",        label: "Fecha vence",    type: "date" },
+    { key: "estatus",       label: "Estatus",        type: "text" },
+    { key: "tipo",          label: "Tipo",           type: "text" },
+    { key: "siniva",        label: "Sin IVA",        type: "number", money: true },
+    { key: "coniva",        label: "Con IVA",        type: "number", money: true },
+    { key: "monto_cobrado", label: "Monto cobrado",  type: "number", money: true },
+    { key: "factura",       label: "Factura",        type: "text" },
+    { key: "periodo",       label: "Período",        type: "text" },
+  ]},
+  operadores: { label: "Operadores", fields: [
+    { key: "nombre",   label: "Nombre",   type: "text" },
+    { key: "estatus",  label: "Estatus",  type: "text" },
+    { key: "unidad",   label: "Unidad",   type: "text" },
+    { key: "telefono", label: "Teléfono", type: "text" },
+  ]},
+  unidades: { label: "Unidades", fields: [
+    { key: "economico",   label: "Económico", type: "text" },
+    { key: "tipo_unidad", label: "Tipo",      type: "text" },
+    { key: "propiedad",   label: "Propiedad", type: "text" },
+    { key: "marca",       label: "Marca",     type: "text" },
+    { key: "modelo",      label: "Modelo",    type: "text" },
+  ]},
+  clientes: { label: "Clientes", fields: [
+    { key: "nombre", label: "Nombre", type: "text" },
+    { key: "rfc",    label: "RFC",    type: "text" },
+  ]},
+};
+
+const AGG_FUNCS = {
+  count:    { label: "Conteo",          needsField: false },
+  sum:      { label: "Suma",            needsField: true,  numeric: true },
+  avg:      { label: "Promedio",        needsField: true,  numeric: true },
+  min:      { label: "Mínimo",          needsField: true,  numeric: true },
+  max:      { label: "Máximo",          needsField: true,  numeric: true },
+  median:   { label: "Mediana",         needsField: true,  numeric: true },
+  std:      { label: "Desv. estándar",  needsField: true,  numeric: true },
+  distinct: { label: "Únicos (cuenta)", needsField: true,  numeric: false },
+};
+
+const DATE_GRANS = {
+  dia:       "Día",
+  semana:    "Semana ISO",
+  mes:       "Mes",
+  trimestre: "Trimestre",
+  año:       "Año",
+  diaSemana: "Día de la semana",
+};
+
+function _agg(vals, fn) {
+  if (fn === "count") return vals.length;
+  if (fn === "distinct") return new Set(vals.map(v => v == null ? "" : String(v))).size;
+  const nums = vals.filter(v => v !== null && v !== undefined && v !== "" && !isNaN(parseFloat(v))).map(v => parseFloat(v));
+  if (!nums.length) return 0;
+  switch (fn) {
+    case "sum":    return nums.reduce((a, b) => a + b, 0);
+    case "avg":    return nums.reduce((a, b) => a + b, 0) / nums.length;
+    case "min":    return Math.min(...nums);
+    case "max":    return Math.max(...nums);
+    case "median": {
+      const s = [...nums].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    }
+    case "std": {
+      if (nums.length < 2) return 0;
+      const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+      const variance = nums.reduce((a, b) => a + (b - mean) ** 2, 0) / (nums.length - 1);
+      return Math.sqrt(variance);
+    }
+    default: return 0;
+  }
+}
+
+function _dateGroup(dateStr, gran) {
+  if (!dateStr) return "(sin fecha)";
+  const [yy, mm, dd] = String(dateStr).split("-").map(Number);
+  if (!yy || !mm || !dd) return "(sin fecha)";
+  switch (gran) {
+    case "año":       return String(yy);
+    case "trimestre": return `${yy}-T${Math.ceil(mm / 3)}`;
+    case "mes":       return `${yy}-${String(mm).padStart(2, "0")}`;
+    case "semana": {
+      const d = new Date(yy, mm - 1, dd);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+      const y0 = new Date(d.getFullYear(), 0, 1);
+      const w = Math.ceil((((d - y0) / 86400000) + 1) / 7);
+      return `${d.getFullYear()}-W${String(w).padStart(2, "0")}`;
+    }
+    case "diaSemana": {
+      const d = new Date(yy, mm - 1, dd);
+      return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][d.getDay()];
+    }
+    case "dia":
+    default: return dateStr;
+  }
+}
+
+function _applyFilter(row, f, schema) {
+  const field = schema.fields.find(x => x.key === f.field);
+  if (!field) return true;
+  const v = row[f.field];
+  if (f.op === "between") {
+    if (field.type === "date") {
+      if (f.from && (v == null || v < f.from)) return false;
+      if (f.to   && (v == null || v > f.to))   return false;
+      return true;
+    }
+    const n = parseFloat(v);
+    if (isNaN(n)) return false;
+    return n >= parseFloat(f.from || -Infinity) && n <= parseFloat(f.to || Infinity);
+  }
+  const sv = String(v ?? "").toLowerCase();
+  const sf = String(f.value ?? "").toLowerCase();
+  if (f.op === "eq")       return sv === sf;
+  if (f.op === "neq")      return sv !== sf;
+  if (f.op === "contains") return sv.includes(sf);
+  const n = parseFloat(v), nf = parseFloat(f.value);
+  if (f.op === "gt")  return n >  nf;
+  if (f.op === "gte") return n >= nf;
+  if (f.op === "lt")  return n <  nf;
+  if (f.op === "lte") return n <= nf;
+  return true;
+}
+
+const QUERY_PRESETS = [
+  { name: "Gastos por mes y tipo", source: "gastos", groupBy: [{ field: "fecha", gran: "mes" }, { field: "tipo_gasto" }], metrics: [{ agg: "sum", field: "monto" }, { agg: "count" }] },
+  { name: "Top operadores por flete", source: "rutas", groupBy: [{ field: "operador" }], metrics: [{ agg: "sum", field: "flete" }, { agg: "count" }, { agg: "avg", field: "flete" }] },
+  { name: "Fletes por mes", source: "rutas", groupBy: [{ field: "fecha", gran: "mes" }], metrics: [{ agg: "sum", field: "flete" }, { agg: "count" }] },
+  { name: "Cobros por mes", source: "ingresos", groupBy: [{ field: "fecha_pago", gran: "mes" }], metrics: [{ agg: "sum", field: "monto_cobrado" }, { agg: "count" }] },
+  { name: "Estadísticas de fletes", source: "rutas", groupBy: [], metrics: [{ agg: "count" }, { agg: "sum", field: "flete" }, { agg: "avg", field: "flete" }, { agg: "median", field: "flete" }, { agg: "min", field: "flete" }, { agg: "max", field: "flete" }, { agg: "std", field: "flete" }] },
+];
+
+function ModConsultas({ ingresos, gastos, rutas, operadores, unidades, clientes }) {
+  const [source, setSource]   = useState("rutas");
+  const [filters, setFilters] = useState([]);
+  const [groupBy, setGroupBy] = useState([]);
+  const [metrics, setMetrics] = useState([{ agg: "count", field: "" }]);
+  const [sortIdx, setSortIdx] = useState(null);
+  const [sortDir, setSortDir] = useState("desc");
+  const [limit,   setLimit]   = useState(100);
+  const [chartType, setChartType] = useState("bar");
+
+  const dataSources = { rutas: rutas || [], gastos: gastos || [], ingresos: ingresos || [], operadores: operadores || [], unidades: unidades || [], clientes: clientes || [] };
+  const schema = TABLE_SCHEMAS[source];
+  const sourceData = dataSources[source];
+
+  useEffect(() => {
+    setFilters([]); setGroupBy([]); setMetrics([{ agg: "count", field: "" }]); setSortIdx(null);
+  }, [source]);
+
+  const applyPreset = (p) => {
+    setSource(p.source); setFilters([]);
+    setTimeout(() => { setGroupBy(p.groupBy); setMetrics(p.metrics); setSortIdx(null); }, 0);
+  };
+
+  const moveItem = (arr, idx, dir) => {
+    const next = idx + dir;
+    if (next < 0 || next >= arr.length) return arr;
+    const copy = [...arr];
+    [copy[idx], copy[next]] = [copy[next], copy[idx]];
+    return copy;
+  };
+
+  const moveFilter = (idx, dir) => setFilters(fs => moveItem(fs, idx, dir));
+  const moveGroup = (idx, dir) => setGroupBy(gs => moveItem(gs, idx, dir));
+  const moveMetric = (idx, dir) => setMetrics(ms => moveItem(ms, idx, dir));
+
+  const result = useMemo(() => {
+    if (!schema) return { rows: [], cols: [], total: 0, groupCount: 0 };
+    const filtered = sourceData.filter(r => filters.every(f => _applyFilter(r, f, schema)));
+    const activeMetrics = metrics.filter(m => m.agg && (AGG_FUNCS[m.agg].needsField ? m.field : true));
+    const groupCols = groupBy.map(g => {
+      const fd = schema.fields.find(x => x.key === g.field);
+      const gLabel = fd?.type === "date" ? ` (${DATE_GRANS[g.gran || "mes"]})` : "";
+      return { key: `g_${g.field}_${g.gran || ""}`, label: (fd?.label || g.field) + gLabel, isGroup: true };
+    });
+    const metricCols = activeMetrics.map((m, i) => {
+      const fd = schema.fields.find(x => x.key === m.field);
+      const lbl = m.agg === "count" ? "Conteo" : `${AGG_FUNCS[m.agg].label} de ${fd?.label || m.field}`;
+      return { key: `m_${i}`, label: lbl, isMetric: true, money: !!fd?.money && ["sum", "avg", "min", "max", "median"].includes(m.agg) };
+    });
+    if (activeMetrics.length === 0) return { rows: [], cols: groupCols, total: filtered.length, groupCount: groupCols.length };
+
+    let rows;
+    if (groupBy.length === 0) {
+      const r = {};
+      activeMetrics.forEach((m, i) => {
+        const vals = m.agg === "count" || m.agg === "distinct"
+          ? filtered.map(x => x[m.field])
+          : filtered.map(x => x[m.field]);
+        r[`m_${i}`] = m.agg === "count" ? filtered.length : _agg(vals, m.agg);
+      });
+      rows = [r];
+    } else {
+      const groups = new Map();
+      filtered.forEach(row => {
+        const keys = groupBy.map(g => {
+          const fd = schema.fields.find(x => x.key === g.field);
+          if (fd?.type === "date") return _dateGroup(row[g.field], g.gran || "mes");
+          return row[g.field] != null && row[g.field] !== "" ? String(row[g.field]) : "(vacío)";
+        });
+        const ck = keys.join("¦");
+        if (!groups.has(ck)) groups.set(ck, { keys, items: [] });
+        groups.get(ck).items.push(row);
+      });
+      rows = Array.from(groups.values()).map(grp => {
+        const r = {};
+        groupCols.forEach((gc, i) => r[gc.key] = grp.keys[i]);
+        activeMetrics.forEach((m, i) => {
+          const vals = grp.items.map(x => x[m.field]);
+          r[`m_${i}`] = m.agg === "count" ? grp.items.length : _agg(vals, m.agg);
+        });
+        return r;
+      });
+    }
+    if (sortIdx !== null && metricCols[sortIdx]) {
+      const k = metricCols[sortIdx].key;
+      rows.sort((a, b) => sortDir === "desc" ? b[k] - a[k] : a[k] - b[k]);
+    } else if (groupCols.length > 0) {
+      rows.sort((a, b) => String(a[groupCols[0].key]).localeCompare(String(b[groupCols[0].key])));
+    }
+    return { rows: rows.slice(0, limit), cols: [...groupCols, ...metricCols], total: filtered.length, groupCount: groupCols.length };
+  }, [source, sourceData, filters, groupBy, metrics, schema, sortIdx, sortDir, limit]);
+
+  const exportCSV = () => {
+    const headers = result.cols.map(c => c.label);
+    const lines = [headers.join(","), ...result.rows.map(r => result.cols.map(c => {
+      const v = r[c.key];
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(","))];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `consulta_${source}_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const chartData = result.groupCount === 1 && result.rows.length > 0 && result.rows.length <= 40
+    ? result.rows.map(r => {
+        const o = { name: String(r[result.cols[0].key]) };
+        result.cols.filter(c => c.isMetric).forEach(c => { o[c.label] = r[c.key]; });
+        return o;
+      }) : null;
+  const COLORS = ["#2E7D32", "#C62828", "#1565C0", "#F59E0B", "#74B72E", "#7C3AED"];
+
+  const sectionStyle = { background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 12, padding: "16px 18px", marginBottom: 12 };
+  const sectionTitle = { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" };
+  const addBtn = { padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: "#DDEEDC", color: "#0F5C2E", border: "none", cursor: "pointer", fontFamily: "inherit" };
+  const xBtn = { padding: "4px 9px", border: "none", background: "#FEE2E2", color: "#B91C1C", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700 };
 
   return (
     <div>
-      {/* Filtro de perÃ­odo */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16, padding: "10px 14px", background: "#F5F7F4", borderRadius: 12, border: "1px solid #E2E8E3" }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>PerÃ­odo:</span>
-        <input type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
-        <span style={{ color: C.muted, fontSize: 12 }}>â†’</span>
-        <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
-        {(desde || hasta) && <button onClick={() => { setDesde(""); setHasta(""); }} style={{ fontSize: 12, color: C.muted, background: "#fff", border: "1px solid #E2E8E3", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit" }}>âœ• Limpiar</button>}
+      {/* Presets */}
+      <div style={sectionStyle}>
+        <div style={{ ...sectionTitle, marginBottom: 8 }}>⚡ Consultas rápidas</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {QUERY_PRESETS.map(p => (
+            <button key={p.name} onClick={() => applyPreset(p)} style={{ padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#F5F7F4", color: C.text, border: "1px solid #E2E8E3", cursor: "pointer", fontFamily: "inherit" }}>{p.name}</button>
+          ))}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "2px solid #E2E8E3", flexWrap: "wrap" }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "10px 20px", border: "none", borderRadius: "8px 8px 0 0", background: tab === t.id ? "#fff" : "transparent", color: tab === t.id ? "#0F5C2E" : C.muted, fontSize: 13, fontWeight: tab === t.id ? 700 : 400, cursor: "pointer", fontFamily: "inherit", borderBottom: tab === t.id ? "2px solid #0F5C2E" : "2px solid transparent", marginBottom: -2 }}>{t.label}</button>
-        ))}
+      {/* Source */}
+      <div style={sectionStyle}>
+        <div style={{ ...sectionTitle, marginBottom: 8 }}>1. Tabla origen</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {Object.entries(TABLE_SCHEMAS).map(([k, s]) => (
+            <button key={k} onClick={() => setSource(k)} style={{
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              background: source === k ? "#0F5C2E" : "#F5F7F4",
+              color: source === k ? "#FFF" : C.muted,
+              border: source === k ? "none" : "1px solid #E2E8E3", cursor: "pointer", fontFamily: "inherit",
+            }}>{s.label}</button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>{sourceData.length.toLocaleString("es-MX")} registro{sourceData.length !== 1 ? "s" : ""} disponible{sourceData.length !== 1 ? "s" : ""}</div>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid #E2E8E3", borderTop: "none", borderRadius: "0 0 12px 12px", padding: 20 }}>
-
-        {tab === "mensual" && <>
-          {renderChart(mensualData, ["cobrado", "gastos"], "mes")}
-          {renderTable([{ key: "mes", label: "Mes" }, { key: "cobrado", label: "Cobrado", money: true, r: true }, { key: "gastos", label: "Gastos", money: true, r: true }, { key: "margen", label: "Margen", money: true, r: true }, { key: "pct", label: "%", pct: true, r: true }], mensualData)}
-          {csvBtn([{ key: "mes", label: "Mes" }, { key: "cobrado", label: "Cobrado" }, { key: "gastos", label: "Gastos" }, { key: "margen", label: "Margen" }, { key: "pct", label: "% Margen" }], mensualData)}
-        </>}
-
-        {tab === "operadores" && <>
-          {renderChart(operadorData, ["flete"], "operador")}
-          {renderTable([{ key: "operador", label: "Operador" }, { key: "viajes", label: "Viajes", r: true }, { key: "flete", label: "Flete total", money: true, r: true }, { key: "promedio", label: "Prom./viaje", money: true, r: true }], operadorData)}
-          {csvBtn([{ key: "operador", label: "Operador" }, { key: "viajes", label: "Viajes" }, { key: "flete", label: "Flete total" }, { key: "promedio", label: "Promedio" }], operadorData)}
-        </>}
-
-        {tab === "gastos" && <>
-          {renderChart(gastoData, ["monto"], "tipo")}
-          {renderTable([{ key: "tipo", label: "Tipo de gasto" }, { key: "monto", label: "Total", money: true, r: true }, { key: "count", label: "Registros", r: true }, { key: "pct", label: "% del total", pct: true, r: true }], gastoData)}
-          {csvBtn([{ key: "tipo", label: "Tipo" }, { key: "monto", label: "Monto" }, { key: "count", label: "Registros" }, { key: "pct", label: "%" }], gastoData)}
-        </>}
-
-        {tab === "clientes" && <>
-          {renderChart(clienteData.slice(0, 10), ["flete"], "cliente")}
-          {renderTable([{ key: "cliente", label: "Cliente" }, { key: "viajes", label: "Viajes", r: true }, { key: "flete", label: "Flete total", money: true, r: true }], clienteData)}
-          {csvBtn([{ key: "cliente", label: "Cliente" }, { key: "viajes", label: "Viajes" }, { key: "flete", label: "Flete" }], clienteData)}
-        </>}
-
-        {tab === "pendientes" && <>
-          <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-            <div style={{ background: "#FEF2F2", borderRadius: 10, padding: "10px 16px", border: "1px solid #FECACA" }}>
-              <div style={{ fontSize: 11, color: C.muted }}>Vencidas</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#C62828" }}>{pendientesData.filter(r => r.dias > 0).length}</div>
-            </div>
-            <div style={{ background: "#FFF8E6", borderRadius: 10, padding: "10px 16px", border: "1px solid #FCD68A" }}>
-              <div style={{ fontSize: 11, color: C.muted }}>Por vencer</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#B45309" }}>{pendientesData.filter(r => r.dias !== null && r.dias <= 0).length}</div>
-            </div>
-            <div style={{ background: "#F5F7F4", borderRadius: 10, padding: "10px 16px", border: "1px solid #E2E8E3" }}>
-              <div style={{ fontSize: 11, color: C.muted }}>Total pendiente</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#132019" }}>{fmtV(pendientesData.reduce((s, r) => s + r.monto, 0))}</div>
-            </div>
+      {/* Filters */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={sectionTitle}>2. Filtros</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Ordena los filtros con los controles ↑ ↓ para probar consultas más rápido.</div>
           </div>
-          {renderTable([{ key: "factura", label: "Factura" }, { key: "estatus", label: "Estatus" }, { key: "monto", label: "Monto", money: true, r: true }, { key: "vence", label: "Vence" }, { key: "dias", label: "DÃ­as vencida", r: true }], pendientesData)}
-          {csvBtn([{ key: "factura", label: "Factura" }, { key: "estatus", label: "Estatus" }, { key: "monto", label: "Monto" }, { key: "vence", label: "Vence" }, { key: "dias", label: "DÃ­as vencida" }], pendientesData)}
-        </>}
+          <button onClick={() => setFilters(f => [...f, { field: schema.fields[0].key, op: schema.fields[0].type === "date" ? "between" : "contains", value: "" }])} style={addBtn}>+ Filtro</button>
+        </div>
+        {filters.length === 0 ? (
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Sin filtros — usando todos los registros</div>
+        ) : filters.map((f, idx) => {
+          const fd = schema.fields.find(x => x.key === f.field);
+          const isDate = fd?.type === "date";
+          const isNum = fd?.type === "number";
+          const ops = isNum
+            ? [["eq", "="], ["neq", "≠"], ["gt", ">"], ["gte", "≥"], ["lt", "<"], ["lte", "≤"], ["between", "entre"]]
+            : isDate
+            ? [["between", "entre fechas"]]
+            : [["contains", "contiene"], ["eq", "igual a"], ["neq", "distinto de"]];
+          return (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap", padding: 12, borderRadius: 14, background: "#F8FAF7", border: "1px solid #E2E8E3" }}>
+              <div style={{ display: "grid", gap: 4, alignItems: "center" }}>
+                <button onClick={() => moveFilter(idx, -1)} disabled={idx === 0} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => moveFilter(idx, 1)} disabled={idx === filters.length - 1} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === filters.length - 1 ? 0.4 : 1 }}>↓</button>
+              </div>
+              <select value={f.field} onChange={e => { const nf = e.target.value; const nd = schema.fields.find(x => x.key === nf); setFilters(fs => fs.map((x, i) => i === idx ? { field: nf, op: nd?.type === "date" ? "between" : nd?.type === "number" ? "eq" : "contains", value: "", from: "", to: "" } : x)); }} style={{ ...selectStyle, width: "auto", minWidth: 150 }}>
+                {schema.fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+              </select>
+              <select value={f.op} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, op: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+                {ops.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+              {f.op === "between" ? (
+                <>
+                  <input type={isDate ? "date" : "number"} placeholder="desde" value={f.from || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, from: e.target.value } : x))} style={{ ...inputStyle, width: 140 }} />
+                  <input type={isDate ? "date" : "number"} placeholder="hasta" value={f.to || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, to: e.target.value } : x))} style={{ ...inputStyle, width: 140 }} />
+                </>
+              ) : (
+                <input type={isNum ? "number" : "text"} placeholder="valor" value={f.value || ""} onChange={e => setFilters(fs => fs.map((x, i) => i === idx ? { ...x, value: e.target.value } : x))} style={{ ...inputStyle, width: 180 }} />
+              )}
+              <button onClick={() => setFilters(fs => fs.filter((_, i) => i !== idx))} style={{ ...xBtn, background: "#FDE8E8", borderColor: "#F5C2C2", color: "#B91C1C" }}>✕</button>
+            </div>
+          );
+        })}
+      </div>
 
+      {/* Group by */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={sectionTitle}>3. Agrupar por</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Reordena dimensiones para cambiar la jerarquía de agrupación.</div>
+          </div>
+          {groupBy.length < 2 && (
+            <button onClick={() => setGroupBy(g => [...g, { field: schema.fields[0].key, gran: "mes" }])} style={addBtn}>+ Dimensión</button>
+          )}
+        </div>
+        {groupBy.length === 0 ? (
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Sin agrupar — métricas calculadas sobre el total</div>
+        ) : groupBy.map((g, idx) => {
+          const fd = schema.fields.find(x => x.key === g.field);
+          return (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap", padding: 12, borderRadius: 14, background: "#F8FAF7", border: "1px solid #E2E8E3" }}>
+              <div style={{ display: "grid", gap: 4, alignItems: "center" }}>
+                <button onClick={() => moveGroup(idx, -1)} disabled={idx === 0} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => moveGroup(idx, 1)} disabled={idx === groupBy.length - 1} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === groupBy.length - 1 ? 0.4 : 1 }}>↓</button>
+              </div>
+              <select value={g.field} onChange={e => setGroupBy(gs => gs.map((x, i) => i === idx ? { ...x, field: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 150 }}>
+                {schema.fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+              </select>
+              {fd?.type === "date" && (
+                <select value={g.gran || "mes"} onChange={e => setGroupBy(gs => gs.map((x, i) => i === idx ? { ...x, gran: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 160 }}>
+                  {Object.entries(DATE_GRANS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              )}
+              <button onClick={() => setGroupBy(gs => gs.filter((_, i) => i !== idx))} style={{ ...xBtn, background: "#FDE8E8", borderColor: "#F5C2C2", color: "#B91C1C" }}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Metrics */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={sectionTitle}>4. Métricas a calcular</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Arrastra la prioridad de métricas con los botones para ver qué cambia.</div>
+          </div>
+          <button onClick={() => setMetrics(m => [...m, { agg: "sum", field: "" }])} style={addBtn}>+ Métrica</button>
+        </div>
+        {metrics.map((m, idx) => {
+          const aggDef = AGG_FUNCS[m.agg];
+          const fields = aggDef?.numeric ? schema.fields.filter(f => f.type === "number") : schema.fields;
+          return (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap", padding: 12, borderRadius: 14, background: "#F8FAF7", border: "1px solid #E2E8E3" }}>
+              <div style={{ display: "grid", gap: 4, alignItems: "center" }}>
+                <button onClick={() => moveMetric(idx, -1)} disabled={idx === 0} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => moveMetric(idx, 1)} disabled={idx === metrics.length - 1} style={{ ...xBtn, padding: "4px 8px", minWidth: 34, opacity: idx === metrics.length - 1 ? 0.4 : 1 }}>↓</button>
+              </div>
+              <select value={m.agg} onChange={e => setMetrics(ms => ms.map((x, i) => i === idx ? { ...x, agg: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 160 }}>
+                {Object.entries(AGG_FUNCS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+              {aggDef?.needsField && (
+                <>
+                  <span style={{ fontSize: 12, color: C.muted }}>de</span>
+                  <select value={m.field} onChange={e => setMetrics(ms => ms.map((x, i) => i === idx ? { ...x, field: e.target.value } : x))} style={{ ...selectStyle, width: "auto", minWidth: 140 }}>
+                    <option value="">— Campo —</option>
+                    {fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+                  </select>
+                </>
+              )}
+              {metrics.length > 1 && <button onClick={() => setMetrics(ms => ms.filter((_, i) => i !== idx))} style={{ ...xBtn, background: "#FDE8E8", borderColor: "#F5C2C2", color: "#B91C1C" }}>✕</button>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Results */}
+      <div style={{ background: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFA 100%)", border: "2px solid #0F5C2E", borderRadius: 16, padding: "clamp(14px, 2.5vw, 22px)", marginBottom: 14, boxShadow: "0 4px 18px rgba(15,92,46,0.08)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#0F5C2E", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Resultados en tiempo real</div>
+            <div style={{ fontSize: "clamp(16px, 2vw, 18px)", fontWeight: 800, color: "#132019" }}>📊 {result.rows.length} fila{result.rows.length !== 1 ? "s" : ""} · {result.total.toLocaleString("es-MX")} registro{result.total !== 1 ? "s" : ""} antes de agrupar</div>
+          </div>
+          {result.rows.length > 0 && (
+            <div style={{ display: "flex", gap: 6 }}>
+              {chartData && (
+                <div style={{ display: "flex", border: "1px solid #E2E8E3", borderRadius: 8, overflow: "hidden" }}>
+                  <button onClick={() => setChartType("bar")}  style={{ padding: "7px 12px", border: "none", background: chartType === "bar" ? "#0F5C2E" : "#FFF", color: chartType === "bar" ? "#FFF" : C.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Barras</button>
+                  <button onClick={() => setChartType("line")} style={{ padding: "7px 12px", border: "none", background: chartType === "line" ? "#0F5C2E" : "#FFF", color: chartType === "line" ? "#FFF" : C.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Líneas</button>
+                </div>
+              )}
+              <button onClick={exportCSV} style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "#0F5C2E", color: "#FFF", border: "none", cursor: "pointer", fontFamily: "inherit" }}>⬇ Exportar CSV</button>
+            </div>
+          )}
+        </div>
+
+        {result.rows.length === 0 ? (
+          <div style={{ padding: 30, textAlign: "center", color: C.muted, fontSize: 13 }}>
+            Configura origen, filtros, agrupación y métricas para ver resultados
+          </div>
+        ) : (
+          <>
+            <div style={{ overflowX: "auto", border: "1px solid #E2E8E3", borderRadius: 10, background: "#FFF" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 360 }}>
+                <thead>
+                  <tr style={{ background: "#F5F7F4" }}>
+                    {result.cols.map((c, i) => {
+                      const midx = i - result.groupCount;
+                      const isSorted = c.isMetric && sortIdx === midx;
+                      return (
+                        <th key={c.key} onClick={c.isMetric ? () => { if (sortIdx === midx) setSortDir(d => d === "desc" ? "asc" : "desc"); else { setSortIdx(midx); setSortDir("desc"); } } : undefined}
+                          style={{ padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "#3a4a40", textAlign: c.isMetric ? "right" : "left", borderBottom: "1px solid #E2E8E3", cursor: c.isMetric ? "pointer" : "default", whiteSpace: "nowrap", userSelect: "none" }}>
+                          {c.label} {isSorted && (sortDir === "desc" ? "↓" : "↑")}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.rows.map((r, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 ? "#FAFBFA" : "#FFF" }}>
+                      {result.cols.map(c => {
+                        const v = r[c.key];
+                        const display = c.isMetric
+                          ? (c.money ? fmt(v) : (typeof v === "number" ? v.toLocaleString("es-MX", { maximumFractionDigits: 2 }) : v))
+                          : v;
+                        return (
+                          <td key={c.key} style={{ padding: "9px 14px", textAlign: c.isMetric ? "right" : "left", borderBottom: "1px solid #F0F2F0", fontWeight: c.isMetric ? 600 : 400, color: c.isMetric ? "#132019" : "#3a4a40", whiteSpace: "nowrap" }}>{display}</td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {chartData && (
+              <div style={{ marginTop: 16, height: 320, background: "#FFF", border: "1px solid #E2E8E3", borderRadius: 10, padding: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartType === "bar" ? (
+                    <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F0" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6B7A72" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "#6B7A72" }} width={70} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {result.cols.filter(c => c.isMetric).map((c, i) => (
+                        <Bar key={c.key} dataKey={c.label} fill={COLORS[i % COLORS.length]} isAnimationActive={false} />
+                      ))}
+                    </BarChart>
+                  ) : (
+                    <ComposedChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F0" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6B7A72" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "#6B7A72" }} width={70} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {result.cols.filter(c => c.isMetric).map((c, i) => (
+                        <Line key={c.key} type="monotone" dataKey={c.label} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                      ))}
+                    </ComposedChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {result.rows.length === limit && (
+              <div style={{ marginTop: 10, fontSize: 11, color: C.muted, textAlign: "center" }}>
+                Mostrando primeras {limit} filas. <button onClick={() => setLimit(l => l + 200)} style={{ background: "none", border: "none", color: "#0F5C2E", fontWeight: 700, cursor: "pointer", fontSize: 11 }}>Mostrar más</button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-// â”€â”€â”€ MÃ“DULO DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MÓDULO DASHBOARD ─────────────────────────────────────────────────────
 function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes, prestamos, desde, hasta }) {
   const [cashflowLookback, setCashflowLookback] = useState(30);
   const ing  = useMemo(() => (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta)), [ingresos, desde, hasta]);
@@ -2635,7 +2992,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
 
   // Alertas
   const ingVencidosArr = ing.filter(r => r.estatus === "Vencido");
-  const gasPorPagarArr = gas.filter(r => r.estatus_pago === "Por pagar" || r.estatus_pago === "En revisiÃ³n");
+  const gasPorPagarArr = gas.filter(r => r.estatus_pago === "Por pagar" || r.estatus_pago === "En revisión");
   const totalPorCobrar = ingVencidosArr.reduce((s, r) => s + parseFloat(r.coniva || 0), 0);
   const totalPorPagar  = gasPorPagarArr.reduce((s, r) => s + parseFloat(r.monto  || 0), 0);
 
@@ -2652,7 +3009,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     return acc;
   }, {});
 
-  // Tendencia mensual (Ãºltimos 6 meses, ignora filtro para mostrar contexto)
+  // Tendencia mensual (últimos 6 meses, ignora filtro para mostrar contexto)
   const months = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -2728,9 +3085,9 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     return fmt(n);
   };
 
-  const periodoLabel = desde || hasta ? `${desde || "inicio"} â†’ ${hasta || "hoy"}` : "Todo el perÃ­odo";
+  const periodoLabel = desde || hasta ? `${desde || "inicio"} → ${hasta || "hoy"}` : "Todo el período";
 
-  // â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Sub-components ──────────────────────────────────────────────────────
 
   const DeltaBadge = ({ delta, invert }) => {
     if (delta === null || delta === undefined) return null;
@@ -2742,7 +3099,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         background: positive ? "#DDEEDC" : "#FCEBEB",
         color: positive ? "#0F5C2E" : "#791F1F",
       }}>
-        {delta >= 0 ? "â–²" : "â–¼"} {Math.abs(delta)}%
+        {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}%
         <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.75 }}>vs mes ant.</span>
       </span>
     );
@@ -2773,7 +3130,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     );
   };
 
-  // Ingresos vs Gastos â€” grouped bars
+  // Ingresos vs Gastos — grouped bars
   const CombinedChart = () => {
     const max = Math.max(...months.map(d => Math.max(d.ingM, d.gasM)), 1);
     const H = 110; const bw = 20; const gap = 4; const grpW = 54;
@@ -2827,8 +3184,8 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     );
   };
 
-  // Flujo de caja proyectado â€” fletes cobrados a 30d post-cierre, gastos en su fecha
-  // + Modelo de proyecciÃ³n: extiende los prÃ³ximos 365 dÃ­as al run-rate de los Ãºltimos 60 dÃ­as
+  // Flujo de caja proyectado — fletes cobrados a 30d post-cierre, gastos en su fecha
+  // + Modelo de proyección: extiende los próximos 365 días al run-rate de los últimos 60 días
   const CashflowTimeline = () => {
     const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     const fmtDateShort = (s) => {
@@ -2853,14 +3210,14 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return fmtDate(cierre);
     };
 
-    // â”€â”€ 1. Buckets reales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── 1. Buckets reales ──────────────────────────────────────────────────
     const realBuckets = new Map();
     const addBucket = (m, fecha, key, val) => {
       if (!m.has(fecha)) m.set(fecha, { in: 0, out: 0 });
       m.get(fecha)[key] += val;
     };
 
-    // Ingresos cobrados â†’ entrada real en fecha_pago (fuente de verdad para saldo)
+    // Ingresos cobrados → entrada real en fecha_pago (fuente de verdad para saldo)
     const ingSign = (r) => r.tipo === "NC" ? -1 : 1;
     (ingresos || []).filter(r => r.estatus === "Pagado" && r.fecha_pago).forEach(r => {
       const monto = ingSign(r) * parseFloat(r.monto_cobrado || r.coniva || 0);
@@ -2868,7 +3225,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       else if (monto < 0)  addBucket(realBuckets, r.fecha_pago, "out", -monto);
     });
 
-    // Rutas sin cobrar â†’ proyectar solo a fechas futuras (pipeline)
+    // Rutas sin cobrar → proyectar solo a fechas futuras (pipeline)
     (rutas || []).forEach(r => {
       const cobro = proyectarCobro(r.fecha);
       if (!cobro || cobro <= todayStr) return;
@@ -2876,7 +3233,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       if (monto > 0) addBucket(realBuckets, cobro, "in", monto);
     });
 
-    // Gastos â†’ salida en su fecha real
+    // Gastos → salida en su fecha real
     (gastos || []).forEach(g => {
       if (!g.fecha) return;
       const monto = parseFloat(g.monto || 0);
@@ -2887,7 +3244,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72", fontSize: 13 }}>Sin datos suficientes para proyectar el flujo de caja.</div>;
     }
 
-    // â”€â”€ 2.1 PrÃ©stamos registrados â”€â”€
+    // ── 2.1 Préstamos registrados ──
     (prestamos || []).filter(p => p.estatus !== "Cancelado").forEach(p => {
       if (p.fecha_recepcion && parseFloat(p.monto_recibido || 0) > 0)
         addBucket(realBuckets, p.fecha_recepcion, "in", parseFloat(p.monto_recibido));
@@ -2895,7 +3252,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         addBucket(realBuckets, p.fecha_pago, "out", parseFloat(p.monto_pago));
     });
 
-    // â”€â”€ 3. Run-rate (ventana configurable de actividad real) â”€â”€
+    // ── 3. Run-rate (ventana configurable de actividad real) ──
     const lookbackDays = cashflowLookback;
     const lookbackDate = new Date(now); lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
     const lookbackStr = fmtDate(lookbackDate);
@@ -2906,7 +3263,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const histFleteSum = histFletes.reduce((s, r) => s + parseFloat(r.flete || r.flete_siniva || 0), 0);
     const histGastoSum = histGas.reduce((s, g) => s + parseFloat(g.monto || 0), 0);
 
-    // span efectivo: si los datos cubren menos de 60 dÃ­as, dividir por lo que haya
+    // span efectivo: si los datos cubren menos de 60 días, dividir por lo que haya
     const allFechas = (rutas || []).map(r => r.fecha).concat((gastos || []).map(g => g.fecha)).filter(Boolean);
     const oldestStr = allFechas.length > 0 ? allFechas.sort()[0] : todayStr;
     const oldestForRR = oldestStr > lookbackStr ? oldestStr : lookbackStr;
@@ -2919,7 +3276,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const avgMonthlyNeto  = avgMonthlyFlete - avgMonthlyGasto;
     const sostenible = avgMonthlyNeto > 0;
 
-    // â”€â”€ 4. Generar eventos sintÃ©ticos a futuro (continuaciÃ³n al run-rate) â”€â”€
+    // ── 4. Generar eventos sintéticos a futuro (continuación al run-rate) ──
     const fullBuckets = new Map();
     for (const [k, v] of realBuckets) fullBuckets.set(k, { in: v.in, out: v.out, isReal: true });
 
@@ -2935,7 +3292,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       }
     }
 
-    // â”€â”€ 5. Serie acumulada completa â”€â”€
+    // ── 5. Serie acumulada completa ──
     const allDates = Array.from(fullBuckets.keys()).sort();
     let cumIn = 0, cumOut = 0;
     const seriesAll = allDates.map(fecha => {
@@ -2944,7 +3301,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return { fecha, in: b.in, out: b.out, cumIn, cumOut, saldo: cumIn - cumOut };
     });
 
-    // â”€â”€ 6. Saldo a hoy + prÃ³x ingreso (necesarios para detectar PE forward) â”€â”€
+    // ── 6. Saldo a hoy + próx ingreso (necesarios para detectar PE forward) ──
     let saldoHoy = 0;
     let proxIngreso = null;
     let todayIdx = -1;
@@ -2954,8 +3311,8 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     }
     const enEquilibrio = saldoHoy >= 0;
 
-    // â”€â”€ 7. Break-even FORWARD-LOOKING: prÃ³ximo cruce desde HOY hacia adelante â”€â”€
-    // (no la primera vez histÃ³rica; lo que importa es cuÃ¡ndo volverÃ¡ a estar en positivo
+    // ── 7. Break-even FORWARD-LOOKING: próximo cruce desde HOY hacia adelante ──
+    // (no la primera vez histórica; lo que importa es cuándo volverá a estar en positivo
     //  bajo la realidad actual de costos)
     let breakEven = null;
     if (!enEquilibrio && todayIdx >= 0) {
@@ -2974,7 +3331,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       return s;
     }, 0);
 
-    // â”€â”€ 8. Recorte de ventana visible: 90 dÃ­as atrÃ¡s â†’ max(PE+45d, hoy+90d) â”€â”€
+    // ── 8. Recorte de ventana visible: 90 días atrás → max(PE+45d, hoy+90d) ──
     const histStart = new Date(now); histStart.setDate(histStart.getDate() - 90);
     const histStartStr = fmtDate(histStart);
     const winStart = allDates[0] > histStartStr ? allDates[0] : histStartStr;
@@ -2990,7 +3347,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
     const series = seriesAll.filter(s => s.fecha >= winStart && s.fecha <= winEnd);
     if (series.length === 0) return <div style={{ padding: 20, textAlign: "center", color: "#6B7A72" }}>Sin datos en la ventana.</div>;
 
-    // â”€â”€ 9. Datos preparados para Recharts â”€â”€
+    // ── 9. Datos preparados para Recharts ──
     let boundaryIdx = -1;
     for (let i = 0; i < series.length; i++) if (series[i].fecha <= todayStr) boundaryIdx = i;
 
@@ -3038,8 +3395,8 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </div>
           {(d.diaIn > 0 || d.diaOut > 0) && (
             <div style={{ display: "grid", gap: 2, paddingBottom: 6, borderBottom: "1px solid #F0F2F0", marginBottom: 6 }}>
-              {d.diaIn > 0  && <div><span style={{ color: "#0F5C2E" }}>â†‘ Cobro:</span> <strong>{fmt(d.diaIn)}</strong></div>}
-              {d.diaOut > 0 && <div><span style={{ color: "#791F1F" }}>â†“ Pago:</span> <strong>{fmt(d.diaOut)}</strong></div>}
+              {d.diaIn > 0  && <div><span style={{ color: "#0F5C2E" }}>↑ Cobro:</span> <strong>{fmt(d.diaIn)}</strong></div>}
+              {d.diaOut > 0 && <div><span style={{ color: "#791F1F" }}>↓ Pago:</span> <strong>{fmt(d.diaOut)}</strong></div>}
             </div>
           )}
           <div style={{ display: "grid", gap: 2 }}>
@@ -3051,15 +3408,9 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       );
     };
 
-    const totalCobrado = (ingresos || []).filter(r => r.estatus === "Pagado")
-      .reduce((s, r) => s + (r.tipo === "NC" ? -1 : 1) * parseFloat(r.monto_cobrado || r.coniva || 0), 0);
-    const totalGastos = (gastos || []).reduce((s, g) => s + parseFloat(g.monto || 0), 0);
-    const margenAbs = totalCobrado - totalGastos;
-    const margenPct = totalCobrado > 0 ? (margenAbs / totalCobrado) * 100 : 0;
-
     return (
       <div>
-        {/* â”€â”€ Panel de modelo de proyecciÃ³n â”€â”€ */}
+        {/* ── Panel de modelo de proyección ── */}
         <div style={{
           background: enEquilibrio ? "linear-gradient(135deg, #F0FAF0 0%, #E8F5E8 100%)"
             : sostenible ? "linear-gradient(135deg, #FFF8E6 0%, #FEF2D6 100%)"
@@ -3070,8 +3421,8 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "stretch", flexWrap: "wrap", gap: 16 }}>
             <div style={{ flex: "1 1 360px", minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 18 }}>{enEquilibrio ? "âœ…" : sostenible ? "ðŸ“ˆ" : "âš ï¸"}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>Modelo de proyecciÃ³n â€” run-rate de los Ãºltimos {spanDays} dÃ­as</span>
+                <span style={{ fontSize: 18 }}>{enEquilibrio ? "✅" : sostenible ? "📈" : "⚠️"}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>Modelo de proyección — run-rate de los últimos {spanDays} días</span>
                 <div style={{ display: "flex", gap: 3, marginLeft: 4 }}>
                   {[15, 30, 60, 90].map(d => (
                     <button key={d} onClick={() => setCashflowLookback(d)} style={{
@@ -3084,12 +3435,12 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                 </div>
               </div>
               <div style={{ fontSize: 12, color: "#3a4a40", lineHeight: 1.6 }}>
-                Fletes promedio: <strong style={{ color: "#0F5C2E" }}>{fmtM(avgMonthlyFlete)}/mes</strong> Â· Gastos promedio: <strong style={{ color: "#791F1F" }}>{fmtM(avgMonthlyGasto)}/mes</strong>
+                Fletes promedio: <strong style={{ color: "#0F5C2E" }}>{fmtM(avgMonthlyFlete)}/mes</strong> · Gastos promedio: <strong style={{ color: "#791F1F" }}>{fmtM(avgMonthlyGasto)}/mes</strong>
                 <br />
                 {sostenible ? (
-                  <>Resultado neto mensual: <strong style={{ color: "#0F5C2E", fontSize: 14 }}>+{fmtM(avgMonthlyNeto)}</strong> <span style={{ color: "#6B7A72" }}>â€” saldo crece a este ritmo</span></>
+                  <>Resultado neto mensual: <strong style={{ color: "#0F5C2E", fontSize: 14 }}>+{fmtM(avgMonthlyNeto)}</strong> <span style={{ color: "#6B7A72" }}>— saldo crece a este ritmo</span></>
                 ) : (
-                  <>Quemando <strong style={{ color: "#C62828", fontSize: 14 }}>{fmtM(Math.abs(avgMonthlyNeto))}/mes</strong> <span style={{ color: "#6B7A72" }}>â€” gastos &gt; ingresos, hay que ajustar tarifas o reducir costos</span></>
+                  <>Quemando <strong style={{ color: "#C62828", fontSize: 14 }}>{fmtM(Math.abs(avgMonthlyNeto))}/mes</strong> <span style={{ color: "#6B7A72" }}>— gastos &gt; ingresos, hay que ajustar tarifas o reducir costos</span></>
                 )}
               </div>
             </div>
@@ -3097,23 +3448,23 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
               {enEquilibrio ? (
                 <>
                   <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>Estado actual</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>âœ… En equilibrio</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>✅ En equilibrio</div>
                   <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>Saldo positivo de {fmtM(saldoHoy)}</div>
                 </>
               ) : breakEven ? (
                 <>
                   <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>
-                    PrÃ³ximo equilibrio {peTipo === "comprometido" ? "(pipeline real)" : "(proyecciÃ³n run-rate)"}
+                    Próximo equilibrio {peTipo === "comprometido" ? "(pipeline real)" : "(proyección run-rate)"}
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#0F5C2E", lineHeight: 1.1 }}>{fmtDateShort(breakEven)}</div>
-                  <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>en {daysToPE} dÃ­a{daysToPE === 1 ? "" : "s"}</div>
+                  <div style={{ fontSize: 12, color: "#3a4a40", marginTop: 4, fontWeight: 600 }}>en {daysToPE} día{daysToPE === 1 ? "" : "s"}</div>
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>PrÃ³ximo equilibrio</div>
+                  <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 2 }}>Próximo equilibrio</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#C62828", lineHeight: 1.1 }}>No alcanzable</div>
                   <div style={{ fontSize: 11, color: "#791F1F", marginTop: 4 }}>
-                    {sostenible ? "mÃ¡s allÃ¡ de 18 meses con run-rate actual" : "operaciÃ³n insostenible al ritmo actual"}
+                    {sostenible ? "más allá de 18 meses con run-rate actual" : "operación insostenible al ritmo actual"}
                   </div>
                 </>
               )}
@@ -3121,22 +3472,16 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </div>
         </div>
 
-        {/* â”€â”€ KPIs â”€â”€ */}
+        {/* ── KPIs ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 16 }}>
           <div style={{ background: saldoHoy >= 0 ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px", border: `1px solid ${saldoHoy >= 0 ? "#DDEEDC" : "#FECACA"}` }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>Flujo disponible hoy</div>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Saldo acumulado a hoy</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: saldoHoy >= 0 ? "#2E7D32" : "#C62828", marginTop: 2 }}>{fmtM(saldoHoy)}</div>
-            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>Suma de cobros reales âˆ’ gastos reales</div>
-          </div>
-          <div style={{ background: margenAbs >= 0 ? "#F0FAF0" : "#FEF2F2", borderRadius: 12, padding: "12px 14px", border: `1px solid ${margenAbs >= 0 ? "#DDEEDC" : "#FECACA"}` }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>Margen operativo</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: margenAbs >= 0 ? "#2E7D32" : "#C62828", marginTop: 2 }}>{fmtM(margenAbs)}</div>
-            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{fmtM(totalCobrado)} cobrado âˆ’ {fmtM(totalGastos)} gastos</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: margenAbs >= 0 ? "#2E7D32" : "#C62828", marginTop: 4 }}>{margenPct.toFixed(1)}%</div>
+            <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>Ingresos cobrados − gastos pagados</div>
           </div>
           <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8E3" }}>
-            <div style={{ fontSize: 11, color: "#6B7A72" }}>PrÃ³ximo cobro</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#132019", marginTop: 2 }}>{proxIngreso ? fmtM(proxIngreso.monto) : "â€”"}</div>
+            <div style={{ fontSize: 11, color: "#6B7A72" }}>Próximo cobro</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#132019", marginTop: 2 }}>{proxIngreso ? fmtM(proxIngreso.monto) : "—"}</div>
             <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>{proxIngreso ? fmtDateShort(proxIngreso.fecha) : "sin pendientes"}</div>
           </div>
           <div style={{ background: "#F5F7F4", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8E3" }}>
@@ -3146,9 +3491,9 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </div>
           {(prestamos || []).filter(p => p.estatus === "Activo").map(p => (
             <div key={p.id} style={{ background: "#FFFFFF", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8E3" }}>
-              <div style={{ fontSize: 11, color: "#6B7A72" }}>PrÃ©stamo â€” {p.concepto || "Sin concepto"}</div>
+              <div style={{ fontSize: 11, color: "#6B7A72" }}>Préstamo — {p.concepto || "Sin concepto"}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#1565C0", marginTop: 2 }}>+{fmtM(p.monto_recibido)}</div>
-              <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>Recibido {p.fecha_recepcion ? fmtDateShort(p.fecha_recepcion) : "â€”"}</div>
+              <div style={{ fontSize: 10, color: "#6B7A72", marginTop: 2 }}>Recibido {p.fecha_recepcion ? fmtDateShort(p.fecha_recepcion) : "—"}</div>
               {p.fecha_pago && <div style={{ fontSize: 10, color: "#B91C1C", marginTop: 4 }}>Pago {fmtM(p.monto_pago)} el {fmtDateShort(p.fecha_pago)}</div>}
             </div>
           ))}
@@ -3158,7 +3503,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#132019" }}>Comparativo clave</div>
-              <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 4 }}>Gastos Â· Cobrado sin IVA Â· Fletes sin IVA</div>
+              <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 4 }}>Gastos · Cobrado sin IVA · Fletes sin IVA</div>
             </div>
             <div style={{ fontSize: 11, color: "#6B7A72" }}>{periodoLabel}</div>
           </div>
@@ -3167,12 +3512,12 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </div>
         </div>
 
-        {/* â”€â”€ Leyenda â”€â”€ */}
+        {/* ── Leyenda ── */}
         <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
           {[
             { c: "#2E7D32", l: "Ingresos acumulados" },
             { c: "#C62828", l: "Gastos acumulados" },
-            { c: "#1565C0", l: "Saldo (Ing âˆ’ Gas)" },
+            { c: "#1565C0", l: "Saldo (Ing − Gas)" },
           ].map(it => (
             <div key={it.l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
               <span style={{ width: 16, height: 3, background: it.c, display: "inline-block", borderRadius: 2 }} />
@@ -3183,11 +3528,11 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
             <span style={{ width: 18, height: 2, background: "#1565C0", display: "inline-block", borderRadius: 2 }} />
             <span>Real / pipeline</span>
             <span style={{ display: "inline-block", marginLeft: 8, width: 18, height: 0, borderTop: "2px dashed #1565C0" }} />
-            <span>ProyecciÃ³n run-rate</span>
+            <span>Proyección run-rate</span>
           </div>
         </div>
 
-        {/* â”€â”€ GrÃ¡fico Recharts â”€â”€ */}
+        {/* ── Gráfico Recharts ── */}
         <div style={{ width: "100%", height: 320 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 24, right: 24, left: 8, bottom: 8 }}>
@@ -3217,13 +3562,13 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
               <Line type="monotone" dataKey="saldoProj"  stroke="#1565C0" strokeWidth={2.6} strokeDasharray="6 4" dot={false} connectNulls={false} legendType="none" isAnimationActive={false} />
               {peInRange && (
                 <ReferenceDot x={breakEven} y={0} r={8} fill="#74B72E" stroke="#FFFFFF" strokeWidth={2.5}
-                  label={{ value: `âš– PE ${fmtDateShort(breakEven)}`, position: "top", fill: "#0F5C2E", fontSize: 11, fontWeight: 700 }} />
+                  label={{ value: `⚖ PE ${fmtDateShort(breakEven)}`, position: "top", fill: "#0F5C2E", fontSize: 11, fontWeight: 700 }} />
               )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* â”€â”€ Tabla resumen mensual â”€â”€ */}
+        {/* ── Tabla resumen mensual ── */}
         {(() => {
           const monthlyMap = new Map();
           const todayMonth = todayStr.slice(0, 7);
@@ -3256,12 +3601,12 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
             <div style={{ marginTop: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>ðŸ“‹ Resumen mensual del flujo</div>
-                  <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 2 }}>Cobros, pagos y saldo de cada mes â€” datos reales y proyectados</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>📋 Resumen mensual del flujo</div>
+                  <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 2 }}>Cobros, pagos y saldo de cada mes — datos reales y proyectados</div>
                 </div>
                 <div style={{ display: "flex", gap: 10, fontSize: 11, color: "#6B7A72", flexWrap: "wrap" }}>
-                  <span>â—€ Mes actual</span>
-                  <span style={{ color: "#0F5C2E", fontWeight: 600 }}>âš– Mes del PE</span>
+                  <span>◀ Mes actual</span>
+                  <span style={{ color: "#0F5C2E", fontWeight: 600 }}>⚖ Mes del PE</span>
                 </div>
               </div>
               <div style={{ overflowX: "auto", border: "1px solid #E2E8E3", borderRadius: 12 }}>
@@ -3286,10 +3631,10 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                             {row.mes}
                           </td>
                           <td style={{ padding: "10px 14px", textAlign: "right", color: "#0F5C2E", fontWeight: 600, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
-                            {row.ingresos > 0 ? fmtM(row.ingresos) : "â€”"}
+                            {row.ingresos > 0 ? fmtM(row.ingresos) : "—"}
                           </td>
                           <td style={{ padding: "10px 14px", textAlign: "right", color: "#791F1F", fontWeight: 600, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
-                            {row.gastos > 0 ? fmtM(row.gastos) : "â€”"}
+                            {row.gastos > 0 ? fmtM(row.gastos) : "—"}
                           </td>
                           <td style={{ padding: "10px 14px", textAlign: "right", color: row.neto >= 0 ? "#0F5C2E" : "#C62828", fontWeight: 700, borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
                             {row.neto >= 0 ? "+" : ""}{fmtM(row.neto)}
@@ -3299,9 +3644,9 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                           </td>
                           <td style={{ padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid #F0F2F0" : "none", whiteSpace: "nowrap" }}>
                             {row.isPE ? (
-                              <span style={{ background: "#74B72E", color: "#FFFFFF", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>âš– PE</span>
+                              <span style={{ background: "#74B72E", color: "#FFFFFF", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>⚖ PE</span>
                             ) : row.isCurrent ? (
-                              <span style={{ background: "#F59E0B", color: "#FFFFFF", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>â—€ Hoy</span>
+                              <span style={{ background: "#F59E0B", color: "#FFFFFF", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>◀ Hoy</span>
                             ) : row.isFuture ? (
                               <span style={{ background: "#E2E8E3", color: "#3a4a40", padding: "3px 9px", borderRadius: 12, fontSize: 11, fontWeight: 600 }}>Proyectado</span>
                             ) : (
@@ -3318,10 +3663,10 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           );
         })()}
 
-        {/* â”€â”€ Nota del modelo â”€â”€ */}
+        {/* ── Nota del modelo ── */}
         <div style={{ fontSize: 11, color: "#6B7A72", marginTop: 12, padding: "10px 14px", background: "#F8F9F8", borderRadius: 8, lineHeight: 1.6 }}>
-          <strong style={{ color: "#3a4a40" }}>CÃ³mo se calcula:</strong> el modelo asume que la operaciÃ³n continÃºa al ritmo promedio de los Ãºltimos {spanDays} dÃ­as.
-          Cada flete sintÃ©tico se cobra 30 dÃ­as despuÃ©s del cierre del perÃ­odo (10 o 25). Los gastos diarios sintÃ©ticos se asignan en el dÃ­a que ocurren.
+          <strong style={{ color: "#3a4a40" }}>Cómo se calcula:</strong> el modelo asume que la operación continúa al ritmo promedio de los últimos {spanDays} días.
+          Cada flete sintético se cobra 30 días después del cierre del período (10 o 25). Los gastos diarios sintéticos se asignan en el día que ocurren.
           Saldo inicial $0 al primer evento de la serie.
         </div>
       </div>
@@ -3330,42 +3675,42 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
 
   return (
     <div>
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* ── Header ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#132019", margin: 0 }}>Dashboard VDL</h1>
-          <p style={{ fontSize: 13, color: "#6B7A72", margin: "4px 0 0" }}>MÃ©tricas de flotilla Â· {periodoLabel}</p>
+          <p style={{ fontSize: 13, color: "#6B7A72", margin: "4px 0 0" }}>Métricas de flotilla · {periodoLabel}</p>
         </div>
         <div style={{ background: "#DDEEDC", color: "#0F5C2E", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
-          {rut.length} rutas Â· {(operadores || []).filter(o => o.estatus === "Activo").length} ops activos
+          {rut.length} rutas · {(operadores || []).filter(o => o.estatus === "Activo").length} ops activos
         </div>
       </div>
 
-      {/* â”€â”€ Alertas â”€â”€ */}
+      {/* ── Alertas ── */}
       {(ingVencidosArr.length > 0 || gasPorPagarArr.length > 0) && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 20 }}>
           {ingVencidosArr.length > 0 && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ fontSize: 22 }}>âš ï¸</div>
+              <div style={{ fontSize: 22 }}>⚠️</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#B91C1C" }}>Facturas vencidas</div>
-                <div style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>{ingVencidosArr.length} factura{ingVencidosArr.length !== 1 ? "s" : ""} Â· {fmtM(totalPorCobrar)} por cobrar</div>
+                <div style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>{ingVencidosArr.length} factura{ingVencidosArr.length !== 1 ? "s" : ""} · {fmtM(totalPorCobrar)} por cobrar</div>
               </div>
             </div>
           )}
           {gasPorPagarArr.length > 0 && (
             <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ fontSize: 22 }}>ðŸ’³</div>
+              <div style={{ fontSize: 22 }}>💳</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#B45309" }}>Gastos pendientes</div>
-                <div style={{ fontSize: 12, color: "#92400E", marginTop: 2 }}>{gasPorPagarArr.length} registro{gasPorPagarArr.length !== 1 ? "s" : ""} Â· {fmtM(totalPorPagar)} por pagar</div>
+                <div style={{ fontSize: 12, color: "#92400E", marginTop: 2 }}>{gasPorPagarArr.length} registro{gasPorPagarArr.length !== 1 ? "s" : ""} · {fmtM(totalPorPagar)} por pagar</div>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* â”€â”€ PROTAGONISTA: Flujo de caja proyectado Â· lÃ­nea de tiempo + tabla mensual â”€â”€ */}
+      {/* ── PROTAGONISTA: Flujo de caja proyectado · línea de tiempo + tabla mensual ── */}
       <div style={{
         background: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFA 100%)",
         border: "2px solid #0F5C2E",
@@ -3376,23 +3721,23 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 12, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#0F5C2E", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Vista CEO Â· Indicador clave</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#0F5C2E", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Vista CEO · Indicador clave</div>
             <div style={{ fontSize: "clamp(18px, 2.4vw, 22px)", fontWeight: 800, color: "#132019" }}>Flujo de caja y punto de equilibrio</div>
             <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 4 }}>
-              Fletes facturados al cierre (dÃ­a 10 / dÃ­a 25), cobrados 30 dÃ­as despuÃ©s Â· Gastos en su fecha real
+              Fletes facturados al cierre (día 10 / día 25), cobrados 30 días después · Gastos en su fecha real
             </div>
           </div>
         </div>
         <CashflowTimeline />
       </div>
 
-      {/* â”€â”€ KPI Cards con tendencia â”€â”€ */}
+      {/* ── KPI Cards con tendencia ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
         {/* Ingresos */}
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Ingresos pagados</div>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#2E7D3215", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>ðŸ’°</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#2E7D3215", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💰</div>
           </div>
           <div style={{ fontSize: 30, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{fmtM(totalIngPag)}</div>
           <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>{ingPag.length} de {ing.length} facturas</div>
@@ -3402,7 +3747,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Gastos operativos</div>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#C6282815", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>ðŸ“¤</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#C6282815", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📤</div>
           </div>
           <div style={{ fontSize: 30, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{fmtM(totalGas)}</div>
           <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>{gas.length} registros</div>
@@ -3412,10 +3757,10 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         <div style={{ background: util >= 0 ? "#F0FAF0" : "#FEF2F2", border: `1px solid ${util >= 0 ? "#AACFAA" : "#FECACA"}`, borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Utilidad neta</div>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: util >= 0 ? "#2E7D3215" : "#C6282815", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>ðŸ“Š</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: util >= 0 ? "#2E7D3215" : "#C6282815", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📊</div>
           </div>
           <div style={{ fontSize: 30, fontWeight: 800, color: util >= 0 ? "#2E7D32" : "#C62828", lineHeight: 1, marginBottom: 4 }}>{fmtM(util)}</div>
-          <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>Margen {margen}% Â· solo pagadas</div>
+          <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>Margen {margen}% · solo pagadas</div>
           {margenDelta !== null && (
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 3,
@@ -3423,7 +3768,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
               background: margenDelta >= 0 ? "#DDEEDC" : "#FCEBEB",
               color: margenDelta >= 0 ? "#0F5C2E" : "#791F1F",
             }}>
-              {margenDelta >= 0 ? "â–²" : "â–¼"} {Math.abs(margenDelta)}pp <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.75 }}>vs mes ant.</span>
+              {margenDelta >= 0 ? "▲" : "▼"} {Math.abs(margenDelta)}pp <span style={{ fontWeight: 400, fontSize: 10, opacity: 0.75 }}>vs mes ant.</span>
             </span>
           )}
         </div>
@@ -3431,7 +3776,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 12px rgba(18,32,25,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div style={{ fontSize: 12, color: "#6B7A72", fontWeight: 500 }}>Fletes sin IVA</div>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#74B72E15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>ðŸš›</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#74B72E15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🚛</div>
           </div>
           <div style={{ fontSize: 30, fontWeight: 800, color: "#132019", lineHeight: 1, marginBottom: 4 }}>{fmtM(totalFlete)}</div>
           <div style={{ fontSize: 11, color: "#6B7A72", marginBottom: 8 }}>{rut.length} rutas</div>
@@ -3439,12 +3784,12 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
       </div>
 
-      {/* â”€â”€ Tendencia de margen mensual (sparkline) â”€â”€ */}
+      {/* ── Tendencia de margen mensual (sparkline) ── */}
       <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 24px", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#132019" }}>Tendencia de margen mensual</div>
-            <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 2 }}>Ãšltimos 6 meses Â· % utilidad sobre ingresos</div>
+            <div style={{ fontSize: 12, color: "#6B7A72", marginTop: 2 }}>Últimos 6 meses · % utilidad sobre ingresos</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 28, fontWeight: 800, color: margen >= 0 ? "#2E7D32" : "#C62828", lineHeight: 1 }}>{margen}%</div>
@@ -3456,7 +3801,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
       </div>
 
-      {/* â”€â”€ Ingresos vs Gastos + Fletes â”€â”€ */}
+      {/* ── Ingresos vs Gastos + Fletes ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20 }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 6 }}>Ingresos vs Gastos</div>
@@ -3476,14 +3821,14 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 6 }}>Fletes por mes</div>
-          <div style={{ fontSize: 12, color: "#6B7A72", marginBottom: 14 }}>Flete sin IVA Â· Ãºltimos 6 meses</div>
+          <div style={{ fontSize: 12, color: "#6B7A72", marginBottom: 14 }}>Flete sin IVA · últimos 6 meses</div>
           <div style={{ overflowX: "auto" }}>
             <BarChart data={months} color="#74B72E" valueKey="fleM" labelFn={fmtM} />
           </div>
         </div>
       </div>
 
-      {/* â”€â”€ Top Clientes + Top Operadores â”€â”€ */}
+      {/* ── Top Clientes + Top Operadores ── */}
       {(topClientes.length > 0 || topOperadores.length > 0) && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20 }}>
           {topClientes.length > 0 && (
@@ -3520,7 +3865,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                         <span style={{ width: 20, height: 20, borderRadius: 6, background: i === 0 ? "#0F5C2E" : "#E2E8E3", color: i === 0 ? "#fff" : "#6B7A72", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
                         <span style={{ fontSize: 13, fontWeight: 600, color: "#132019", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>{nombre}</span>
                       </div>
-                      <span style={{ fontSize: 12, color: "#6B7A72", flexShrink: 0 }}>{stats.rutas} ruta{stats.rutas !== 1 ? "s" : ""} Â· {fmtM(stats.flete)}</span>
+                      <span style={{ fontSize: 12, color: "#6B7A72", flexShrink: 0 }}>{stats.rutas} ruta{stats.rutas !== 1 ? "s" : ""} · {fmtM(stats.flete)}</span>
                     </div>
                     <div style={{ height: 5, borderRadius: 3, background: "#F5F7F4", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: i === 0 ? "#0F5C2E" : "#AACFAA", borderRadius: 3, transition: "width 0.4s" }} />
@@ -3533,10 +3878,10 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
       )}
 
-      {/* â”€â”€ DistribuciÃ³n gastos por tipo â”€â”€ */}
+      {/* ── Distribución gastos por tipo ── */}
       {gasXTipoArr.length > 0 && (
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>DistribuciÃ³n de gastos por tipo</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Distribución de gastos por tipo</div>
           <div style={{ display: "flex", height: 36, borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
             {gasXTipoArr.map(([tipo, monto], i) => {
               const pct = Math.round((monto / totalGas) * 100);
@@ -3566,7 +3911,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
         </div>
       )}
 
-      {/* â”€â”€ Resumen por tipo de unidad â”€â”€ */}
+      {/* ── Resumen por tipo de unidad ── */}
       <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px", marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Resumen por tipo de unidad</div>
         <div style={{ overflowX: "auto" }}>
@@ -3594,7 +3939,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                     <td style={{ padding: "10px 12px", fontWeight: 600 }}><Chip label={tipo} /></td>
                     <td style={{ padding: "10px 12px" }}>{count}</td>
                     <td style={{ padding: "10px 12px", fontWeight: 700, color: "#2E7D32" }}>{fmt(fleteT)}</td>
-                    <td style={{ padding: "10px 12px" }}>{count > 0 ? fmt(fleteT / count) : "â€”"}</td>
+                    <td style={{ padding: "10px 12px" }}>{count > 0 ? fmt(fleteT / count) : "—"}</td>
                     <td style={{ padding: "10px 12px" }}>{opsTipo}</td>
                     <td style={{ padding: "10px 12px" }}>{prop}</td>
                     <td style={{ padding: "10px 12px" }}>{terc}</td>
@@ -3602,14 +3947,14 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
                 );
               })}
               {Object.keys(rutXTipo).length === 0 && (
-                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "#6B7A72" }}>Sin rutas en este perÃ­odo</td></tr>
+                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "#6B7A72" }}>Sin rutas en este período</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* â”€â”€ Estatus ingresos + gastos â”€â”€ */}
+      {/* ── Estatus ingresos + gastos ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Ingresos por estatus</div>
@@ -3621,7 +3966,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
           </div>
         </div>
         <div style={{ background: "#FFFFFF", border: "1px solid #E2E8E3", borderRadius: 20, padding: "20px 22px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Gastos â€” estatus de pago</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#132019", marginBottom: 14 }}>Gastos — estatus de pago</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
             <MiniKpi label="Pagados"    value={gasPagados}  sub="registros" color="#2E7D32" />
             <MiniKpi label="Por pagar"  value={gasPorPagar} sub="registros" color="#B45309" />
@@ -3632,7 +3977,7 @@ function ModDashboard({ ingresos, gastos, rutas, operadores, unidades, clientes,
   );
 }
 
-// â”€â”€â”€ HOOK: detectar mÃ³vil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HOOK: detectar móvil ─────────────────────────────────────────────────
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < breakpoint : false
@@ -3646,7 +3991,7 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
-// â”€â”€â”€ ROOT COMPONENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ROOT COMPONENT ───────────────────────────────────────────────────────
 export default function VDLModulos({ onLogout }) {
   const [mod, setMod] = useState("dashboard");
   const [desde, setDesde] = useState("");
@@ -3654,7 +3999,7 @@ export default function VDLModulos({ onLogout }) {
   const isMobile = useIsMobile(768);
   const [navOpen, setNavOpen] = useState(false);
 
-  // â”€â”€ Data state â€” null = loading, [] = empty, [...] = loaded
+  // ── Data state — null = loading, [] = empty, [...] = loaded
   const [ingresos,   setIngresos]   = useState(null);
   const [gastos,     setGastos]     = useState(null);
   const [operadores, setOperadores] = useState(null);
@@ -3663,7 +4008,7 @@ export default function VDLModulos({ onLogout }) {
   const [clientes,   setClientes]   = useState(null);
   const [prestamos,  setPrestamos]  = useState(null);
 
-  // â”€â”€ Fetch all tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Fetch all tables ──────────────────────────────────────────────────
   const fetchTable = useCallback(async (table, setter) => {
     const { data, error } = await sb.from(table).select("*").order("created_at", { ascending: false });
     if (!error) setter(data || []);
@@ -3678,7 +4023,7 @@ export default function VDLModulos({ onLogout }) {
   const reloadClientes   = useCallback(() => fetchTable("clientes",   setClientes),   [fetchTable]);
   const reloadPrestamos  = useCallback(() => fetchTable("prestamos",  setPrestamos),  [fetchTable]);
 
-  // Initial load â€” fetch everything on mount
+  // Initial load — fetch everything on mount
   useEffect(() => {
     syncRutaCounter();
     reloadUnidades();
@@ -3690,7 +4035,7 @@ export default function VDLModulos({ onLogout }) {
     reloadPrestamos();
   }, []);
 
-  // â”€â”€ KPIs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── KPIs ─────────────────────────────────────────────────────────────
   const kpi = useMemo(() => {
     const ingFilt = (ingresos || []).filter(r => inRange(r.fcarga, desde, hasta));
     const gasFilt = (gastos   || []).filter(r => inRange(r.fecha,  desde, hasta));
@@ -3699,11 +4044,11 @@ export default function VDLModulos({ onLogout }) {
     // NC restan, Facturas suman
     const ingSign = r => r.tipo === "NC" ? -1 : 1;
 
-    // Ingresos â€” totales (todas las facturas del perÃ­odo)
+    // Ingresos — totales (todas las facturas del período)
     const ingConIVA  = ingFilt.reduce((s, r) => s + ingSign(r) * parseFloat(r.coniva || 0), 0);
     const ingSinIVA  = ingFilt.reduce((s, r) => s + ingSign(r) * parseFloat(r.siniva || 0), 0);
 
-    // Ingresos â€” solo Pagadas (para margen e IVA cobrado)
+    // Ingresos — solo Pagadas (para margen e IVA cobrado)
     // Si hay monto_cobrado (pago parcial), usarlo en vez de coniva
     const ingPagadas   = ingFilt.filter(r => r.estatus === "Pagado");
     const efectivoConIVA = (r) => r.monto_cobrado != null && r.monto_cobrado !== ""
@@ -3720,7 +4065,7 @@ export default function VDLModulos({ onLogout }) {
     const totalIVA     = ingPagadas.reduce((s, r) =>
       s + ingSign(r) * (efectivoConIVA(r) - efectivoSinIVA(r)), 0);
 
-    // RetenciÃ³n SAT: 2.5% sobre la base sin IVA cobrada
+    // Retención SAT: 2.5% sobre la base sin IVA cobrada
     const retencionSAT = ingPagSinIVABruto * 0.025;
     const ingPagSinIVA = ingPagSinIVABruto - retencionSAT;
 
@@ -3733,7 +4078,7 @@ export default function VDLModulos({ onLogout }) {
     const fleteSinIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete_siniva || r.flete || 0), 0);
     const fleteConIVA = rutFilt.reduce((s, r) => s + parseFloat(r.flete_coniva || 0), 0);
 
-    // Utilidad: solo facturas PAGADAS sin IVA (neto de retenciÃ³n) vs gastos sin IVA
+    // Utilidad: solo facturas PAGADAS sin IVA (neto de retención) vs gastos sin IVA
     const util  = ingPagSinIVA - gasSinIVA;
     const pct   = ingPagSinIVA > 0 ? Math.round(util / ingPagSinIVA * 100) : 0;
 
@@ -3748,12 +4093,12 @@ export default function VDLModulos({ onLogout }) {
 
   const navIds = ["dashboard", "consultas", "ingresos", "gastos", "clientes", "operadores", "rutas", "unidades"];
 
-  // Sidebar visible en desktop, drawer en mÃ³vil
+  // Sidebar visible en desktop, drawer en móvil
   const sidebarVisible = !isMobile || navOpen;
 
   return (
     <main style={{ height: "100vh", overflow: "hidden", background: C.bg, display: "flex", fontFamily: "'Inter', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative" }}>
-      {/* TOPBAR mÃ³vil */}
+      {/* TOPBAR móvil */}
       {isMobile && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, height: 56, zIndex: 50,
@@ -3763,7 +4108,7 @@ export default function VDLModulos({ onLogout }) {
         }}>
           <button
             onClick={() => setNavOpen(o => !o)}
-            aria-label="MenÃº"
+            aria-label="Menú"
             style={{
               width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
               background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, cursor: "pointer", color: "#fff",
@@ -3775,13 +4120,13 @@ export default function VDLModulos({ onLogout }) {
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <img src={LOGO_SRC} alt="VDL" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1.5px solid rgba(116,183,46,0.5)" }} />
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Verde DiseÃ±o</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Verde Diseño</div>
           </div>
           <div style={{ width: 40 }} />
         </div>
       )}
 
-      {/* OVERLAY del drawer en mÃ³vil */}
+      {/* OVERLAY del drawer en móvil */}
       {isMobile && navOpen && (
         <div
           onClick={() => setNavOpen(false)}
@@ -3811,7 +4156,7 @@ export default function VDLModulos({ onLogout }) {
                 }}
               />
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1.1 }}>Verde DiseÃ±o</div>
+                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", lineHeight: 1.1 }}>Verde Diseño</div>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Logistic</div>
               </div>
             </div>
@@ -3829,7 +4174,7 @@ export default function VDLModulos({ onLogout }) {
             ))}
           </nav>
           <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL Â· Control Financiero</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>VDL · Control Financiero</div>
             {onLogout && (
               <button
                 onClick={onLogout}
@@ -3844,7 +4189,7 @@ export default function VDLModulos({ onLogout }) {
                 onMouseEnter={e => { e.target.style.background = "rgba(198,40,40,0.25)"; e.target.style.color = "#ff8a8a"; }}
                 onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.06)"; e.target.style.color = "rgba(255,255,255,0.55)"; }}
               >
-                Cerrar sesiÃ³n
+                Cerrar sesión
               </button>
             )}
           </div>
@@ -3853,7 +4198,7 @@ export default function VDLModulos({ onLogout }) {
 
       {/* MAIN */}
       <section style={{ flex: 1, minWidth: 0, height: "100vh", overflowY: "auto", display: "flex", flexDirection: "column", paddingTop: isMobile ? 56 : 0 }}>
-        {/* KPIs â€” 6 mÃ©tricas claras: Cobrado / Fletes / Gastos Ã— (con IVA Â· sin IVA) */}
+        {/* KPIs — 6 métricas claras: Cobrado / Fletes / Gastos × (con IVA · sin IVA) */}
         <div style={{ padding: "16px clamp(12px, 3vw, 28px) 0" }}>
           <div style={{
             display: "grid",
@@ -3864,18 +4209,18 @@ export default function VDLModulos({ onLogout }) {
               label="Cobrado con IVA"
               value={fmt(kpi.ingPagConIVA)}
               sub={`${kpi.ingPagN} de ${kpi.ingN} facturas pagadas`}
-              badge="EntrÃ³ al banco"
+              badge="Entró al banco"
               badgeType="up"
             />
             <KpiCard
               label="Cobrado sin IVA"
               value={fmt(kpi.ingPagSinIVA)}
-              sub={`${fmt(kpi.ingPagSinIVABruto)} âˆ’ 2.5% retenciÃ³n SAT`}
+              sub={`${fmt(kpi.ingPagSinIVABruto)} − 2.5% retención SAT`}
               badge="Neto al bolsillo"
               badgeType="up"
             />
             <KpiCard
-              label="RetenciÃ³n SAT (2.5%)"
+              label="Retención SAT (2.5%)"
               value={fmt(kpi.retencionSAT)}
               sub="A pagar al SAT"
               badge="Por enterar"
@@ -3899,7 +4244,7 @@ export default function VDLModulos({ onLogout }) {
               label="Gastos"
               value={fmt(kpi.gasMonto)}
               sub={`${kpi.gasN} registro${kpi.gasN !== 1 ? "s" : ""} de salida`}
-              badge="SaliÃ³ del banco"
+              badge="Salió del banco"
               badgeType="down"
             />
           </div>
@@ -3938,10 +4283,10 @@ export default function VDLModulos({ onLogout }) {
           ];
           return (
             <div style={{ padding: "10px clamp(12px, 3vw, 28px)", borderTop: "1px solid #E2E8E3", borderBottom: `2px solid ${activo ? "#74B72E" : "#E2E8E3"}`, background: activo ? "#F0FAF0" : "#F7F9F7", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              {/* Ãcono + label */}
+              {/* Ícono + label */}
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke={activo ? "#2E7D32" : C.muted} strokeWidth="1.4" strokeLinecap="round"/></svg>
-                <span style={{ fontSize: 11, fontWeight: 700, color: activo ? "#2E7D32" : C.muted, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>PerÃ­odo</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: activo ? "#2E7D32" : C.muted, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>Período</span>
               </div>
               {/* Date range picker */}
               <DateRangePicker desde={desde} hasta={hasta} setDesde={setDesde} setHasta={setHasta} />
@@ -3956,7 +4301,7 @@ export default function VDLModulos({ onLogout }) {
                 ))}
               </div>
               <span style={{ fontSize: 11, color: activo ? "#2E7D32" : C.muted, marginLeft: "auto", fontWeight: activo ? 600 : 400, whiteSpace: "nowrap" }}>
-                {activo ? `${desde || "inicio"} â†’ ${hasta || "hoy"}` : "Sin filtro de fecha Â· mostrando todo"}
+                {activo ? `${desde || "inicio"} → ${hasta || "hoy"}` : "Sin filtro de fecha · mostrando todo"}
               </span>
             </div>
           );
