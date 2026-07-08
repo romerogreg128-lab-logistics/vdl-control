@@ -71,7 +71,7 @@ const inRange = (fecha, desde, hasta) => {
 
 // Genera el siguiente ID consultando el máximo real en la BD al momento de guardar
 async function getNextRutaId() {
-  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(500);
+  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(1000000);
   const nums = (data || [])
     .map(r => parseInt((r.id || "").replace("RTA-", "")) || 0)
     .filter(n => n > 0 && isFinite(n));
