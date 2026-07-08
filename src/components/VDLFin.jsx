@@ -74,7 +74,7 @@ const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
 
 // Sincronizar contador con el máximo ID existente en Supabase
 async function syncRutaCounter() {
-  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(50);
+  const { data } = await sb.from("rutas").select("id");
   if (!data || data.length === 0) return;
   const nums = data
     .map(r => parseInt(r.id?.replace("RTA-", "") || "0"))
@@ -1152,9 +1152,14 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
       if (filters.unidad_id  && !(r.unidad_id  || "").toLowerCase().includes(filters.unidad_id.toLowerCase()))  return false;
       return true;
     });
-    d = [...d].sort((a, b) => fechaSort === "asc"
-      ? (a.fecha || "").localeCompare(b.fecha || "")
-      : (b.fecha || "").localeCompare(a.fecha || ""));
+    d = [...d].sort((a, b) => {
+      if (!a.fecha && !b.fecha) return (b.created_at || "").localeCompare(a.created_at || "");
+      if (!a.fecha) return fechaSort === "desc" ? -1 : 1;
+      if (!b.fecha) return fechaSort === "desc" ? 1 : -1;
+      const cmp = fechaSort === "asc" ? a.fecha.localeCompare(b.fecha) : b.fecha.localeCompare(a.fecha);
+      if (cmp !== 0) return cmp;
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
     return d;
   }, [data, desde, hasta, filters, fechaSort]);
   const unidadSel  = form.unidad_id  ? (unidades || []).find(u => u.economico === form.unidad_id)  : null;
@@ -1595,9 +1600,14 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
       if (filters.operador     && !(r.operador || "").toLowerCase().includes(filters.operador.toLowerCase())) return false;
       return true;
     });
-    d = [...d].sort((a, b) => fechaSort === "asc"
-      ? (a.fecha || "").localeCompare(b.fecha || "")
-      : (b.fecha || "").localeCompare(a.fecha || ""));
+    d = [...d].sort((a, b) => {
+      if (!a.fecha && !b.fecha) return (b.created_at || "").localeCompare(a.created_at || "");
+      if (!a.fecha) return fechaSort === "desc" ? -1 : 1;
+      if (!b.fecha) return fechaSort === "desc" ? 1 : -1;
+      const cmp = fechaSort === "asc" ? a.fecha.localeCompare(b.fecha) : b.fecha.localeCompare(a.fecha);
+      if (cmp !== 0) return cmp;
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
     return d;
   }, [data, desde, hasta, filters, fechaSort]);
   const rutaSel = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
