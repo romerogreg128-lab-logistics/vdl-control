@@ -74,7 +74,7 @@ const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
 
 // Sincronizar contador con el máximo ID existente en Supabase
 async function syncRutaCounter() {
-  const { data } = await sb.from("rutas").select("id");
+  const { data } = await sb.from("rutas").select("id").limit(10000);
   if (!data || data.length === 0) return;
   const nums = data
     .map(r => parseInt(r.id?.replace("RTA-", "") || "0"))
@@ -1082,6 +1082,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     if (bulkFechas.length === 0) { setErr("Agrega al menos una fecha"); return; }
     setLoading(true); setErr("");
     try {
+      await syncRutaCounter();
       const basePayload = {
         cliente_id:   form.cliente_id,
         operador:     form.operador,
@@ -1108,6 +1109,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     if (!form.operador)   { setErr("Selecciona un operador"); return; }
     setLoading(true); setErr("");
     try {
+      if (!isEdit) await syncRutaCounter();
       const payload = {
         fecha:      form.fecha      || null,
         cliente_id: form.cliente_id,
