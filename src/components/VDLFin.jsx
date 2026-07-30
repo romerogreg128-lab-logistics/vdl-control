@@ -69,13 +69,17 @@ const inRange = (fecha, desde, hasta) => {
   return true;
 };
 
-// Genera el siguiente ID consultando el máximo real en la BD al momento de guardar
-async function getNextRutaId() {
-  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(1000000);
-  const nums = (data || [])
-    .map(r => parseInt((r.id || "").replace("RTA-", "")) || 0)
-    .filter(n => n > 0 && isFinite(n));
-  return `RTA-${(nums.length > 0 ? Math.max(...nums) : 1000) + 1}`;
+let _rutaCounter = 1000;
+const nextRutaId = () => { _rutaCounter++; return `RTA-${_rutaCounter}`; };
+
+// Sincronizar contador con el máximo ID existente en Supabase
+async function syncRutaCounter() {
+  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(50);
+  if (!data || data.length === 0) return;
+  const nums = data
+    .map(r => parseInt(r.id?.replace("RTA-", "") || "0"))
+    .filter(n => !isNaN(n));
+  if (nums.length > 0) _rutaCounter = Math.max(...nums);
 }
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────
@@ -1078,8 +1082,6 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
     if (bulkFechas.length === 0) { setErr("Agrega al menos una fecha"); return; }
     setLoading(true); setErr("");
     try {
-      const firstId = await getNextRutaId();
-      let counter = parseInt(firstId.replace("RTA-", ""));
       const basePayload = {
         cliente_id:   form.cliente_id,
         operador:     form.operador,
@@ -1089,9 +1091,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         flete_coniva: form.flete_coniva ? parseFloat(form.flete_coniva) : null,
       };
       for (const fecha of bulkFechas) {
-        const { error } = await sb.from("rutas").insert({ id: `RTA-${counter}`, ...basePayload, fecha });
+        const { error } = await sb.from("rutas").insert({ id: nextRutaId(), ...basePayload, fecha });
         if (error) throw error;
-        counter++;
       }
       await reload();
       cancelBulk();
@@ -1120,8 +1121,7 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
         const { error } = await sb.from("rutas").update(payload).eq("id", editRow.id);
         if (error) throw error;
       } else {
-        const newId = await getNextRutaId();
-        const { error } = await sb.from("rutas").insert({ id: newId, ...payload });
+        const { error } = await sb.from("rutas").insert({ id: nextRutaId(), ...payload });
         if (error) throw error;
       }
       await reload();
@@ -1152,14 +1152,9 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
       if (filters.unidad_id  && !(r.unidad_id  || "").toLowerCase().includes(filters.unidad_id.toLowerCase()))  return false;
       return true;
     });
-    d = [...d].sort((a, b) => {
-      if (!a.fecha && !b.fecha) return (b.created_at || "").localeCompare(a.created_at || "");
-      if (!a.fecha) return fechaSort === "desc" ? -1 : 1;
-      if (!b.fecha) return fechaSort === "desc" ? 1 : -1;
-      const cmp = fechaSort === "asc" ? a.fecha.localeCompare(b.fecha) : b.fecha.localeCompare(a.fecha);
-      if (cmp !== 0) return cmp;
-      return (b.created_at || "").localeCompare(a.created_at || "");
-    });
+    d = [...d].sort((a, b) => fechaSort === "asc"
+      ? (a.fecha || "").localeCompare(b.fecha || "")
+      : (b.fecha || "").localeCompare(a.fecha || ""));
     return d;
   }, [data, desde, hasta, filters, fechaSort]);
   const unidadSel  = form.unidad_id  ? (unidades || []).find(u => u.economico === form.unidad_id)  : null;
@@ -1600,14 +1595,9 @@ function ModGastos({ data, reload, desde, hasta, rutas, operadores }) {
       if (filters.operador     && !(r.operador || "").toLowerCase().includes(filters.operador.toLowerCase())) return false;
       return true;
     });
-    d = [...d].sort((a, b) => {
-      if (!a.fecha && !b.fecha) return (b.created_at || "").localeCompare(a.created_at || "");
-      if (!a.fecha) return fechaSort === "desc" ? -1 : 1;
-      if (!b.fecha) return fechaSort === "desc" ? 1 : -1;
-      const cmp = fechaSort === "asc" ? a.fecha.localeCompare(b.fecha) : b.fecha.localeCompare(a.fecha);
-      if (cmp !== 0) return cmp;
-      return (b.created_at || "").localeCompare(a.created_at || "");
-    });
+    d = [...d].sort((a, b) => fechaSort === "asc"
+      ? (a.fecha || "").localeCompare(b.fecha || "")
+      : (b.fecha || "").localeCompare(a.fecha || ""));
     return d;
   }, [data, desde, hasta, filters, fechaSort]);
   const rutaSel = form.viaje_id ? (rutas || []).find(r => r.id === form.viaje_id) : null;
@@ -4035,6 +4025,7 @@ export default function VDLModulos({ onLogout }) {
 
   // Initial load — fetch everything on mount
   useEffect(() => {
+    syncRutaCounter();
     reloadUnidades();
     reloadOperadores();
     reloadRutas();
