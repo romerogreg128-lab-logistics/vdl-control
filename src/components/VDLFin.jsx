@@ -75,9 +75,26 @@ const IVA_PCT = 16;
 const TARIFAS_BASE = { Moto: 1300, "Sedán": 1500, "Small Van": 2500, Van: 3000, "Large Van": 3500 };
 const TARIFA_MANIOBRA = 800;
 
+// Supabase devuelve máximo 1000 filas por consulta: pedir por páginas hasta traer todo
+const PAGE_SIZE = 1000;
+async function fetchAll(table, columns = "*") {
+  const all = [];
+  // Avanza según lo que devolvió el servidor y termina con una página vacía,
+  // así funciona aunque el límite configurado en Supabase sea menor a PAGE_SIZE
+  while (true) {
+    const { data, error } = await sb.from(table).select(columns)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(all.length, all.length + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    if (!data || data.length === 0) return { data: all, error: null };
+    all.push(...data);
+  }
+}
+
 // Genera el siguiente ID consultando el máximo real en la BD al momento de guardar
 async function getNextRutaId() {
-  const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(1000000);
+  const { data } = await fetchAll("rutas", "id, created_at");
   const nums = (data || [])
     .map(r => parseInt((r.id || "").replace("RTA-", "")) || 0)
     .filter(n => n > 0 && isFinite(n));
@@ -2620,6 +2637,9 @@ function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes,
       return (parseFloat(x.siniva) || 0) * (total > 0 ? pagado / total : 1);
     };
     const cobrado = pagadas.reduce((s, x) => s + signo(x) * cobradoSinIva(x), 0);
+    // Facturas del período que no se han cobrado, más lo que quedó corto en pagos parciales
+    const porCobrar = facturas.reduce((s, x) =>
+      s + signo(x) * ((parseFloat(x.siniva) || 0) - (x.estatus === "Pagado" ? cobradoSinIva(x) : 0)), 0);
 
     // ── Gastos ──
     const montoGasto = x => parseFloat(x.siniva) || parseFloat(x.monto) || 0;
@@ -2632,8 +2652,8 @@ function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes,
     const gastosPendientes = gasPer.filter(x => GASTO_PENDIENTE.includes(x.estatus_pago)).reduce((s, x) => s + montoGasto(x), 0);
 
     return {
-      filasServicio, trabajado, rutasSinPrecio, facturado, cobrado,
-      nFacturas: facturas.length, nPagadas: pagadas.length,
+      filasServicio, trabajado, rutasSinPrecio, facturado, cobrado, porCobrar,
+      nFacturas: facturas.length,
       filasGasto, totalGastos, gastosPendientes,
     };
   }, [ingresos, gastos, rutas, maniobras, unidades, clientes, desde, hasta]);
@@ -2656,12 +2676,14 @@ function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes,
       nota: r.trabajado - r.facturado > 0 ? `Te falta facturar ${fmt(r.trabajado - r.facturado)}` : `${r.nFacturas} factura${r.nFacturas !== 1 ? "s" : ""}`,
     },
     {
-      key: "cobrado", titulo: "Lo pagado",
+      // Vista de caja: lo que entró contra lo que salió. Un negativo aquí no es pérdida
+      // si el cliente todavía debe facturas; por eso se muestra junto con lo que falta cobrar.
+      key: "cobrado", titulo: "Lo pagado", caja: true,
       pregunta: "Con lo que el cliente ya me pagó",
       etiqueta: "Ingresos (pagado)", ingreso: r.cobrado,
-      nota: r.facturado - r.cobrado > 0 ? `Te falta cobrar ${fmt(r.facturado - r.cobrado)}` : `${r.nPagadas} factura${r.nPagadas !== 1 ? "s" : ""} pagadas`,
     },
   ];
+  const porCobrar = Math.max(r.porCobrar, 0);
 
   const card  = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "18px 20px" };
   const linea = { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, padding: "7px 0" };
@@ -2678,8 +2700,12 @@ function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes,
         {escenarios.map((e, i) => {
           const util = e.ingreso - r.totalGastos;
           const gana = util >= 0;
+          const alCobrar = util + porCobrar;
+          // En la vista de caja, ámbar = negativo pero se recupera al cobrar; rojo = ni cobrando todo alcanza
+          const colorCaja = gana ? C.greenStrong : alCobrar >= 0 ? "#B45309" : "#C62828";
+          const borde = e.caja ? (gana ? C.green : colorCaja) : (gana ? C.green : "#C62828");
           return (
-            <div key={e.key} style={{ ...card, borderTop: `4px solid ${gana ? C.green : "#C62828"}` }}>
+            <div key={e.key} style={{ ...card, borderTop: `4px solid ${borde}` }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{i + 1}. {e.titulo}</div>
               <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>{e.pregunta}</div>
 
@@ -2692,17 +2718,35 @@ function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes,
                 <span style={{ fontSize: 16, fontWeight: 700, color: "#C62828" }}>{fmt(r.totalGastos)}</span>
               </div>
               <div style={{ ...linea, paddingTop: 10 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>= {gana ? "Ganancia" : "Pérdida"}</span>
-                <span style={{ fontSize: 24, fontWeight: 800, color: gana ? C.greenStrong : "#C62828" }}>{fmt(util)}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>= {e.caja ? "Saldo en caja" : gana ? "Ganancia" : "Pérdida"}</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: e.caja ? colorCaja : gana ? C.greenStrong : "#C62828" }}>{fmt(util)}</span>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, fontSize: 12, color: C.muted, flexWrap: "wrap" }}>
-                <span>{e.nota}</span>
-                {e.ingreso > 0 && (() => {
-                  const c = Math.round(util / e.ingreso * 100);
-                  return <span>{c >= 0 ? `Te quedan ${c} centavos de cada peso` : `Pierdes ${-c} centavos por cada peso`}</span>;
-                })()}
-              </div>
+              {e.caja ? (
+                <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 10, background: porCobrar > 0 ? "#FFFBEB" : "#F0FAF0", border: `1px solid ${porCobrar > 0 ? "#FDE68A" : "#C8E6C9"}`, fontSize: 13 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontWeight: 700, color: C.text }}>El cliente te debe</span>
+                    <strong style={{ color: "#B45309" }}>{fmt(porCobrar)}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 4 }}>
+                    <span style={{ color: C.muted }}>Cuando te pague, tu saldo será</span>
+                    <strong style={{ color: alCobrar >= 0 ? C.greenStrong : "#C62828" }}>{fmt(alCobrar)}</strong>
+                  </div>
+                  {!gana && alCobrar >= 0 && (
+                    <div style={{ fontSize: 12, color: "#92400E", marginTop: 6 }}>
+                      No es pérdida: es dinero que adelantaste mientras el cliente te paga.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, fontSize: 12, color: C.muted, flexWrap: "wrap" }}>
+                  <span>{e.nota}</span>
+                  {e.ingreso > 0 && (() => {
+                    const c = Math.round(util / e.ingreso * 100);
+                    return <span>{c >= 0 ? `Te quedan ${c} centavos de cada peso` : `Pierdes ${-c} centavos por cada peso`}</span>;
+                  })()}
+                </div>
+              )}
             </div>
           );
         })}
@@ -4390,7 +4434,7 @@ export default function VDLModulos({ onLogout }) {
 
   // ── Fetch all tables ──────────────────────────────────────────────────
   const fetchTable = useCallback(async (table, setter) => {
-    const { data, error } = await sb.from(table).select("*").order("created_at", { ascending: false });
+    const { data, error } = await fetchAll(table);
     if (!error) setter(data || []);
     else console.error(`Error fetching ${table}:`, error.message);
   }, []);
@@ -4404,7 +4448,7 @@ export default function VDLModulos({ onLogout }) {
   const reloadPrestamos  = useCallback(() => fetchTable("prestamos",  setPrestamos),  [fetchTable]);
   // Tabla nueva: si aún no existe en Supabase, seguir con lista vacía en vez de quedarse cargando
   const reloadManiobras  = useCallback(async () => {
-    const { data, error } = await sb.from("maniobras").select("*").order("created_at", { ascending: false });
+    const { data, error } = await fetchAll("maniobras");
     setManiobrasFaltante(!!error);
     setManiobras(error ? [] : (data || []));
     if (error) console.error("Error fetching maniobras:", error.message);
