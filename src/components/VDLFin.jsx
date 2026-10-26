@@ -69,6 +69,12 @@ const inRange = (fecha, desde, hasta) => {
   return true;
 };
 
+// Lo que el cliente paga a VDL por servicio (sin IVA). Se usa cuando el cliente
+// no tiene una tarifa propia capturada para ese tipo de unidad.
+const IVA_PCT = 16;
+const TARIFAS_BASE = { Moto: 1300, "Sedán": 1500, "Small Van": 2500, Van: 3000, "Large Van": 3500 };
+const TARIFA_MANIOBRA = 800;
+
 // Genera el siguiente ID consultando el máximo real en la BD al momento de guardar
 async function getNextRutaId() {
   const { data } = await sb.from("rutas").select("id").order("created_at", { ascending: false }).limit(1000000);
@@ -576,18 +582,21 @@ const NAV_ICONS = {
   operadores: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2.2 2.239-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M11.5 7.5a2 2 0 1 0 0-4M14 13c0-1.657-1.119-3-2.5-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   rutas:      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h3M6 12h3M10 12h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><rect x="1.5" y="7" width="13" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M4.5 7V5.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V7" stroke="currentColor" strokeWidth="1.4"/></svg>,
   unidades:   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M4 6V4.5A1.5 1.5 0 0 1 5.5 3h5A1.5 1.5 0 0 1 12 4.5V6" stroke="currentColor" strokeWidth="1.4"/><circle cx="4.5" cy="13" r="1.5" fill="currentColor"/><circle cx="11.5" cy="13" r="1.5" fill="currentColor"/></svg>,
+  resultados: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1.5" width="12" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M5 5h6M5 8h6M5 11h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+  maniobras:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="8" width="7" height="6" rx="1" stroke="currentColor" strokeWidth="1.4"/><path d="M12 14V3M12 3l-3 3M12 3l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   prestamos:  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M1 7h14" stroke="currentColor" strokeWidth="1.4"/><circle cx="5" cy="10.5" r="1" fill="currentColor"/><path d="M8 10h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
 };
 
 const NAV_GROUPS = [
-  { label: "GENERAL",        ids: ["dashboard", "consultas"] },
+  { label: "GENERAL",        ids: ["dashboard", "resultados", "consultas"] },
   { label: "CAPTURA",        ids: ["ingresos", "gastos", "prestamos"] },
-  { label: "OPERACIONES",    ids: ["clientes", "operadores", "rutas"] },
+  { label: "OPERACIONES",    ids: ["clientes", "operadores", "rutas", "maniobras"] },
   { label: "CONFIGURACIÓN",  ids: ["unidades"] },
 ];
 
 const NAV_LABELS = {
   dashboard:  "Dashboard",
+  resultados: "Estado de resultados",
   consultas:  "Consultas",
   ingresos:   "Ingresos",
   gastos:     "Gastos",
@@ -595,6 +604,7 @@ const NAV_LABELS = {
   clientes:   "Clientes",
   operadores: "Operadores",
   rutas:      "Rutas",
+  maniobras:  "Maniobras",
   unidades:   "Unidades",
 };
 
@@ -625,6 +635,7 @@ function NavItem({ id, active, onClick }) {
 // ─── FILTER BAR ───────────────────────────────────────────────────────────
 const MOD_META = {
   dashboard:  { title: "Dashboard",  sub: "Resumen completo de métricas del período" },
+  resultados: { title: "Estado de resultados", sub: "Lo trabajado vs lo facturado vs lo cobrado, contra los gastos pagados · sin IVA" },
   consultas:  { title: "Consultas",  sub: "Construye análisis personalizados sobre tus datos en tiempo real" },
   ingresos:   { title: "Flujo de trabajo",   sub: "Registro de facturas · solo las pagadas cuentan como ingreso" },
   gastos:     { title: "Gastos",     sub: "Control de egresos operativos" },
@@ -632,6 +643,7 @@ const MOD_META = {
   clientes:   { title: "Clientes",   sub: "Tarifas por tipo de unidad y datos de contacto" },
   operadores: { title: "Operadores", sub: "Registro de conductores y asignación" },
   rutas:      { title: "Rutas",      sub: "Registro de viajes con flete automático" },
+  maniobras:  { title: "Maniobras",  sub: "Servicio independiente cobrado al cliente · tarifa base $800 + IVA" },
   unidades:   { title: "Unidades",   sub: "Registro de vehículos de la flotilla" },
 };
 
@@ -1039,8 +1051,8 @@ function ModRutas({ data, reload, desde, hasta, operadores, unidades, clientes }
   const getTarifa = (cliente_id, unidad_id) => {
     const cliente = (clientes  || []).find(c => c.nombre    === cliente_id);
     const unidad  = (unidades  || []).find(u => u.economico === unidad_id);
-    if (cliente && unidad?.tipo_unidad) return cliente.tarifas?.[unidad.tipo_unidad] || null;
-    return null;
+    if (!unidad?.tipo_unidad) return null;
+    return cliente?.tarifas?.[unidad.tipo_unidad] || TARIFAS_BASE[unidad.tipo_unidad] || null;
   };
 
   const selCliente  = (nombre) => setForm(f => {
@@ -2326,7 +2338,7 @@ function ModClientes({ data, reload }) {
           {/* Tarifas por tipo de unidad */}
           <div style={{ gridColumn: "span 2", marginTop: 4 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-              Tarifas por tipo de unidad (flete por viaje)
+              Tarifas por tipo de unidad (flete por viaje, sin IVA) · vacío = tarifa base
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               {TIPOS_UNIDAD.map(tipo => (
@@ -2335,7 +2347,7 @@ function ModClientes({ data, reload }) {
                     <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
                     <Input
                       type="number"
-                      placeholder="0.00"
+                      placeholder={TARIFAS_BASE[tipo] ? `${TARIFAS_BASE[tipo]} (base)` : "0.00"}
                       value={form.tarifas[tipo] || ""}
                       onChange={e => setTarifa(tipo, e.target.value)}
                     />
@@ -2390,6 +2402,381 @@ function ModClientes({ data, reload }) {
             }
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── MÓDULO MANIOBRAS ─────────────────────────────────────────────────────
+// Servicio independiente que el cliente paga aparte de las rutas.
+// Tabla "maniobras": id, fecha, cliente_id, operador, cantidad, tarifa (sin IVA), notas, created_at
+function ModManiobras({ data, reload, desde, hasta, clientes, operadores, tablaFaltante }) {
+  const EMPTY = { fecha: "", cliente_id: "", operador: "", cantidad: "1", tarifa: String(TARIFA_MANIOBRA), notas: "" };
+  const [open, setOpen]       = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [form, setForm]       = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+  const isEdit = !!editRow;
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const clienteOpts  = (clientes   || []).map(c => c.nombre).filter(Boolean);
+  const operadorOpts = (operadores || []).map(o => o.nombre).filter(Boolean);
+
+  const openNew  = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(true); };
+  const openEdit = (r) => {
+    setForm({
+      fecha:      r.fecha      || "",
+      cliente_id: r.cliente_id || "",
+      operador:   r.operador   || "",
+      cantidad:   r.cantidad?.toString() || "1",
+      tarifa:     r.tarifa?.toString()   || String(TARIFA_MANIOBRA),
+      notas:      r.notas      || "",
+    });
+    setEditRow(r); setErr(""); setOpen(true);
+  };
+  const cancel = () => { setForm(EMPTY); setEditRow(null); setErr(""); setOpen(false); };
+
+  const save = async () => {
+    if (!form.fecha)      { setErr("La fecha es obligatoria"); return; }
+    if (!form.cliente_id) { setErr("Selecciona un cliente"); return; }
+    const cantidad = parseInt(form.cantidad) || 0;
+    if (cantidad <= 0)    { setErr("La cantidad debe ser mayor a 0"); return; }
+    setLoading(true); setErr("");
+    try {
+      const payload = {
+        fecha:      form.fecha,
+        cliente_id: form.cliente_id,
+        operador:   form.operador || null,
+        cantidad,
+        tarifa:     parseFloat(form.tarifa) || TARIFA_MANIOBRA,
+        notas:      form.notas || null,
+      };
+      if (isEdit) {
+        const { error } = await sb.from("maniobras").update(payload).eq("id", editRow.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("maniobras").insert(payload);
+        if (error) throw error;
+      }
+      await reload();
+      cancel();
+    } catch (e) {
+      setErr(e.message || "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const remove = async (r) => {
+    if (!window.confirm(`¿Eliminar maniobra del ${r.fecha} (${r.cliente_id})?`)) return;
+    try {
+      const { error } = await sb.from("maniobras").delete().eq("id", r.id);
+      if (error) throw error;
+      await reload();
+    } catch (e) { alert(e.message); }
+  };
+
+  const rows = useMemo(() => (data || [])
+    .filter(r => inRange(r.fecha, desde, hasta))
+    .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")),
+  [data, desde, hasta]);
+
+  const importe = (r) => (parseFloat(r.cantidad) || 0) * (parseFloat(r.tarifa) || 0);
+  const totalCant = rows.reduce((s, r) => s + (parseFloat(r.cantidad) || 0), 0);
+  const totalImp  = rows.reduce((s, r) => s + importe(r), 0);
+  const formImp   = (parseInt(form.cantidad) || 0) * (parseFloat(form.tarifa) || 0);
+
+  if (tablaFaltante) {
+    return (
+      <ErrBanner msg='Falta crear la tabla "maniobras" en Supabase. Ejecuta el archivo supabase/maniobras.sql en el SQL Editor y recarga la página.' />
+    );
+  }
+
+  return (
+    <div>
+      <FormPanel visible={open} title={isEdit ? "Editar maniobra" : "Nueva maniobra"} isEdit={isEdit}>
+        <ErrBanner msg={err} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Fecha">
+            <Input type="date" value={form.fecha} onChange={e => set("fecha", e.target.value)} />
+          </Field>
+          <Field label="Cliente">
+            {clienteOpts.length === 0
+              ? <EmptyHint msg="No hay clientes. Agrega clientes primero." />
+              : <Select value={form.cliente_id} onChange={v => set("cliente_id", v)} options={clienteOpts} placeholder="Seleccionar cliente..." />}
+          </Field>
+          <Field label="Operador (opcional)">
+            <Select value={form.operador} onChange={v => set("operador", v)} options={operadorOpts} placeholder="Sin operador" />
+          </Field>
+          <Field label="Cantidad">
+            <Input type="number" min="1" step="1" value={form.cantidad} onChange={e => set("cantidad", e.target.value)} />
+          </Field>
+          <Field label="Tarifa por maniobra (sin IVA)">
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>$</span>
+              <Input type="number" value={form.tarifa} onChange={e => set("tarifa", e.target.value)} />
+            </div>
+          </Field>
+          <Field label="Notas">
+            <Input placeholder="Opcional" value={form.notas} onChange={e => set("notas", e.target.value)} />
+          </Field>
+          {formImp > 0 && (
+            <GreenBanner>
+              <span>Importe: <strong>{fmt(formImp)}</strong> + IVA {fmt(formImp * IVA_PCT / 100)} = <strong>{fmt(formImp * (1 + IVA_PCT / 100))}</strong></span>
+            </GreenBanner>
+          )}
+        </div>
+        <BtnRow onCancel={cancel} onSave={save} isEdit={isEdit} loading={loading} />
+      </FormPanel>
+
+      {!open && <AddBtn onClick={openNew} label="+ Nueva maniobra" />}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr><Th>Fecha</Th><Th>Cliente</Th><Th>Operador</Th><Th>Cantidad</Th><Th>Tarifa s/IVA</Th><Th>Importe s/IVA</Th><Th>Importe c/IVA</Th><Th>Notas</Th><Th>Acciones</Th></tr>
+          </thead>
+          <tbody>
+            {data === null ? <Loading /> :
+             rows.length === 0 ? <EmptyRow cols={9} msg="Sin maniobras en este período" /> :
+             rows.map(r => (
+               <tr key={r.id}>
+                 <Td>{r.fecha || "—"}</Td>
+                 <Td bold>{r.cliente_id || "—"}</Td>
+                 <Td>{r.operador || "—"}</Td>
+                 <Td>{r.cantidad}</Td>
+                 <Td>{fmt(r.tarifa)}</Td>
+                 <Td><span style={{ fontWeight: 600, color: C.green }}>{fmt(importe(r))}</span></Td>
+                 <Td>{fmt(importe(r) * (1 + IVA_PCT / 100))}</Td>
+                 <Td>{r.notas || "—"}</Td>
+                 <RowActions onEdit={() => openEdit(r)} onDelete={() => remove(r)} />
+               </tr>
+             ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      {rows.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginTop: 16 }}>
+          <MiniKpi label="Maniobras" value={totalCant} sub={`${rows.length} registro${rows.length !== 1 ? "s" : ""}`} />
+          <MiniKpi label="Importe sin IVA" value={fmt(totalImp)} color={C.green} />
+          <MiniKpi label="Importe con IVA" value={fmt(totalImp * (1 + IVA_PCT / 100))} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MÓDULO ESTADO DE RESULTADOS ──────────────────────────────────────────
+// Tres vistas del mismo período, todo sin IVA:
+//   Trabajado  = rutas + maniobras realizadas × tarifa (lo que el cliente debe pagar)
+//   Facturado  = facturas emitidas (fcarga) − notas de crédito
+//   Cobrado    = facturas pagadas (fecha_pago), proporcional si hubo pago parcial
+// Gastos = los ya pagados (excluye "Por pagar" y "En revisión"), mismos en las 3 columnas.
+const GASTO_PENDIENTE = ["Por pagar", "En revisión"];
+const ORDEN_SERVICIOS = ["Moto", "Sedán", "Small Van", "Van", "Large Van", "Otro", "Sin tipo"];
+
+function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes, desde, hasta }) {
+  const r = useMemo(() => {
+    // ── Trabajado: rutas por tipo de unidad ──
+    const tipoDe = (unidadId) => (unidades || []).find(u => u.economico === unidadId)?.tipo_unidad || "Sin tipo";
+    const tarifaDe = (clienteNombre, tipo) => {
+      const cli = (clientes || []).find(c => c.nombre === clienteNombre);
+      return parseFloat(cli?.tarifas?.[tipo]) || TARIFAS_BASE[tipo] || 0;
+    };
+    const servicios = {};
+    let rutasSinPrecio = 0;
+    (rutas || []).filter(x => inRange(x.fecha, desde, hasta)).forEach(x => {
+      const tipo = tipoDe(x.unidad_id);
+      // Precio capturado en la ruta; si está vacío, la tarifa del cliente o la base
+      const precio = parseFloat(x.flete_siniva || x.flete) || tarifaDe(x.cliente_id, tipo);
+      if (!precio) rutasSinPrecio++;
+      if (!servicios[tipo]) servicios[tipo] = { cantidad: 0, importe: 0 };
+      servicios[tipo].cantidad++;
+      servicios[tipo].importe += precio;
+    });
+    const filasServicio = Object.entries(servicios)
+      .sort((a, b) => ORDEN_SERVICIOS.indexOf(a[0]) - ORDEN_SERVICIOS.indexOf(b[0]))
+      .map(([tipo, d]) => ({ concepto: `Rutas ${tipo}`, ...d }));
+
+    const man = (maniobras || []).filter(x => inRange(x.fecha, desde, hasta));
+    const manCant = man.reduce((s, x) => s + (parseFloat(x.cantidad) || 0), 0);
+    const manImp  = man.reduce((s, x) => s + (parseFloat(x.cantidad) || 0) * (parseFloat(x.tarifa) || 0), 0);
+    if (manCant > 0) filasServicio.push({ concepto: "Maniobras", cantidad: manCant, importe: manImp });
+
+    const trabajado = filasServicio.reduce((s, f) => s + f.importe, 0);
+
+    // ── Facturado y cobrado ──
+    const signo = x => x.tipo === "NC" ? -1 : 1;
+    const facturas = (ingresos || []).filter(x => x.estatus !== "Cancelado" && inRange(x.fcarga, desde, hasta));
+    const facturado = facturas.reduce((s, x) => s + signo(x) * (parseFloat(x.siniva) || 0), 0);
+
+    const pagadas = (ingresos || []).filter(x => x.estatus === "Pagado" && inRange(x.fecha_pago || x.fcarga, desde, hasta));
+    const cobradoSinIva = (x) => {
+      const total  = parseFloat(x.coniva) || 0;
+      const pagado = x.monto_cobrado != null && x.monto_cobrado !== "" ? parseFloat(x.monto_cobrado) : total;
+      return (parseFloat(x.siniva) || 0) * (total > 0 ? pagado / total : 1);
+    };
+    const cobrado = pagadas.reduce((s, x) => s + signo(x) * cobradoSinIva(x), 0);
+
+    // ── Gastos ──
+    const montoGasto = x => parseFloat(x.siniva) || parseFloat(x.monto) || 0;
+    const gasPer = (gastos || []).filter(x => inRange(x.fecha, desde, hasta));
+    const gasPag = gasPer.filter(x => !GASTO_PENDIENTE.includes(x.estatus_pago));
+    const gasXTipo = {};
+    gasPag.forEach(x => { const t = x.tipo_gasto || "Otro"; gasXTipo[t] = (gasXTipo[t] || 0) + montoGasto(x); });
+    const filasGasto = Object.entries(gasXTipo).sort((a, b) => b[1] - a[1]);
+    const totalGastos = gasPag.reduce((s, x) => s + montoGasto(x), 0);
+    const gastosPendientes = gasPer.filter(x => GASTO_PENDIENTE.includes(x.estatus_pago)).reduce((s, x) => s + montoGasto(x), 0);
+
+    return {
+      filasServicio, trabajado, rutasSinPrecio, facturado, cobrado,
+      nFacturas: facturas.length, nPagadas: pagadas.length,
+      filasGasto, totalGastos, gastosPendientes,
+    };
+  }, [ingresos, gastos, rutas, maniobras, unidades, clientes, desde, hasta]);
+
+  const pct = (util, base) => base > 0 ? `${Math.round(util / base * 100)}%` : "—";
+  const neg = (n) => n < 0 ? "#C62828" : C.text;
+  const columnas = [
+    { key: "trabajado", label: "Trabajado",  sub: "lo que el cliente debe pagar", valor: r.trabajado },
+    { key: "facturado", label: "Facturado",  sub: `${r.nFacturas} factura${r.nFacturas !== 1 ? "s" : ""} emitidas`, valor: r.facturado },
+    { key: "cobrado",   label: "Cobrado",    sub: `${r.nPagadas} factura${r.nPagadas !== 1 ? "s" : ""} pagadas`, valor: r.cobrado },
+  ];
+  const card = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "18px 20px", marginBottom: 16 };
+  const cell = { padding: "9px 12px", fontSize: 13, borderBottom: `1px solid ${C.border}`, textAlign: "right", whiteSpace: "nowrap" };
+  const cellL = { ...cell, textAlign: "left" };
+  const periodo = desde || hasta ? `${desde || "inicio"} → ${hasta || "hoy"}` : "todo el historial";
+
+  return (
+    <div>
+      {/* ── Resumen: las tres preguntas clave ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <MiniKpi label="Trabajado (debe pagarme)" value={fmt(r.trabajado)} sub={`${fmt(r.trabajado * (1 + IVA_PCT / 100))} con IVA`} color={C.greenStrong} />
+        <MiniKpi label="Facturado" value={fmt(r.facturado)} sub={`Por facturar: ${fmt(r.trabajado - r.facturado)}`} />
+        <MiniKpi label="Cobrado (me pagó)" value={fmt(r.cobrado)} sub={`Por cobrar: ${fmt(r.facturado - r.cobrado)}`} color={C.green} />
+        <MiniKpi label="Gastos pagados" value={fmt(r.totalGastos)} sub={r.gastosPendientes > 0 ? `+ ${fmt(r.gastosPendientes)} por pagar` : "sin pendientes"} color="#C62828" />
+      </div>
+
+      {/* ── 1. Lo trabajado por servicio ── */}
+      <div style={card}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>1. Lo que el cliente debe pagar · por servicio</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
+          Rutas y maniobras realizadas en {periodo}. Tarifas base sin IVA: Moto {fmt(TARIFAS_BASE.Moto)} · Sedán {fmt(TARIFAS_BASE["Sedán"])} · Small Van {fmt(TARIFAS_BASE["Small Van"])} · Van {fmt(TARIFAS_BASE.Van)} · Large Van {fmt(TARIFAS_BASE["Large Van"])} · Maniobra {fmt(TARIFA_MANIOBRA)}
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr><Th>Servicio</Th><Th>Cantidad</Th><Th>Precio prom.</Th><Th>Sin IVA</Th><Th>IVA {IVA_PCT}%</Th><Th>Con IVA</Th></tr>
+            </thead>
+            <tbody>
+              {r.filasServicio.length === 0 ? <EmptyRow cols={6} msg="Sin rutas ni maniobras en este período" /> :
+                r.filasServicio.map(f => (
+                  <tr key={f.concepto}>
+                    <td style={cellL}>{f.concepto}</td>
+                    <td style={cell}>{f.cantidad}</td>
+                    <td style={cell}>{fmt(f.cantidad ? f.importe / f.cantidad : 0)}</td>
+                    <td style={{ ...cell, fontWeight: 600 }}>{fmt(f.importe)}</td>
+                    <td style={{ ...cell, color: C.muted }}>{fmt(f.importe * IVA_PCT / 100)}</td>
+                    <td style={cell}>{fmt(f.importe * (1 + IVA_PCT / 100))}</td>
+                  </tr>
+                ))}
+              {r.filasServicio.length > 0 && (
+                <tr style={{ background: "#F0FAF0" }}>
+                  <td style={{ ...cellL, fontWeight: 800 }}>Total trabajado</td>
+                  <td style={cell}></td><td style={cell}></td>
+                  <td style={{ ...cell, fontWeight: 800, color: C.greenStrong }}>{fmt(r.trabajado)}</td>
+                  <td style={{ ...cell, fontWeight: 700, color: C.muted }}>{fmt(r.trabajado * IVA_PCT / 100)}</td>
+                  <td style={{ ...cell, fontWeight: 800 }}>{fmt(r.trabajado * (1 + IVA_PCT / 100))}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {r.rutasSinPrecio > 0 && (
+          <div style={{ marginTop: 10, fontSize: 12, color: "#B45309" }}>
+            ⚠ {r.rutasSinPrecio} ruta{r.rutasSinPrecio !== 1 ? "s" : ""} sin flete ni tarifa (unidad sin tipo u Otro). Captura su flete en Rutas o su tarifa en Clientes.
+          </div>
+        )}
+      </div>
+
+      {/* ── 2. Estado de resultados ── */}
+      <div style={card}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>2. Estado de resultados · sin IVA</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
+          La misma resta con tres ingresos distintos: si me pagaran todo lo trabajado, lo que ya facturé, y lo que realmente entró.
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
+            <thead>
+              <tr>
+                <Th>Concepto</Th>
+                {columnas.map(c => (
+                  <th key={c.key} style={{ padding: "9px 12px", textAlign: "right", fontSize: 11, fontWeight: 700, color: C.muted, background: "#F0F4F0", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
+                    {c.label}<div style={{ fontWeight: 400, fontSize: 10 }}>{c.sub}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ ...cellL, fontWeight: 700 }}>Ingresos</td>
+                {columnas.map(c => <td key={c.key} style={{ ...cell, fontWeight: 700, color: C.green }}>{fmt(c.valor)}</td>)}
+              </tr>
+              {r.filasGasto.map(([tipo, monto]) => (
+                <tr key={tipo}>
+                  <td style={{ ...cellL, paddingLeft: 28, color: C.muted }}>− {tipo}</td>
+                  {columnas.map(c => <td key={c.key} style={{ ...cell, color: C.muted }}>{fmt(monto)}</td>)}
+                </tr>
+              ))}
+              <tr>
+                <td style={{ ...cellL, fontWeight: 700 }}>Total gastos pagados</td>
+                {columnas.map(c => <td key={c.key} style={{ ...cell, fontWeight: 700, color: "#C62828" }}>{fmt(r.totalGastos)}</td>)}
+              </tr>
+              <tr style={{ background: "#F0FAF0" }}>
+                <td style={{ ...cellL, fontWeight: 800, fontSize: 14 }}>Utilidad</td>
+                {columnas.map(c => {
+                  const u = c.valor - r.totalGastos;
+                  return <td key={c.key} style={{ ...cell, fontWeight: 800, fontSize: 14, color: u < 0 ? "#C62828" : C.greenStrong }}>{fmt(u)}</td>;
+                })}
+              </tr>
+              <tr>
+                <td style={{ ...cellL, color: C.muted }}>Margen</td>
+                {columnas.map(c => <td key={c.key} style={{ ...cell, color: neg(c.valor - r.totalGastos) }}>{pct(c.valor - r.totalGastos, c.valor)}</td>)}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {r.gastosPendientes > 0 && (
+          <div style={{ marginTop: 10, fontSize: 12, color: C.muted }}>
+            No incluye {fmt(r.gastosPendientes)} de gastos "Por pagar" o "En revisión".
+          </div>
+        )}
+      </div>
+
+      {/* ── 3. De lo trabajado a lo cobrado ── */}
+      <div style={card}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>3. ¿Dónde está mi dinero?</div>
+        {[
+          { label: "Trabajado",                    valor: r.trabajado,               color: C.greenStrong },
+          { label: "− Falta facturar",             valor: r.trabajado - r.facturado, color: "#B45309", hint: "trabajo hecho que no se ha facturado" },
+          { label: "= Facturado",                  valor: r.facturado,               color: C.text },
+          { label: "− Falta cobrar",               valor: r.facturado - r.cobrado,   color: "#B45309", hint: "facturas emitidas que el cliente no ha pagado" },
+          { label: "= Cobrado",                    valor: r.cobrado,                 color: C.green },
+        ].map(row => (
+          <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: `1px solid ${C.border}`, gap: 12 }}>
+            <div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{row.label}</span>
+              {row.hint && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{row.hint}</span>}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: row.color, whiteSpace: "nowrap" }}>{fmt(row.valor)}</span>
+          </div>
+        ))}
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>
+          Las facturas se cuentan por fecha de carga y los cobros por fecha de pago, así que una factura de un período puede cobrarse en otro. Un valor negativo en "falta facturar" significa que se facturó trabajo de otro período.
+        </div>
       </div>
     </div>
   );
@@ -4017,6 +4404,8 @@ export default function VDLModulos({ onLogout }) {
   const [unidades,   setUnidades]   = useState(null);
   const [clientes,   setClientes]   = useState(null);
   const [prestamos,  setPrestamos]  = useState(null);
+  const [maniobras,  setManiobras]  = useState(null);
+  const [maniobrasFaltante, setManiobrasFaltante] = useState(false);
 
   // ── Fetch all tables ──────────────────────────────────────────────────
   const fetchTable = useCallback(async (table, setter) => {
@@ -4032,6 +4421,13 @@ export default function VDLModulos({ onLogout }) {
   const reloadIngresos   = useCallback(() => fetchTable("ingresos",   setIngresos),   [fetchTable]);
   const reloadClientes   = useCallback(() => fetchTable("clientes",   setClientes),   [fetchTable]);
   const reloadPrestamos  = useCallback(() => fetchTable("prestamos",  setPrestamos),  [fetchTable]);
+  // Tabla nueva: si aún no existe en Supabase, seguir con lista vacía en vez de quedarse cargando
+  const reloadManiobras  = useCallback(async () => {
+    const { data, error } = await sb.from("maniobras").select("*").order("created_at", { ascending: false });
+    setManiobrasFaltante(!!error);
+    setManiobras(error ? [] : (data || []));
+    if (error) console.error("Error fetching maniobras:", error.message);
+  }, []);
 
   // Initial load — fetch everything on mount
   useEffect(() => {
@@ -4042,6 +4438,7 @@ export default function VDLModulos({ onLogout }) {
     reloadIngresos();
     reloadClientes();
     reloadPrestamos();
+    reloadManiobras();
   }, []);
 
   // ── KPIs ─────────────────────────────────────────────────────────────
@@ -4325,12 +4722,14 @@ export default function VDLModulos({ onLogout }) {
         {/* MODULE CONTENT */}
         <div style={{ flex: 1, padding: "20px clamp(12px, 3vw, 28px)" }}>
           {mod === "dashboard"  && <ModDashboard  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} prestamos={prestamos || []} desde={desde} hasta={hasta} />}
+          {mod === "resultados" && <ModResultados ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} maniobras={maniobras || []} unidades={unidades || []} clientes={clientes || []} desde={desde} hasta={hasta} />}
           {mod === "consultas"  && <ModConsultas  ingresos={ingresos || []} gastos={gastos || []} rutas={rutas || []} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
           {mod === "ingresos"   && <ModIngresos   data={ingresos}   reload={reloadIngresos}   desde={desde} hasta={hasta} />}
           {mod === "gastos"     && <ModGastos     data={gastos}     reload={reloadGastos}     desde={desde} hasta={hasta} rutas={rutas || []} operadores={operadores || []} />}
           {mod === "clientes"   && <ModClientes   data={clientes}   reload={reloadClientes} />}
           {mod === "operadores" && <ModOperadores data={operadores} reload={reloadOperadores} unidades={unidades || []} />}
           {mod === "rutas"      && <ModRutas      data={rutas}      reload={reloadRutas}      desde={desde} hasta={hasta} operadores={operadores || []} unidades={unidades || []} clientes={clientes || []} />}
+          {mod === "maniobras"  && <ModManiobras  data={maniobras}  reload={reloadManiobras}  desde={desde} hasta={hasta} clientes={clientes || []} operadores={operadores || []} tablaFaltante={maniobrasFaltante} />}
           {mod === "unidades"   && <ModUnidades   data={unidades}   reload={reloadUnidades} />}
           {mod === "prestamos"  && <ModPrestamos  data={prestamos}  reload={reloadPrestamos} />}
         </div>
