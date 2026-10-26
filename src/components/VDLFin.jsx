@@ -2638,144 +2638,125 @@ function ModResultados({ ingresos, gastos, rutas, maniobras, unidades, clientes,
     };
   }, [ingresos, gastos, rutas, maniobras, unidades, clientes, desde, hasta]);
 
-  const pct = (util, base) => base > 0 ? `${Math.round(util / base * 100)}%` : "—";
-  const neg = (n) => n < 0 ? "#C62828" : C.text;
-  const columnas = [
-    { key: "trabajado", label: "Trabajado",  sub: "lo que el cliente debe pagar", valor: r.trabajado },
-    { key: "facturado", label: "Facturado",  sub: `${r.nFacturas} factura${r.nFacturas !== 1 ? "s" : ""} emitidas`, valor: r.facturado },
-    { key: "cobrado",   label: "Cobrado",    sub: `${r.nPagadas} factura${r.nPagadas !== 1 ? "s" : ""} pagadas`, valor: r.cobrado },
-  ];
-  const card = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "18px 20px", marginBottom: 16 };
-  const cell = { padding: "9px 12px", fontSize: 13, borderBottom: `1px solid ${C.border}`, textAlign: "right", whiteSpace: "nowrap" };
-  const cellL = { ...cell, textAlign: "left" };
   const periodo = desde || hasta ? `${desde || "inicio"} → ${hasta || "hoy"}` : "todo el historial";
+  const nRutas = r.filasServicio.filter(f => f.concepto !== "Maniobras").reduce((s, f) => s + f.cantidad, 0);
+  const nMan   = r.filasServicio.find(f => f.concepto === "Maniobras")?.cantidad || 0;
+
+  const escenarios = [
+    {
+      key: "trabajado", titulo: "Lo trabajado",
+      pregunta: "Si el cliente me pagara todo lo que trabajé",
+      etiqueta: "Ingresos (trabajado)", ingreso: r.trabajado,
+      nota: `${nRutas} ruta${nRutas !== 1 ? "s" : ""} y ${nMan} maniobra${nMan !== 1 ? "s" : ""}`,
+    },
+    {
+      key: "facturado", titulo: "Lo facturado",
+      pregunta: "Con lo que ya le facturé al cliente",
+      etiqueta: "Ingresos (facturado)", ingreso: r.facturado,
+      nota: r.trabajado - r.facturado > 0 ? `Te falta facturar ${fmt(r.trabajado - r.facturado)}` : `${r.nFacturas} factura${r.nFacturas !== 1 ? "s" : ""}`,
+    },
+    {
+      key: "cobrado", titulo: "Lo pagado",
+      pregunta: "Con lo que el cliente ya me pagó",
+      etiqueta: "Ingresos (pagado)", ingreso: r.cobrado,
+      nota: r.facturado - r.cobrado > 0 ? `Te falta cobrar ${fmt(r.facturado - r.cobrado)}` : `${r.nPagadas} factura${r.nPagadas !== 1 ? "s" : ""} pagadas`,
+    },
+  ];
+
+  const card  = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "18px 20px" };
+  const linea = { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, padding: "7px 0" };
+  const titulo = { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 };
 
   return (
     <div>
-      {/* ── Resumen: las tres preguntas clave ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
-        <MiniKpi label="Trabajado (debe pagarme)" value={fmt(r.trabajado)} sub={`${fmt(r.trabajado * (1 + IVA_PCT / 100))} con IVA`} color={C.greenStrong} />
-        <MiniKpi label="Facturado" value={fmt(r.facturado)} sub={`Por facturar: ${fmt(r.trabajado - r.facturado)}`} />
-        <MiniKpi label="Cobrado (me pagó)" value={fmt(r.cobrado)} sub={`Por cobrar: ${fmt(r.facturado - r.cobrado)}`} color={C.green} />
-        <MiniKpi label="Gastos pagados" value={fmt(r.totalGastos)} sub={r.gastosPendientes > 0 ? `+ ${fmt(r.gastosPendientes)} por pagar` : "sin pendientes"} color="#C62828" />
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 14 }}>
+        Período: <strong style={{ color: C.text }}>{periodo}</strong> · Todos los montos son <strong style={{ color: C.text }}>sin IVA</strong>
       </div>
 
-      {/* ── 1. Lo trabajado por servicio ── */}
-      <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>1. Lo que el cliente debe pagar · por servicio</div>
-        <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
-          Rutas y maniobras realizadas en {periodo}. Tarifas base sin IVA: Moto {fmt(TARIFAS_BASE.Moto)} · Sedán {fmt(TARIFAS_BASE["Sedán"])} · Small Van {fmt(TARIFAS_BASE["Small Van"])} · Van {fmt(TARIFAS_BASE.Van)} · Large Van {fmt(TARIFAS_BASE["Large Van"])} · Maniobra {fmt(TARIFA_MANIOBRA)}
-        </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr><Th>Servicio</Th><Th>Cantidad</Th><Th>Precio prom.</Th><Th>Sin IVA</Th><Th>IVA {IVA_PCT}%</Th><Th>Con IVA</Th></tr>
-            </thead>
-            <tbody>
-              {r.filasServicio.length === 0 ? <EmptyRow cols={6} msg="Sin rutas ni maniobras en este período" /> :
-                r.filasServicio.map(f => (
-                  <tr key={f.concepto}>
-                    <td style={cellL}>{f.concepto}</td>
-                    <td style={cell}>{f.cantidad}</td>
-                    <td style={cell}>{fmt(f.cantidad ? f.importe / f.cantidad : 0)}</td>
-                    <td style={{ ...cell, fontWeight: 600 }}>{fmt(f.importe)}</td>
-                    <td style={{ ...cell, color: C.muted }}>{fmt(f.importe * IVA_PCT / 100)}</td>
-                    <td style={cell}>{fmt(f.importe * (1 + IVA_PCT / 100))}</td>
-                  </tr>
-                ))}
-              {r.filasServicio.length > 0 && (
-                <tr style={{ background: "#F0FAF0" }}>
-                  <td style={{ ...cellL, fontWeight: 800 }}>Total trabajado</td>
-                  <td style={cell}></td><td style={cell}></td>
-                  <td style={{ ...cell, fontWeight: 800, color: C.greenStrong }}>{fmt(r.trabajado)}</td>
-                  <td style={{ ...cell, fontWeight: 700, color: C.muted }}>{fmt(r.trabajado * IVA_PCT / 100)}</td>
-                  <td style={{ ...cell, fontWeight: 800 }}>{fmt(r.trabajado * (1 + IVA_PCT / 100))}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {r.rutasSinPrecio > 0 && (
-          <div style={{ marginTop: 10, fontSize: 12, color: "#B45309" }}>
-            ⚠ {r.rutasSinPrecio} ruta{r.rutasSinPrecio !== 1 ? "s" : ""} sin flete ni tarifa (unidad sin tipo u Otro). Captura su flete en Rutas o su tarifa en Clientes.
-          </div>
-        )}
-      </div>
+      {/* ── Las tres cuentas: ingresos − gastos = utilidad ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 14, marginBottom: 20 }}>
+        {escenarios.map((e, i) => {
+          const util = e.ingreso - r.totalGastos;
+          const gana = util >= 0;
+          return (
+            <div key={e.key} style={{ ...card, borderTop: `4px solid ${gana ? C.green : "#C62828"}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{i + 1}. {e.titulo}</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>{e.pregunta}</div>
 
-      {/* ── 2. Estado de resultados ── */}
-      <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>2. Estado de resultados · sin IVA</div>
-        <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
-          La misma resta con tres ingresos distintos: si me pagaran todo lo trabajado, lo que ya facturé, y lo que realmente entró.
-        </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
-            <thead>
-              <tr>
-                <Th>Concepto</Th>
-                {columnas.map(c => (
-                  <th key={c.key} style={{ padding: "9px 12px", textAlign: "right", fontSize: 11, fontWeight: 700, color: C.muted, background: "#F0F4F0", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
-                    {c.label}<div style={{ fontWeight: 400, fontSize: 10 }}>{c.sub}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ ...cellL, fontWeight: 700 }}>Ingresos</td>
-                {columnas.map(c => <td key={c.key} style={{ ...cell, fontWeight: 700, color: C.green }}>{fmt(c.valor)}</td>)}
-              </tr>
-              {r.filasGasto.map(([tipo, monto]) => (
-                <tr key={tipo}>
-                  <td style={{ ...cellL, paddingLeft: 28, color: C.muted }}>− {tipo}</td>
-                  {columnas.map(c => <td key={c.key} style={{ ...cell, color: C.muted }}>{fmt(monto)}</td>)}
-                </tr>
-              ))}
-              <tr>
-                <td style={{ ...cellL, fontWeight: 700 }}>Total gastos pagados</td>
-                {columnas.map(c => <td key={c.key} style={{ ...cell, fontWeight: 700, color: "#C62828" }}>{fmt(r.totalGastos)}</td>)}
-              </tr>
-              <tr style={{ background: "#F0FAF0" }}>
-                <td style={{ ...cellL, fontWeight: 800, fontSize: 14 }}>Utilidad</td>
-                {columnas.map(c => {
-                  const u = c.valor - r.totalGastos;
-                  return <td key={c.key} style={{ ...cell, fontWeight: 800, fontSize: 14, color: u < 0 ? "#C62828" : C.greenStrong }}>{fmt(u)}</td>;
-                })}
-              </tr>
-              <tr>
-                <td style={{ ...cellL, color: C.muted }}>Margen</td>
-                {columnas.map(c => <td key={c.key} style={{ ...cell, color: neg(c.valor - r.totalGastos) }}>{pct(c.valor - r.totalGastos, c.valor)}</td>)}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        {r.gastosPendientes > 0 && (
-          <div style={{ marginTop: 10, fontSize: 12, color: C.muted }}>
-            No incluye {fmt(r.gastosPendientes)} de gastos "Por pagar" o "En revisión".
-          </div>
-        )}
-      </div>
+              <div style={linea}>
+                <span style={{ fontSize: 14, color: C.text }}>{e.etiqueta}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: C.green }}>{fmt(e.ingreso)}</span>
+              </div>
+              <div style={{ ...linea, borderBottom: `2px solid ${C.text}` }}>
+                <span style={{ fontSize: 14, color: C.text }}>− Gastos pagados</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#C62828" }}>{fmt(r.totalGastos)}</span>
+              </div>
+              <div style={{ ...linea, paddingTop: 10 }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>= {gana ? "Ganancia" : "Pérdida"}</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: gana ? C.greenStrong : "#C62828" }}>{fmt(util)}</span>
+              </div>
 
-      {/* ── 3. De lo trabajado a lo cobrado ── */}
-      <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>3. ¿Dónde está mi dinero?</div>
-        {[
-          { label: "Trabajado",                    valor: r.trabajado,               color: C.greenStrong },
-          { label: "− Falta facturar",             valor: r.trabajado - r.facturado, color: "#B45309", hint: "trabajo hecho que no se ha facturado" },
-          { label: "= Facturado",                  valor: r.facturado,               color: C.text },
-          { label: "− Falta cobrar",               valor: r.facturado - r.cobrado,   color: "#B45309", hint: "facturas emitidas que el cliente no ha pagado" },
-          { label: "= Cobrado",                    valor: r.cobrado,                 color: C.green },
-        ].map(row => (
-          <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: `1px solid ${C.border}`, gap: 12 }}>
-            <div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{row.label}</span>
-              {row.hint && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{row.hint}</span>}
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, fontSize: 12, color: C.muted, flexWrap: "wrap" }}>
+                <span>{e.nota}</span>
+                {e.ingreso > 0 && (() => {
+                  const c = Math.round(util / e.ingreso * 100);
+                  return <span>{c >= 0 ? `Te quedan ${c} centavos de cada peso` : `Pierdes ${-c} centavos por cada peso`}</span>;
+                })()}
+              </div>
             </div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: row.color, whiteSpace: "nowrap" }}>{fmt(row.valor)}</span>
-          </div>
-        ))}
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>
-          Las facturas se cuentan por fecha de carga y los cobros por fecha de pago, así que una factura de un período puede cobrarse en otro. Un valor negativo en "falta facturar" significa que se facturó trabajo de otro período.
+          );
+        })}
+      </div>
+
+      {/* ── Detalle ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+        <div style={card}>
+          <div style={titulo}>¿De dónde sale lo trabajado?</div>
+          {r.filasServicio.length === 0
+            ? <div style={{ fontSize: 13, color: C.muted }}>Sin rutas ni maniobras en este período.</div>
+            : r.filasServicio.map(f => (
+              <div key={f.concepto} style={{ ...linea, borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 13, color: C.text }}>
+                  {f.concepto} <span style={{ color: C.muted }}>· {f.cantidad} × {fmt(f.cantidad ? f.importe / f.cantidad : 0)}</span>
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{fmt(f.importe)}</span>
+              </div>
+            ))}
+          {r.filasServicio.length > 0 && (
+            <>
+              <div style={{ ...linea, paddingTop: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 800 }}>Total trabajado</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: C.green }}>{fmt(r.trabajado)}</span>
+              </div>
+              <div style={{ fontSize: 12, color: C.muted }}>Con IVA, el cliente debe pagarte {fmt(r.trabajado * (1 + IVA_PCT / 100))}</div>
+            </>
+          )}
+          {r.rutasSinPrecio > 0 && (
+            <div style={{ marginTop: 10, fontSize: 12, color: "#B45309" }}>
+              ⚠ {r.rutasSinPrecio} ruta{r.rutasSinPrecio !== 1 ? "s" : ""} sin precio (unidad sin tipo u Otro). Captura su flete en Rutas.
+            </div>
+          )}
+        </div>
+
+        <div style={card}>
+          <div style={titulo}>¿En qué se gastó?</div>
+          {r.filasGasto.length === 0
+            ? <div style={{ fontSize: 13, color: C.muted }}>Sin gastos pagados en este período.</div>
+            : r.filasGasto.map(([tipo, monto]) => (
+              <div key={tipo} style={{ ...linea, borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 13, color: C.text }}>{tipo}</span>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{fmt(monto)}</span>
+              </div>
+            ))}
+          {r.filasGasto.length > 0 && (
+            <div style={{ ...linea, paddingTop: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 800 }}>Total gastos pagados</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: "#C62828" }}>{fmt(r.totalGastos)}</span>
+            </div>
+          )}
+          {r.gastosPendientes > 0 && (
+            <div style={{ fontSize: 12, color: C.muted }}>Además tienes {fmt(r.gastosPendientes)} en gastos por pagar (no se restan).</div>
+          )}
         </div>
       </div>
     </div>
